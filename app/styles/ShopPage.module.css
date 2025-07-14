@@ -60,6 +60,21 @@
 
 /* ... (existing styles like .pageContainer, .shopHeader, .shopImageBanner) ... */
 
+.productColWrapper {
+  display: flex;
+}
+
+.cardFooter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.cardFooterButton {
+  margin-top: auto;
+}
+
 /* NEW: A wrapper class for your product columns */
 .productColWrapper .card { /* Target .card specifically within this new wrapper */
   background-color: #ffffff;

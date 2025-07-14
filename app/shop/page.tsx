@@ -27,9 +27,8 @@ export default function ShopPage() {
   const [loading, setLoading] = useState(true);
   const [setOptions, setSetOptions] = useState<string[]>([]);
 
-
   const { addToCart } = useCart();
-const fetchCards = useCallback(async () => {
+  const fetchCards = useCallback(async () => {
     setLoading(true);
     let query = supabase.from("Card").select("*").eq("available", true);
 
@@ -46,7 +45,7 @@ const fetchCards = useCallback(async () => {
       setCards(data || []);
     }
     setLoading(false);
-  }, [search, rarity, setName, supabase]); // Add dependencies of fetchCards
+  }, [search, rarity, setName, supabase]);
 
   useEffect(() => {
     fetchCards();
@@ -160,20 +159,22 @@ useEffect(() => {
         alt={card.name}
         className="card-img-top"
       />
-      <div className="card-body text-center mt-2">
-        <h5 className="card-title">{card.name}</h5>
-        <p className="card-text">
-          {typeof card.price === "number"
-            ? `£${(card.price / 100).toFixed(2)}`
-            : "N/A"}
-        </p>
-        <p className="card-text">
-          <small className="text-muted" title={card.set}> {/* Added title attribute here */}
-            {truncateText(card.set, 18)} — #{card.number}
-          </small>
-        </p>
+      <div className={`card-body text-center mt-2 ${styles.cardFooter}`}>
+        <div>
+          <h5 className="card-title">{card.name}</h5>
+          <p className="card-text">
+            {typeof card.price === "number"
+              ? `£${(card.price / 100).toFixed(2)}`
+              : "N/A"}
+          </p>
+          <p className="card-text">
+            <small className="text-muted" title={card.set}> {/* Added title attribute here */}
+              {truncateText(card.set, 18)} — #{card.number}
+            </small>
+          </p>
+        </div>
         <button
-          className="btn btn-primary"
+          className={`btn btn-primary ${styles.cardFooterButton}`}
           onClick={() => handleAddToCart(card)}
         >
           Add to Cart
