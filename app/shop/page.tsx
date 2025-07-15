@@ -1,11 +1,12 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
-import styles from "../styles/ShopPage.module.css";
+import styles from "@/styles/ShopPage.module.css";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { useCart } from "@/components/CartProvider";
 import { ToastContainer, toast, Flip } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
 
 
 

@@ -19,12 +19,13 @@
   overflow: hidden;
 }
 
-.img {
-  width: 170px !important;
+.ShopPage_card-img-top__w1L_U {
+  width: 100%;
   height: 240px !important;
-  object-fit: contain; /* or 'cover' depending on your goal */
+  object-fit: cover; /* or 'contain' if you want the whole image visible */
+  aspect-ratio: 170 / 240; /* Optional: helps browsers maintain aspect ratio */
+  background: #222; /* Optional: background color for letterboxing */
 }
-
 
 .shopImageBanner img {
   height: 30rem;
