@@ -6,8 +6,6 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { useCart } from "@/components/CartProvider";
 import { ToastContainer, toast, Flip } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import 'bootstrap/dist/js/bootstrap.bundle.min.js'; // Ensure Bootstrap JS is loaded
-//test
 
 // Supabase
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
@@ -27,11 +25,11 @@ export default function ShopPage() {
   const [loading, setLoading] = useState(true);
   const [setOptions, setSetOptions] = useState<string[]>([]);
 
-
   const { addToCart } = useCart();
-    const fetchCards = useCallback(async () => {
-      setLoading(true);
-      let query = supabase.from("Card").select("*").eq("available", true);
+
+  const fetchCards = useCallback(async () => {
+    setLoading(true);
+    let query = supabase.from("Card").select("*").eq("available", true);
 
     if (search) query = query.ilike("name", `%${search}%`);
     if (setName) query = query.ilike("set", `%${setName}%`);
@@ -46,17 +44,18 @@ export default function ShopPage() {
       setCards(data || []);
     }
     setLoading(false);
-  }, [search, rarity, setName, supabase]);
+  }, [search, rarity, setName]);
 
   useEffect(() => {
     fetchCards();
   }, [fetchCards]);
-useEffect(() => {
-  fetch("/api/sets")
-    .then(res => res.json())
-    .then(data => setSetOptions(data.sets || []))
-    .catch(err => console.error("Failed to load sets", err));
-}, []);
+
+  useEffect(() => {
+    fetch("/api/sets")
+      .then(res => res.json())
+      .then(data => setSetOptions(data.sets || []))
+      .catch(err => console.error("Failed to load sets", err));
+  }, []);
 
   const handleAddToCart = (card: any) => {
     addToCart({
@@ -68,7 +67,6 @@ useEffect(() => {
     toast.success(`${card.name} added to cart!`);
   };
 
-  // Function to truncate text
   const truncateText = (text: string, maxLength: number) => {
     if (text.length > maxLength) {
       return text.substring(0, maxLength - 3) + '...';
@@ -78,7 +76,6 @@ useEffect(() => {
 
   return (
     <main className={styles.pageContainer}>
-      {/* ✅ Banner Image */}
       <div className={styles.shopImageBanner}>
         <img
           src="/banner3.png"
@@ -87,7 +84,6 @@ useEffect(() => {
         />
       </div>
 
-      {/* ✅ Toast Notifications */}
       <ToastContainer
         position="top-center"
         autoClose={3000}
@@ -103,7 +99,6 @@ useEffect(() => {
       />
 
       <div className="container mt-4">
-        {/* ✅ Filters */}
         <div className="row mb-3">
           <div className="col-md-4 mb-2">
             <input
@@ -114,21 +109,20 @@ useEffect(() => {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-         <div className="col-md-4 mb-2">
-  <select
-    className="form-select"
-    value={setName}
-    onChange={(e) => setSetName(e.target.value)}
-  >
-    <option value="">All Sets</option>
-    {setOptions.map((set) => (
-      <option key={set} value={set}>
-        {set}
-      </option>
-    ))}
-  </select>
-</div>
-
+          <div className="col-md-4 mb-2">
+            <select
+              className="form-select"
+              value={setName}
+              onChange={(e) => setSetName(e.target.value)}
+            >
+              <option value="">All Sets</option>
+              {setOptions.map((set) => (
+                <option key={set} value={set}>
+                  {set}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="col-md-4 mb-2">
             <select
               className="form-select"
@@ -149,48 +143,44 @@ useEffect(() => {
         {error && <div className="alert alert-danger">{error}</div>}
         {loading && <div className="text-muted">Loading cards...</div>}
 
-     
-     {/* ✅ Card Grid */}
         <div className={`row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-4 ${styles.productGridRow}`}>
           {cards.map((card) => (
-  <div className={`col ${styles.productColWrapper}`} key={card.id}>
-    <div className="card">
-      <img
-        src={ card.image_url || "/fallback.jpg"}
-        alt={card.name}
-        className="card-img-top"
-      />
-          <div className={`card-body text-center mt-2 ${styles.cardFooter}`}>
-        <div>
-          <h5 className="card-title">{card.name}</h5>
-          <p className="card-text">
-            {typeof card.price === "number"
-              ? `£${(card.price / 100).toFixed(2)}`
-              : "N/A"}
-          </p>
-          <p className="card-text">
-            <small className="text-muted" title={card.set}> {/* Added title attribute here */}
-              {truncateText(card.set, 18)} — #{card.number}
-            </small>
-          </p>
-        </div>
-        <button
-          className={`btn btn-primary ${styles.cardFooterButton}`}
-          onClick={() => handleAddToCart(card)}
-        >
-          Add to Cart
-        </button>
-      </div>
-    </div>
-  </div>
+            <div className={`col ${styles.productColWrapper}`} key={card.id}>
+              <div className={`card ${styles.shopCard}`}>
+                <img
+                  src={card.image_url || "/fallback.jpg"}
+                  alt={card.name}
+                  className="card-img-top"
+                />
+                <div className={`card-body ${styles.cardBody}`}>
+                  {/* This new wrapper will grow to push the button down */}
+                  <div className={styles.cardTextWrapper}>
+                    <h5 className="card-title">{card.name}</h5>
+                    <p className="card-text">
+                      {typeof card.price === "number"
+                        ? `£${(card.price / 100).toFixed(2)}`
+                        : "N/A"}
+                    </p>
+                    <p className="card-text">
+                      <small className="text-muted" title={card.set}>
+                        {truncateText(card.set, 18)} — #{card.number}
+                      </small>
+                    </p>
+                  </div>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => handleAddToCart(card)}
+                  >
+                    Add to Cart
+                  </button>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
-      </div>    
+      </div>
       <div style={{ paddingTop: "20px", height: "3rem", width: "100%" }}></div>
       <footer style={{ paddingTop: "20px", height: "3rem", width: "100%", background: "#282828", position: "static" }}></footer>
-    </main> 
+    </main>
   );
-    
-  
-
 }

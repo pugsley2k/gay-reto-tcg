@@ -1,91 +1,44 @@
 /* app/shop/ShopPage.module.css */
-/* ShopPage.module.css */
+
+/* General page styling */
 .pageContainer {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: #f0f0f0; /* Light background for contrast */
-  min-height: 100vh; /* Ensure full height */
-}
-.shopHeader {
-  text-align: center;
-  margin: 20px 0;
+  background-color: #f0f0f0;
+  min-height: 100vh;
 }
 
 .shopImageBanner {
   width: 100%;
-  max-height: 30rem; /* Adjust this value to your desired height */
+  max-height: 30rem;
   overflow: hidden;
-}
-
-.ShopPage_card-img-top__w1L_U {
-  width: 100%;
-  height: 240px !important;
-  object-fit: cover; /* or 'contain' if you want the whole image visible */
-  aspect-ratio: 170 / 240; /* Optional: helps browsers maintain aspect ratio */
-  background: #222; /* Optional: background color for letterboxing */
 }
 
 .shopImageBanner img {
   height: 30rem;
   width: 100%;
-  object-fit: contain; /* Try different values: cover, contain, fill */
+  object-fit: contain;
   align-items: center;
   background-color: #282828;
 }
 
-/* Original .productCard - REMOVE OR RENAME THIS IF IT'S NOT USED */
-/*
-.productCard {
-   margin: 10px;
-  border: 1px solid #ccc;
-  padding: 10px;
-  text-align: center;
+/* Grid and Column setup */
+.productGridRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch; /* This makes all columns in a row equal height */
 }
-*/
-
-/* Original .productImageWrapper - REMOVE OR RENAME THIS IF IT'S NOT USED */
-/*
-.productImageWrapper {
-  width: 100%;
-  height: 250px;
-  overflow: hidden;
-}
-*/
-
-/* Original .productImage - REMOVE OR RENAME THIS IF IT'S NOT USED */
-/*
-.productImage {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-*/
-
-/* Dark Product Card Style (this is the one being used based on page.tsx) */
-/* app/shop/ShopPage.module.css */
-
-/* ... (existing styles like .pageContainer, .shopHeader, .shopImageBanner) ... */
 
 .productColWrapper {
   display: flex;
+  padding: 0 8px;
+  margin-bottom: 1.5rem;
 }
 
-.cardFooter {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.cardFooterButton {
-  margin-top: auto;
-}
-
-
-/* NEW: A wrapper class for your product columns */
-.productColWrapper .card { /* Target .card specifically within this new wrapper */
+/* Card styling */
+.shopCard {
   background-color: #ffffff;
   color: #e0e0e0;
   border: 1px solid #ffffff;
@@ -93,85 +46,79 @@
   padding: 1rem;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
   transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-  display: flex !important; /* Force flexbox */
-  flex-direction: column !important; /* Force column direction */
-  align-items: center;
-  height: 100% !important; /* Crucial: Ensure this overrides Bootstrap's height var */
-  min-height: 420px !important; /* Increased fallback min-height. Adjust if needed. */
-  justify-content: space-between; /* Distribute space within the card */
-  max-width: 200px; /*Test */
+  
+  /* Use flexbox to structure the card's content vertically */
+  display: flex;
+  flex-direction: column;
+  
+  width: 100%; 
+  max-width: 200px;
+  flex-grow: 1; /* This makes the card fill the vertical space of its parent column */
 }
 
-.productColWrapper .card:hover {
+.shopCard:hover {
   transform: translateY(-5px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
-.productColWrapper .card-img-top { /* Target .card-img-top specifically within this new wrapper */
-  width: 100% !important;
-  height: 200px !important; /* This is the most crucial property. It MUST be active. */
-  object-fit: contain !important;
+/* The card body is a flex container for the text and button */
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1; /* Make the body fill the rest of the card */
+  padding: 0.5rem 0;
+  text-align: center; /* Center all text within the card body */
+}
+
+/* --- FIX IS HERE --- */
+/* This wrapper holds the text. It grows to push the button down,
+   and the text inside will align to the top by default. */
+.cardTextWrapper {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  /* By removing "justify-content", the text will naturally align to the top */
+}
+
+/* Card content styling */
+.shopCard .card-img-top {
+  width: 100%; 
+  height: 170px;
+  object-fit: contain;
   border-radius: 8px;
   background-color: #2c2c2c;
   border: 1px solid #444;
-  flex-shrink: 0 !important;
-  max-height: 240px !important; /* Ensure it doesn't exceed this height */
-  max-width: 174px !important; /* Ensure it doesn't exceed this width */
-
+  flex-shrink: 0;
+  margin-bottom: 0.5rem; /* Adds space between image and title */
 }
 
-/* Adjustments for card-body to ensure consistent spacing */
-.productColWrapper .card-body { /* Target .card-body specifically within this new wrapper */
-  text-align: center;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: space-between;
-  height: 100% !important;
-  padding: 0.5rem;
-  flex-grow: 1;
-  flex-basis: 0 !important; /* CRITICAL: Override Bootstrap's flex-basis: auto */
-  min-height: 80px !important; /* Add a min-height for the body content */
-}
-
-.productColWrapper .card-title { /* Target .card-title specifically within this new wrapper */
-  font-size: 1.1rem !important;
+.shopCard .card-title {
+  font-size: 1rem;
   font-weight: 700;
-  color: #00ff59 !important;
+  color: #00ff59;
   text-align: center;
   margin-bottom: 0.25rem;
-  min-height: 2.2rem !important;
+  min-height: 2.5rem;
   padding: 0 0.25rem;
-  font-family: "Honk", system-ui !important;
+  font-family: "Honk", system-ui;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
-  box-orient: vertical;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.productColWrapper .card-text {
+.shopCard .card-text {
   margin-bottom: 0.25rem;
 }
 
-.productColWrapper .card-text:nth-of-type(1) {
-    font-size: 1.1rem;
+.shopCard .card-text:nth-of-type(1) {
+    font-size: 1rem;
     font-weight: 600;
     color: #b6e3c6;
 }
 
-.productColWrapper .card-text .text-muted {
-    font-size: 0.85rem;
-}
-
-.productColWrapper .btn-primary {
-  margin-top: auto;
-}
-
-/* NEW ADDITION: Ensure Bootstrap rows containing cards use flexbox for equal height columns */
-.productGridRow { /* This class is added to the <div> in page.tsx */
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
+.shopCard .card-text .text-muted {
+    font-size: 0.8rem;
 }
