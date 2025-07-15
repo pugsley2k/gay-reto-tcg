@@ -35,7 +35,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     name: item.price_data.product_data.name,
     quantity: item.quantity,
   }));
-
+console.log("🧾 Inserting order:", {
+  id: orderId,
+  items: cardSummary,
+  status: "pending",
+});
+  console.log("Total amount to charge:", totalAmount);
   // 💾 Store order in Supabase
   const { error: insertError } = await supabase.from("Orders").insert({
     id: orderId,
@@ -44,7 +49,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   });
 
   if (insertError) {
-    console.error("❌ Failed to insert order into Supabase:", insertError);
+    console.error("❌ Supabase insert failed. Full response:", insertError, JSON.stringify(insertError, null, 2));
+
     return res.status(500).json({ error: 'Failed to store order data' });
   }
 
