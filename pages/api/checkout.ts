@@ -42,7 +42,7 @@ console.log("🧾 Inserting order:", {
 });
   console.log("Total amount to charge:", totalAmount);
   // 💾 Store order in Supabase
-  const { error: insertError } = await supabase.from("Orders").insert({
+  const { error: insertError } = await supabase.from("orders").insert({
     id: orderId,
     items: cardSummary,
     status: "pending",
