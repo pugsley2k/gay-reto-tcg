@@ -91,7 +91,7 @@
   height: 100% !important; /* Crucial: Ensure this overrides Bootstrap's height var */
   min-height: 420px !important; /* Increased fallback min-height. Adjust if needed. */
   justify-content: space-between; /* Distribute space within the card */
-  max-width: 200px; /*Test
+  max-width: 200px; /*Test */
 }
 
 .productColWrapper .card:hover {
@@ -137,6 +137,7 @@
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
+  box-orient: vertical;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
