@@ -18,7 +18,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const totalAmount = lineItems.reduce((sum, item) => sum + item.price_data.unit_amount * item.quantity, 0);
-  const cardIds = lineItems.map(item => item.cardId).join(',');
+  const cardSummary = lineItems.map(item => ({
+  id: item.cardId,
+  name: item.price_data.product_data.name,
+  quantity: item.quantity
+}));
+
+const cardSummaryJson = JSON.stringify(cardSummary).slice(0, 127); // PayPal custom_id max = 127 chars
+
 
   try {
     const auth = await getPayPalAccessToken();
@@ -36,7 +43,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             currency_code: "GBP",
             value: (totalAmount / 100).toFixed(2),
           },
-          custom_id: cardIds,
+          custom_id: cardSummaryJson,
+
         }],
         application_context: {
           return_url: `${req.headers.origin}/success`,
