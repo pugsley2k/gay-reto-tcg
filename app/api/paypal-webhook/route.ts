@@ -71,6 +71,7 @@ export async function POST(req: NextRequest) {
     if (event.event_type === 'CHECKOUT.ORDER.APPROVED') {
       const purchaseUnits = event.resource?.purchase_units;
       const customId = purchaseUnits?.[0]?.custom_id;
+      const customName = purchaseUnits?.[0]?.custom_name;
 
       if (!customId) {
         console.warn("⚠️ custom_id missing in PayPal webhook:", JSON.stringify(event, null, 2));
