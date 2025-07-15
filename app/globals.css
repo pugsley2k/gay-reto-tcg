@@ -132,8 +132,8 @@ body {
 
 /* This .card-img block is for CardItem.tsx. Keep it as is. */
 .card-img {
-  width: 190px !important;
-  height: 260px !important;
+  max-width: 170px;
+  align-self: center;
   object-fit: cover !important;
   border-radius: 16px;
   background: #f7fafc;
