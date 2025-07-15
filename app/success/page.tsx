@@ -1,4 +1,3 @@
-// app/success/page.tsx
 "use client";
 
 import Link from 'next/link';
@@ -8,18 +7,40 @@ import { useSearchParams } from 'next/navigation';
 function SuccessContent() {
   const rawSearchParams = useSearchParams();
   const searchParams = rawSearchParams ?? new URLSearchParams();
+
+  const token = searchParams.get('token');
   const payerId = searchParams.get('PayerID');
   const paymentId = searchParams.get('paymentId');
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    if (!token) {
+      setError("Missing PayPal token.");
       setIsLoading(false);
-    }, 500);
+      return;
+    }
 
-    return () => clearTimeout(timer);
-  }, []);
+    async function finalizeCapture() {
+      try {
+        const res = await fetch(`/api/paypal-capture?token=${token}`);
+        const data = await res.json();
+
+        if (!res.ok) {
+          console.error("❌ Capture failed:", data);
+          setError("Payment capture failed. Please contact support.");
+        }
+      } catch (err) {
+        console.error("🔥 Capture error:", err);
+        setError("Unexpected error during payment finalization.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    finalizeCapture();
+  }, [token]);
 
   if (isLoading) {
     return (
