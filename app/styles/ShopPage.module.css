@@ -19,6 +19,13 @@
   overflow: hidden;
 }
 
+.img {
+  width: 170px !important;
+  height: 240px !important;
+  object-fit: contain; /* or 'cover' depending on your goal */
+}
+
+
 .shopImageBanner img {
   height: 30rem;
   width: 100%;
