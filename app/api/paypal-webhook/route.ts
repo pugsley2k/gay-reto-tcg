@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
 
       // 🧾 Fetch order from Supabase
       const { data: order, error: fetchError } = await supabase
-        .from("Orders")
+        .from("orders")
         .select("items")
         .eq("id", orderId)
         .single();
