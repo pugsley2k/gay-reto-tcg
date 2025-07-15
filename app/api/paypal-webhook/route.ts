@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server';
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,                // not NEXT_PUBLIC
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
@@ -70,28 +70,54 @@ export async function POST(req: NextRequest) {
 
     if (event.event_type === 'CHECKOUT.ORDER.APPROVED') {
       const purchaseUnits = event.resource?.purchase_units;
-      const customId = purchaseUnits?.[0]?.custom_id;
-      const customName = purchaseUnits?.[0]?.custom_name;
+      const orderId = purchaseUnits?.[0]?.custom_id;
 
-      if (!customId) {
-        console.warn("⚠️ custom_id missing in PayPal webhook:", JSON.stringify(event, null, 2));
-        return new Response('Missing custom_id', { status: 400 });
+      if (!orderId) {
+        console.warn("⚠️ custom_id (orderId) missing in PayPal webhook:", JSON.stringify(event, null, 2));
+        return new Response('Missing custom_id (orderId)', { status: 400 });
       }
 
-      const cardIds = customId.split(',');
+      // 🧾 Fetch order from Supabase
+      const { data: order, error: fetchError } = await supabase
+        .from("Orders")
+        .select("items")
+        .eq("id", orderId)
+        .single();
 
-      for (const cardId of cardIds) {
+      if (fetchError || !order) {
+        console.error("❌ Failed to retrieve order from Supabase:", fetchError);
+        return new Response('Order not found', { status: 404 });
+      }
+
+      let cards;
+
+try {
+  cards = typeof order.items === "string" ? JSON.parse(order.items) : order.items;
+} catch (err) {
+  console.error("❌ Failed to parse order.items:", order.items, err);
+  return new Response('Invalid order items format', { status: 500 });
+}
+
+
+      for (const { id, name, quantity } of cards) {
         const { error } = await supabase
           .from("Card")
           .update({ available: false })
-          .eq("id", cardId);
+          .eq("id", id);
 
         if (error) {
-          console.error(`❌ Failed to update card ${cardId}`, error);
+          console.error(`❌ Failed to update card ${id} (${name})`, error);
         } else {
-          console.log(`✅ Marked card ${cardId} as unavailable`);
+          console.log(`✅ Marked card "${id}" (${name}) as unavailable`);
+
         }
       }
+
+      // ✅ Optional: mark order as complete
+      await supabase
+        .from("Orders")
+        .update({ status: "completed" })
+        .eq("id", orderId);
     }
 
     return new Response('Webhook received', { status: 200 });

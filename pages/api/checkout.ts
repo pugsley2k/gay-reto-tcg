@@ -1,9 +1,16 @@
 // pages/api/checkout.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { createClient } from "@supabase/supabase-js";
+import { v4 as uuidv4 } from 'uuid';
 
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID!;
 const PAYPAL_SECRET = process.env.PAYPAL_SECRET!;
 const BASE_URL = process.env.PAYPAL_API_BASE || "https://api-m.paypal.com"; // Live PayPal URL
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -18,14 +25,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const totalAmount = lineItems.reduce((sum, item) => sum + item.price_data.unit_amount * item.quantity, 0);
+
+  // 🔥 Generate orderId
+  const orderId = uuidv4();
+
+  // 🧾 Create cart summary to store in DB
   const cardSummary = lineItems.map(item => ({
-  id: item.cardId,
-  name: item.price_data.product_data.name,
-  quantity: item.quantity
-}));
+    id: item.cardId,
+    name: item.price_data.product_data.name,
+    quantity: item.quantity,
+  }));
 
-const cardSummaryJson = JSON.stringify(cardSummary).slice(0, 127); // PayPal custom_id max = 127 chars
+  // 💾 Store order in Supabase
+  const { error: insertError } = await supabase.from("Orders").insert({
+    id: orderId,
+    items: cardSummary,
+    status: "pending",
+  });
 
+  if (insertError) {
+    console.error("❌ Failed to insert order into Supabase:", insertError);
+    return res.status(500).json({ error: 'Failed to store order data' });
+  }
 
   try {
     const auth = await getPayPalAccessToken();
@@ -43,8 +64,7 @@ const cardSummaryJson = JSON.stringify(cardSummary).slice(0, 127); // PayPal cus
             currency_code: "GBP",
             value: (totalAmount / 100).toFixed(2),
           },
-          custom_id: cardSummaryJson,
-
+          custom_id: orderId, // 💡 Short ID used to link to DB
         }],
         application_context: {
           return_url: `${req.headers.origin}/success`,
