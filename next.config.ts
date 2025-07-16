@@ -8,12 +8,12 @@ const nextConfig = {
         port: '',
         pathname: '/images.pricecharting.com/**',
       },
-      // You can add other domains here in the future if needed.
-      // For example, if you also use Cloudinary for some images:
-      // {
-      //   protocol: 'https',
-      //   hostname: 'res.cloudinary.com',
-      // },
+      {
+        protocol: 'https',
+        hostname: 'images.pokemontcg.io',
+        port: '',
+        pathname: '/**', // allow all image paths from this domain
+      },
     ],
   },
 };
