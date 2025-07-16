@@ -77,12 +77,11 @@ body {
   text-transform: uppercase!important;
 }
 
-/* REMOVE THIS ENTIRE BLOCK - It's from a module CSS and shouldn't be in globals */
-/*
+
 .ShopPage_pageContainer__B1sK6 {
   min-height:auto !important;
 }
-*/
+
 
 /* MODIFIED: Card styles - Remove all height/display/flex properties here.
    These will be managed by ShopPage.module.css for shop cards.

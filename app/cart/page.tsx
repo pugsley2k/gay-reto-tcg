@@ -2,13 +2,15 @@
 import { useCart } from "@/components/CartProvider";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import styles from '../styles/CartPage.module.css';
+import { useState } from "react";
+import styles from "../styles/CartPage.module.css";
 
 const MINIMUM_SPEND_PENCE = 30;
 
 export default function CartPage() {
-  const { cart, removeFromCart, updateQuantity, clearCart } = useCart();
+  const { cart, removeFromCart, updateQuantity } = useCart(); // removed clearCart
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
 
   const totalPrice = cart.reduce((total, item) => total + item.price * item.quantity, 0);
   const isBelowMinimumSpend = totalPrice < MINIMUM_SPEND_PENCE;
@@ -33,6 +35,8 @@ export default function CartPage() {
     }));
 
     try {
+      setIsLoading(true);
+
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -42,15 +46,16 @@ export default function CartPage() {
       const { url } = await res.json();
 
       if (url) {
-  window.location.href = url;
-  setTimeout(() => clearCart(), 2000); // or delay longer if needed
-}
-else {
+        window.location.href = url;
+        // cart clearing handled post-checkout
+      } else {
         alert("Failed to create PayPal order.");
+        setIsLoading(false);
       }
     } catch (error) {
       console.error("Checkout error:", error);
       alert("An error occurred during checkout.");
+      setIsLoading(false);
     }
   }
 
@@ -73,6 +78,13 @@ else {
 
   return (
     <div className={styles.pageContainer}>
+      {isLoading && (
+        <div className={styles.loadingOverlay}>
+          <div className={styles.spinner}></div>
+          <p>Redirecting to PayPal...</p>
+        </div>
+      )}
+
       <h1 className={styles.pageTitle}>Your Shopping Cart</h1>
       <div className={styles.cartItemsList}>
         {cart.map(item => (
@@ -138,15 +150,9 @@ else {
         <button
           onClick={handleCheckout}
           className={styles.checkoutButton}
-          disabled={isBelowMinimumSpend}
+          disabled={isBelowMinimumSpend || isLoading}
         >
-          Proceed to Checkout with PayPal
-        </button>
-        <button
-          onClick={clearCart}
-          className={styles.clearCartButton}
-        >
-          Clear Cart
+          {isLoading ? "Processing..." : "Proceed to Checkout with PayPal"}
         </button>
       </div>
     </div>
