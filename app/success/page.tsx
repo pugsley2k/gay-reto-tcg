@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useCart } from "@/components/CartProvider";
 
 function SuccessContent() {
   const rawSearchParams = useSearchParams();
@@ -14,6 +15,8 @@ function SuccessContent() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const { clearCart } = useCart();
 
   useEffect(() => {
     if (!token) {
@@ -30,6 +33,9 @@ function SuccessContent() {
         if (!res.ok) {
           console.error("❌ Capture failed:", data);
           setError("Payment capture failed. Please contact support.");
+        } else {
+          // ✅ Clear cart only after confirmed successful payment
+          clearCart();
         }
       } catch (err) {
         console.error("🔥 Capture error:", err);
@@ -40,7 +46,7 @@ function SuccessContent() {
     }
 
     finalizeCapture();
-  }, [token]);
+  }, [token, clearCart]);
 
   if (isLoading) {
     return (
@@ -82,8 +88,8 @@ function SuccessContent() {
         fontSize: '1rem',
         transition: 'background-color 0.2s ease'
       }}
-      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#e00070'}
-      onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#FF007F'}
+        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#e00070'}
+        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#FF007F'}
       >
         Continue Shopping
       </Link>
