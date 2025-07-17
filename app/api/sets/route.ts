@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "../lib/supabase";
+
 
 export const runtime = "nodejs";
 
