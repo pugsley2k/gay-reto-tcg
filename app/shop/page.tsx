@@ -34,7 +34,10 @@ export default function ShopPage() {
     let query = supabase.from("Card").select("*").eq("available", true);
 
     if (search) query = query.ilike("name", `%${search}%`);
-    //query = query.eq("set", setName);  // ← changed
+    if (setName) {
+      query = query.eq("set", setName);
+}
+
     if (rarity)  query = query.ilike("rarity", `%${rarity}%`);
 
 
@@ -60,6 +63,10 @@ export default function ShopPage() {
       }));
   console.log("👉 Transformed setOptions:", options);
   console.log("🔎 Filtering with set:", setName);
+  console.log("🧪 Fetching cards with filters:", {
+  search, rarity, setName
+});
+
 
   setSetOptions(options);
 })
