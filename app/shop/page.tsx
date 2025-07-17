@@ -52,19 +52,26 @@ export default function ShopPage() {
   useEffect(() => {
     fetchCards();
   }, [fetchCards]);
+    useEffect(() => {
+      fetch("/api/sets")
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("✅ sets from API:", data);
 
-useEffect(() => {
-  fetch("/api/sets")
-    .then(res => res.json())
-    .then(data => {
-      console.log("✅ sets from API:", data);
-      setSetOptions((data.sets || []).map((s: any) => ({
-        value: s.name,
-        label: s.name
-      })));
-    })
-    .catch(err => console.error("Failed to load sets", err));
-}, []);
+          const options = (data.sets || [])
+            .filter((s: any) => !!s.name) // only keep defined names
+            .map((s: any) => ({
+              value: s.name,
+              label: s.name
+            }))
+            .sort((a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label));
+            
+
+          setSetOptions(options);
+        })
+        .catch((err) => console.error("Failed to load sets", err));
+    }, []);
+
 
 
 
@@ -122,10 +129,13 @@ useEffect(() => {
           </div>
           <div className="col-md-4 mb-2">
            <select
-              className="form-select"
-              value={setName}
-              onChange={(e) => setSetName(e.target.value)}
-            >
+            className="form-select"
+            value={setName}
+            onChange={(e) => {
+              console.log("📦 Selected Set:", e.target.value);
+              setSetName(e.target.value);
+            }}
+>
               <option value="">All Sets</option>
               {setOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
