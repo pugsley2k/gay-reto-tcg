@@ -58,5 +58,8 @@ export async function GET() {
     .map(([raw, name]) => ({ value: raw, label: name }))
     .sort((a, b) => a.label.localeCompare(b.label));
 
+  console.log("🧠 final set options:", options);
+
   return NextResponse.json({ sets: options });
+  
 }
