@@ -1,13 +1,33 @@
 import { NextResponse } from "next/server";
+import OpenAI from "openai";
 
-function normalizeSetName(set: string): string {
-  if (!set) return "";
-  let s = set.trim().toUpperCase().replace(/\s+/g, "");
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
-  // Normalize common formats (e.g., SV1 -> SV01, SV 1a -> SV01A)
-  s = s.replace(/^SV(\d)$/, (_, d) => `SV0${d}`);
-  s = s.replace(/^SV(\d)([A-Z])$/, (_, d, l) => `SV0${d}${l}`);
-  return s;
+async function getFullSetNames(dirtySets: string[]): Promise<Record<string, string>> {
+  const prompt = `
+You are a Pokémon TCG expert. Given a list of raw set codes or partial names, return a cleaned mapping from raw codes to their official English set names. Be smart about handling spacing, capitalization, and abbreviations.
+
+Example:
+- SV1a → Scarlet & Violet – Triplet Beat
+- sm12a → Sun & Moon – Tag All Stars
+- sv02 → Scarlet & Violet – Paldea Evolved
+
+Now, map the following set identifiers:
+${dirtySets.map(s => `- ${s}`).join("\n")}
+
+Return the output as JSON object: {"rawCode": "Official Set Name"}
+`;
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4",
+    messages: [{ role: "user", content: prompt }],
+    temperature: 0.2,
+  });
+
+  const text = completion.choices[0].message.content?.trim() || "{}";
+  return JSON.parse(text);
 }
 
 export async function GET() {
@@ -26,15 +46,16 @@ export async function GET() {
     return NextResponse.json({ error: "Failed to fetch sets" }, { status: 500 });
   }
 
-  const rows = await res.json();
+const rows = (await res.json()) as { set: string }[];
+const rawSets = Array.from(
+  new Set(rows.map((row) => row.set).filter(Boolean))
+);
 
-  const cleanedSets = Array.from(
-    new Set(
-      rows
-        .map((row: any) => normalizeSetName(row.set))
-        .filter(Boolean)
-    )
-  ).sort();
+  const fullNameMap = await getFullSetNames(rawSets);
 
-  return NextResponse.json({ sets: cleanedSets });
+  const options = Object.entries(fullNameMap)
+    .map(([raw, name]) => ({ value: raw, label: name }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+
+  return NextResponse.json({ sets: options });
 }

@@ -23,7 +23,8 @@ export default function ShopPage() {
   const [rarity, setRarity] = useState("");
   const [setName, setSetName] = useState("");
   const [loading, setLoading] = useState(true);
-  const [setOptions, setSetOptions] = useState<string[]>([]);
+  const [setOptions, setSetOptions] = useState<{ value: string; label: string }[]>([]);
+
 
   const { addToCart } = useCart();
 
@@ -110,18 +111,19 @@ export default function ShopPage() {
             />
           </div>
           <div className="col-md-4 mb-2">
-            <select
+           <select
               className="form-select"
               value={setName}
               onChange={(e) => setSetName(e.target.value)}
             >
               <option value="">All Sets</option>
-              {setOptions.map((set) => (
-                <option key={set} value={set}>
-                  {set}
+              {setOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
                 </option>
               ))}
             </select>
+
           </div>
           <div className="col-md-4 mb-2">
             <select
