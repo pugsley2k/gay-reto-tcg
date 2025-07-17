@@ -28,29 +28,32 @@ export default function ShopPage() {
 
   const { addToCart } = useCart();
 
-  const fetchCards = useCallback(async () => {
-    setLoading(true);
-    
-    let query = supabase.from("Card").select("*").eq("available", true);
+const fetchCards = useCallback(async () => {
+  setLoading(true);
+let query = supabase.from("Card").select("*").eq("available", true);
 
-    if (search) query = query.ilike("name", `%${search}%`);
-    if (setName) {
-      query = query.eq("set", setName);
-}
+if (search) query = query.ilike("name", `%${search}%`);
+if (setName) query = query.eq("set", setName);  // ✅ Only filter if setName has value
+if (rarity) query = query.ilike("rarity", `%${rarity}%`);
+  if (setName) {
+    query = query.eq("set", setName);
+  }
 
-    if (rarity)  query = query.ilike("rarity", `%${rarity}%`);
+  console.log("🧪 Fetching cards with filters:", { search, rarity, setName });
 
+  const { data, error } = await query.order("createdAt", { ascending: false });
 
-    const { data, error } = await query.order("createdAt", { ascending: false });
+  if (error) {
+    console.error("❌ Error fetching cards:", error);
+    setError("Failed to load cards.");
+  } else {
+    console.log("📦 Supabase returned:", data);
+    setCards(data || []);
+  }
 
-    if (error) {
-      console.error("Error fetching cards:", error);
-      setError("Failed to load cards.");
-    } else {
-      setCards(data || []);
-    }
-    setLoading(false);
-  }, [search, rarity, setName]);
+  setLoading(false);
+}, [search, rarity, setName]);
+
 
   useEffect(() => {
   fetch("/api/sets")
@@ -74,6 +77,14 @@ export default function ShopPage() {
     .catch(err => console.error("Failed to load sets", err));
 }, []);
 
+useEffect(() => {
+    fetchCards();
+  }, [fetchCards]);
+
+  useEffect(() => {
+    console.log("🔎 Filtering with set:", setName);
+    fetchCards();
+  }, [setName, fetchCards]);
   const handleAddToCart = (card: any) => {
     addToCart({
       id: card.id,
