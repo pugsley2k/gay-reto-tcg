@@ -58,7 +58,7 @@ export default function ShopPage() {
     .then(data => {
       console.log("✅ sets from API:", data);
       const options = (data.sets || []).map((s: any) => ({
-        value: s.label, // use label (the human-readable one) for both
+        value: s.value, // use label (the human-readable one) for both
         label: s.label,
       }));
   console.log("👉 Transformed setOptions:", options);
