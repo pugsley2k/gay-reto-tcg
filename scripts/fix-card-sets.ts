@@ -3,98 +3,123 @@ import OpenAI from "openai";
 import dotenv from "dotenv";
 dotenv.config();
 
-// --- SETUP ---
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
-
-// --- Normalizer ---
-function normalizeCode(input: string): string | null {
-  const raw = input.trim();
-
-  // Skip already verbose names
-  if (raw.length > 10 && /\s/.test(raw)) return null;
-
-  return raw.toUpperCase().replace(/\s+/g, "");
+// --- Helpers ---
+function normalizeFinish(input: string): string {
+  return input?.trim().toUpperCase().replace(/\s+/g, "") || "";
 }
 
-// --- Main Function ---
-async function run() {
-  console.log("🔄 Fetching all card sets...");
-  const { data: cards, error } = await supabase.from("Card").select("id,set");
-
-  if (error || !cards) {
-    console.error("❌ Failed to fetch cards:", error);
-    return;
+async function fetchKnownFinishes(keys: string[]): Promise<Record<string, string>> {
+  const { data, error } = await supabase.from("finishes").select("*").in("code", keys);
+  if (error) {
+    console.error("❌ Supabase fetch error:", error);
+    return {};
   }
 
-  const codeToIds: Record<string, string[]> = {};
-  const longNameIds: { id: string; set: string }[] = [];
-
-  for (const card of cards) {
-    const norm = normalizeCode(card.set);
-    if (!norm) {
-      longNameIds.push({ id: card.id, set: card.set }); // already resolved
-      continue;
-    }
-    if (!codeToIds[norm]) codeToIds[norm] = [];
-    codeToIds[norm].push(card.id);
+  const map: Record<string, string> = {};
+  for (const row of data || []) {
+    map[row.code] = row.name;
   }
 
-  const codes = Object.keys(codeToIds);
-  console.log("🧠 Unique short codes found:", codes);
+  console.log("📦 Fetched known finishes:", map);
+  return map;
+}
 
-  // Ask OpenAI to resolve them
+async function storeFinishes(map: Record<string, string>) {
+  const payload = Object.entries(map).map(([code, name]) => ({ code, name }));
+  console.log("💾 Writing finishes to Supabase:", payload);
+
+  const { error } = await supabase.from("finishes").upsert(payload);
+  if (error) {
+    console.error("❌ Supabase insert error:", error);
+  } else {
+    console.log("✅ Inserted finishes into Supabase");
+  }
+}
+
+async function resolveFinishesViaOpenAI(cards: { id: number; name: string }[]): Promise<Record<number, string>> {
+  if (cards.length === 0) return {};
+
   const prompt = `
-You are a Pokémon TCG expert. Map these set codes to full official English set names. Return valid JSON:
-{ "SV3": "Scarlet & Violet — Obsidian Flames", ... }
+You are a Pokémon TCG expert. For each of the following card names, identify their finish type (e.g., "Holo", "Reverse Holo", "Non-Holo"). Return a JSON object where the key is the card name and the value is the finish:
 
-Codes:
-${codes.map((c) => `- ${c}`).join("\n")}
+Example:
+{ "Pikachu (Base Set)": "Non-Holo", "Charizard (Holo Rare)": "Holo" }
+
+Cards:
+${cards.map((c) => `- ${c.name}`).join("\n")}
   `.trim();
 
-  let resolved: Record<string, string> = {};
   try {
     const result = await openai.chat.completions.create({
       model: "gpt-4",
-      temperature: 0,
       messages: [{ role: "user", content: prompt }],
+      temperature: 0.2,
     });
 
-    resolved = JSON.parse(result.choices[0].message.content || "{}");
-    console.log("🔮 OpenAI resolved sets:", resolved);
-  } catch (e) {
-    console.error("❌ Failed to get OpenAI results or parse JSON:", e);
+    const raw = result.choices[0].message.content?.trim() || "{}";
+    const parsed = JSON.parse(raw);
+
+    const mapped: Record<number, string> = {};
+    for (const card of cards) {
+      if (parsed[card.name]) {
+        mapped[card.id] = parsed[card.name];
+      }
+    }
+
+    console.log("🔮 OpenAI resolved finishes:", mapped);
+    return mapped;
+  } catch (err) {
+    console.error("❌ OpenAI error or parse fail:", err);
+    return {};
+  }
+}
+
+async function main() {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/Card?select=id,name,finish`, {
+    headers: {
+      apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
+    },
+  });
+
+  if (!res.ok) {
+    console.error("❌ Failed to fetch cards:", await res.text());
     return;
   }
 
-  // Build full update map: id → full name
-  const updates: { id: string; set: string }[] = [];
+  const allCards = (await res.json()) as { id: number; name: string; finish: string | null }[];
+  const cardsToUpdate = allCards.filter((c) => !c.finish || c.finish.trim() === "");
 
-  for (const [code, name] of Object.entries(resolved)) {
-    for (const id of codeToIds[code]) {
-      updates.push({ id, set: name });
+  console.log(`🧠 Found ${cardsToUpdate.length} cards missing finish`);
+
+  const resolved = await resolveFinishesViaOpenAI(cardsToUpdate);
+  const finishLabels = Array.from(new Set(Object.values(resolved)));
+
+  const normalized: Record<string, string> = {};
+  for (const label of finishLabels) {
+    const norm = normalizeFinish(label);
+    normalized[norm] = label;
+  }
+
+  await storeFinishes(normalized);
+
+  for (const [id, label] of Object.entries(resolved)) {
+    const { error } = await supabase.from("Card").update({ finish: label }).eq("id", id);
+    if (error) {
+      console.error(`❌ Failed to update card ${id}:`, error);
+    } else {
+      console.log(`✅ Updated card ${id} with finish '${label}'`);
     }
   }
 
-  console.log(`💾 Updating ${updates.length} cards in Card table...`);
-  for (const { id, set } of updates) {
-    const { error } = await supabase.from("Card").update({ set }).eq("id", id);
-    if (error) console.error(`❌ Failed to update card ${id}:`, error);
-  }
-
-  // Store all mappings in setnames table
-  const payload = Object.entries(resolved).map(([code, name]) => ({ code, name }));
-  const { error: insertErr } = await supabase.from("setnames").upsert(payload);
-  if (insertErr) console.error("❌ Failed to insert setnames:", insertErr);
-  else console.log("✅ Stored new setnames.");
-
-  console.log("🎉 Done.");
+  console.log("🏁 Done.");
 }
 
-run();
+main();

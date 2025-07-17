@@ -122,3 +122,14 @@
 .shopCard .card-text .text-muted {
     font-size: 0.8rem;
 }
+/* Add these to styles/ShopPage.module.css */
+
+.pageContainer {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Ensures the container is at least as tall as the screen */
+}
+
+.contentWrapper {
+  flex: 1 0 auto; /* Allows this element to grow and take up available space */
+}

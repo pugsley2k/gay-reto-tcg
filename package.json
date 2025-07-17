@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "fix-sets": "tsx scripts/fix-card-sets.ts"
+    "fix-sets": "tsx scripts/fix-card-sets.ts",
+    "populate-rarities": "tsx scripts/populate-rarities.ts",
+    "populate-finishes": "tsx scripts/populate-finishes.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.23.1",
@@ -48,6 +50,6 @@
     "eslint-config-next": "15.3.2",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.3",
-    "typescript": "^5"
+    "typescript": "^5.8.3"
   }
 }
