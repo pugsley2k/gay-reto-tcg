@@ -91,8 +91,7 @@ export async function GET() {
   });
 
   if (!res.ok) {
-    const msg = await res.text();
-    console.error("❌ Failed to fetch sets from Supabase:", msg);
+    console.error("❌ Failed to fetch sets from Supabase:", await res.text());
     return NextResponse.json({ error: "Failed to fetch sets" }, { status: 500 });
   }
 

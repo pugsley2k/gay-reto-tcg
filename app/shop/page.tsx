@@ -34,7 +34,7 @@ export default function ShopPage() {
     let query = supabase.from("Card").select("*").eq("available", true);
 
     if (search) query = query.ilike("name", `%${search}%`);
-    query = query.eq("set", setName);  // ← changed
+    //query = query.eq("set", setName);  // ← changed
     if (rarity)  query = query.ilike("rarity", `%${rarity}%`);
 
 
@@ -50,30 +50,22 @@ export default function ShopPage() {
   }, [search, rarity, setName]);
 
   useEffect(() => {
-    fetchCards();
-  }, [fetchCards]);
-    useEffect(() => {
-      fetch("/api/sets")
-        .then((res) => res.json())
-        .then((data) => {
-          console.log("✅ sets from API:", data);
+  fetch("/api/sets")
+    .then(res => res.json())
+    .then(data => {
+      console.log("✅ sets from API:", data);
+      const options = (data.sets || []).map((s: any) => ({
+        value: s.label, // use label (the human-readable one) for both
+        label: s.label,
+      }));
+  console.log("👉 Transformed setOptions:", options);
+  console.log("🔎 Filtering with set:", setName);
 
-          const options = (data.sets || [])
-            .filter((s: any) => !!s.name) // only keep defined names
-            .map((s: any) => ({
-              value: s.name,
-              label: s.name
-            }))
-            .sort((a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label));
-            
+  setSetOptions(options);
+})
 
-          setSetOptions(options);
-        })
-        .catch((err) => console.error("Failed to load sets", err));
-    }, []);
-
-
-
+    .catch(err => console.error("Failed to load sets", err));
+}, []);
 
   const handleAddToCart = (card: any) => {
     addToCart({
