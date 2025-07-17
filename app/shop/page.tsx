@@ -53,15 +53,19 @@ export default function ShopPage() {
     fetchCards();
   }, [fetchCards]);
 
-  useEffect(() => {
+useEffect(() => {
   fetch("/api/sets")
     .then(res => res.json())
     .then(data => {
-      console.log("✅ sets from API:", data); // ← Add this
-      setSetOptions(data.sets || []);
+      console.log("✅ sets from API:", data);
+      setSetOptions((data.sets || []).map((s: any) => ({
+        value: s.name,
+        label: s.name
+      })));
     })
     .catch(err => console.error("Failed to load sets", err));
 }, []);
+
 
 
   const handleAddToCart = (card: any) => {
@@ -125,8 +129,9 @@ export default function ShopPage() {
               <option value="">All Sets</option>
               {setOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
-                  {opt.label}
+                 {opt.label}
                 </option>
+
               ))}
             </select>
 
