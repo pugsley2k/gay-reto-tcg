@@ -46,10 +46,11 @@ export async function GET() {
     return NextResponse.json({ error: "Failed to fetch sets" }, { status: 500 });
   }
 
-const rows = (await res.json()) as { set: string }[];
-const rawSets = Array.from(
-  new Set(rows.map((row) => row.set).filter(Boolean))
-);
+  const rows = (await res.json()) as { set: string }[];
+
+  const rawSets = Array.from(
+    new Set(rows.map((row: any) => row.set).filter(Boolean))
+  );
 
   const fullNameMap = await getFullSetNames(rawSets);
 

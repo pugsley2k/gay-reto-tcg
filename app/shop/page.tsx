@@ -124,6 +124,7 @@ export default function ShopPage() {
               ))}
             </select>
 
+
           </div>
           <div className="col-md-4 mb-2">
             <select
