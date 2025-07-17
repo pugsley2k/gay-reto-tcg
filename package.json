@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "fix-sets": "tsx scripts/fix-card-sets.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.23.1",
@@ -16,6 +17,7 @@
     "@supabase/supabase-js": "^2.49.10",
     "bootstrap": "^5.3.6",
     "cloudinary": "^2.6.1",
+    "dotenv": "^17.2.0",
     "file-tree": "^1.0.0",
     "formidable": "^3.5.4",
     "git": "^0.1.5",
@@ -44,6 +46,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.3.2",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.3",
     "typescript": "^5"
   }
 }

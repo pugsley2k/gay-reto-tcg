@@ -30,11 +30,13 @@ export default function ShopPage() {
 
   const fetchCards = useCallback(async () => {
     setLoading(true);
+    
     let query = supabase.from("Card").select("*").eq("available", true);
 
     if (search) query = query.ilike("name", `%${search}%`);
-    if (setName) query = query.ilike("set", `%${setName}%`);
-    if (rarity) query = query.ilike("rarity", `%${rarity}%`);
+    query = query.eq("set", setName);  // ← changed
+    if (rarity)  query = query.ilike("rarity", `%${rarity}%`);
+
 
     const { data, error } = await query.order("createdAt", { ascending: false });
 
