@@ -17,16 +17,24 @@ const supabase = createClient(
 );
 
 export default function ShopPage() {
-  const [cards, setCards] = useState<any[]>([]);
+  type Card = {
+    id: number;
+    name: string;
+    price: number | null;
+    set: string;
+    number: string;
+    image_url: string;
+    finish?: string | null;
+  };
+
+  const [cards, setCards] = useState<Card[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [rarity, setRarity] = useState("");
   const [setName, setSetName] = useState("");
   const [loading, setLoading] = useState(true);
   const [setOptions, setSetOptions] = useState<{ value: string; label: string }[]>([]);
-  // 1. Add new state for rarity options
   const [rarityOptions, setRarityOptions] = useState<{ value: string; label: string }[]>([]);
-
 
   const { addToCart } = useCart();
 
@@ -34,10 +42,9 @@ export default function ShopPage() {
     setLoading(true);
     let query = supabase.from("Card").select("*").eq("available", true);
 
-    // Cleaned up filter chaining
     if (search) query = query.ilike("name", `%${search}%`);
     if (setName) query = query.eq("set", setName);
-    if (rarity) query = query.eq("rarity", rarity); // Use .eq for exact match
+    if (rarity) query = query.eq("rarity", rarity);
 
     const { data, error } = await query.order("createdAt", { ascending: false });
 
@@ -51,39 +58,37 @@ export default function ShopPage() {
     setLoading(false);
   }, [search, rarity, setName]);
 
+    useEffect(() => {
+      Promise.all([
+        fetch("/api/sets").then(res => res.json()),
+        fetch("/api/rarities").then(res => res.json())
+      ])
+        .then(([setsData, raritiesData]) => {
+          const setOpts = (setsData.sets || []).map((s: any) => ({
+            value: s.value,
+            label: s.label,
+          }));
+          setSetOptions(setOpts);
 
-  // 2. Fetch both sets and rarities on component load
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/sets").then(res => res.json()),
-      fetch("/api/rarities").then(res => res.json())
-    ])
-    .then(([setsData, raritiesData]) => {
-      const setOpts = (setsData.sets || []).map((s: any) => ({
-        value: s.value,
-        label: s.label,
-      }));
-      setSetOptions(setOpts);
+          const rarityOpts = (raritiesData.rarities || []).map((r: any) => ({
+            value: r.value,
+            label: r.label,
+          }));
+          setRarityOptions(rarityOpts);
+        })
+        .catch(err => console.error("Failed to load filter options", err));
+    }, []);
 
-      const rarityOpts = (raritiesData.rarities || []).map((r: any) => ({
-        value: r.value,
-        label: r.label,
-      }));
-      setRarityOptions(rarityOpts);
-    })
-    .catch(err => console.error("Failed to load filter options", err));
-  }, []);
+    useEffect(() => {
+      fetchCards();
+    }, [fetchCards]);
 
-  // This single useEffect handles fetching cards whenever any filter changes
-  useEffect(() => {
-    fetchCards();
-  }, [fetchCards]);
-
-  const handleAddToCart = (card: any) => {
+  const handleAddToCart = (card: Card) => {
     addToCart({
-      id: card.id,
+      id: card.id + "",
       name: card.name,
-      price: card.price,
+      price: card.price ?? 0,
+
       imageUrl: card.image_url,
     });
     toast.success(`${card.name} added to cart!`);
@@ -91,7 +96,7 @@ export default function ShopPage() {
 
   const truncateText = (text: string, maxLength: number) => {
     if (text && text.length > maxLength) {
-      return text.substring(0, maxLength - 3) + '...';
+      return text.substring(0, maxLength - 3) + "...";
     }
     return text;
   };
@@ -147,7 +152,6 @@ export default function ShopPage() {
               </select>
             </div>
             <div className="col-md-4 mb-2">
-              {/* 3. Update rarity dropdown to be dynamic */}
               <select
                 className="form-select"
                 value={rarity}
@@ -166,46 +170,60 @@ export default function ShopPage() {
           {error && <div className="alert alert-danger">{error}</div>}
           {loading && <div className="text-muted">Loading cards...</div>}
 
-          <div className={`row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-4 ${styles.productGridRow}`}>
-            {cards.map((card) => (
-              <div className={`col ${styles.productColWrapper}`} key={card.id}>
-                <div className={`card ${styles.shopCard}`}>
-                  <img
-                    src={card.image_url || "/fallback.jpg"}
-                    alt={card.name}
-                    className="card-img-top"
-                  />
-                  <div className={`card-body ${styles.cardBody}`}>
-                    <div className={styles.cardTextWrapper}>
-                      <h5 className="card-title">{card.name}</h5>
-                      <p className="card-text">
-                        {typeof card.price === "number"
-                          ? `£${(card.price / 100).toFixed(2)}`
-                          : "N/A"}
-                      </p>
-                      <p className="card-text">
-                        <small className="text-muted" title={card.set}>
-                          {truncateText(card.set, 18)} — #{card.number}
-                        </small>
-                      </p>
-                    </div>
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => handleAddToCart(card)}
-                    >
-                      Add to Cart
-                    </button>
-                  </div>
-                </div>
+    <div className="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-4">
+      {cards.map((card) => (
+        <div className="col" key={card.id}>
+          <div className={`card ${styles.shopCard}`}>
+            <img
+              src={card.image_url || "/fallback.jpg"}
+              alt={card.name}
+              className="card-img-top"
+            />
+            <div className={`card-body ${styles.cardBody}`}>
+              <div className={styles.cardTextWrapper}>
+                <h5 className="card-title">{truncateText(card.name, 20)}</h5>
+                <p className="card-text">
+                  {typeof card.price === "number"
+                    ? `£${(card.price / 100).toFixed(2)}`
+                    : "N/A"}
+                </p>
+                <p className="card-text">
+                  <small className="text-muted" title={card.set}>
+                    <small className="text-muted" title={card.set}>
+                      {truncateText(card.set, 18)} <br /> #{card.number}
+                    </small>
+
+                  </small>
+                </p>
+                
+                {/* This paragraph is now always rendered */}
+                <p className="card-text">
+                  <small className="text-muted">
+                    {card.finish && card.finish !== "Unknown"
+                      ? `Finish: ${card.finish}`
+                      : '\u00A0' /* This is a non-breaking space */
+                    }
+                  </small>
+                </p>
               </div>
-            ))}
+              
+              <button
+                className="btn btn-primary"
+                onClick={() => handleAddToCart(card)}
+              >
+                Add to Cart
+              </button>
+            </div>
           </div>
         </div>
+      ))}
+    </div>
+        </div>
+
+        <footer style={{ paddingTop: "20px", paddingBottom: "20px", width: "100%", background: "#282828", color: "white", textAlign: "center" }}>
+          <p>© {new Date().getFullYear()} GAY RETRO TCG. All Rights Reserved.</p>
+        </footer>
       </div>
-      
-      <footer style={{ paddingTop: "20px", paddingBottom: "20px", width: "100%", background: "#282828", color: "white", textAlign: "center" }}>
-        <p>© {new Date().getFullYear()} GAY RETRO TCG. All Rights Reserved.</p>
-      </footer>
     </main>
   );
 }
