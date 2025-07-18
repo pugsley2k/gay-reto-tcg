@@ -220,10 +220,11 @@ export default function ShopPage() {
     </div>
         </div>
 
-        <footer style={{ paddingTop: "20px", paddingBottom: "20px", width: "100%", background: "#282828", color: "white", textAlign: "center" }}>
+        
+      </div>
+      <footer style={{ paddingTop: "20px", marginTop: "40px", paddingBottom: "40px", width: "100%", background: "#282828", color: "white", textAlign: "center" }}>
           <p>© {new Date().getFullYear()} GAY RETRO TCG. All Rights Reserved.</p>
         </footer>
-      </div>
     </main>
   );
 }
