@@ -35,6 +35,8 @@ export default function ShopPage() {
   const [loading, setLoading] = useState(true);
   const [setOptions, setSetOptions] = useState<{ value: string; label: string }[]>([]);
   const [rarityOptions, setRarityOptions] = useState<{ value: string; label: string }[]>([]);
+  // 1. Add state for sorting
+  const [sortBy, setSortBy] = useState("createdAt_desc");
 
   const { addToCart } = useCart();
 
@@ -46,7 +48,11 @@ export default function ShopPage() {
     if (setName) query = query.eq("set", setName);
     if (rarity) query = query.eq("rarity", rarity);
 
-    const { data, error } = await query.order("createdAt", { ascending: false });
+    // 3. Dynamically apply sorting based on state
+    const [sortColumn, sortDirection] = sortBy.split('_');
+    const isAscending = sortDirection === 'asc';
+
+    const { data, error } = await query.order(sortColumn, { ascending: isAscending });
 
     if (error) {
       console.error("❌ Error fetching cards:", error);
@@ -56,7 +62,7 @@ export default function ShopPage() {
     }
 
     setLoading(false);
-  }, [search, rarity, setName]);
+  }, [search, rarity, setName, sortBy]); // Add sortBy to dependency array
 
     useEffect(() => {
       Promise.all([
@@ -88,7 +94,6 @@ export default function ShopPage() {
       id: card.id + "",
       name: card.name,
       price: card.price ?? 0,
-
       imageUrl: card.image_url,
     });
     toast.success(`${card.name} added to cart!`);
@@ -127,8 +132,9 @@ export default function ShopPage() {
         />
 
         <div className="container mt-4">
+          {/* 2. Add the sorting dropdown to the UI */}
           <div className="row mb-3">
-            <div className="col-md-4 mb-2">
+            <div className="col-md-3 mb-2">
               <input
                 type="text"
                 className="form-control"
@@ -137,7 +143,7 @@ export default function ShopPage() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <div className="col-md-4 mb-2">
+            <div className="col-md-3 mb-2">
               <select
                 className="form-select"
                 value={setName}
@@ -151,7 +157,7 @@ export default function ShopPage() {
                 ))}
               </select>
             </div>
-            <div className="col-md-4 mb-2">
+            <div className="col-md-3 mb-2">
               <select
                 className="form-select"
                 value={rarity}
@@ -165,61 +171,67 @@ export default function ShopPage() {
                 ))}
               </select>
             </div>
+            <div className="col-md-3 mb-2">
+              <select
+                className="form-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="createdAt_desc">Sort by: Newest</option>
+                <option value="price_asc">Sort by: Price (Low to High)</option>
+                <option value="price_desc">Sort by: Price (High to Low)</option>
+                <option value="name_asc">Sort by: Name (A-Z)</option>
+                <option value="name_desc">Sort by: Name (Z-A)</option>
+              </select>
+            </div>
           </div>
 
           {error && <div className="alert alert-danger">{error}</div>}
           {loading && <div className="text-muted">Loading cards...</div>}
 
-    <div className="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-4">
-      {cards.map((card) => (
-        <div className="col" key={card.id}>
-          <div className={`card ${styles.shopCard}`}>
-            <img
-              src={card.image_url || "/fallback.jpg"}
-              alt={card.name}
-              className="card-img-top"
-            />
-            <div className={`card-body ${styles.cardBody}`}>
-              <div className={styles.cardTextWrapper}>
-                <h5 className="card-title">{truncateText(card.name, 20)}</h5>
-                <p className="card-text">
-                  {typeof card.price === "number"
-                    ? `£${(card.price / 100).toFixed(2)}`
-                    : "N/A"}
-                </p>
-                <p className="card-text">
-                  <small className="text-muted" title={card.set}>
-                    <small className="text-muted" title={card.set}>
-                      {truncateText(card.set, 18)} <br /> #{card.number}
-                    </small>
-
-                  </small>
-                </p>
-                
-                {/* This paragraph is now always rendered */}
-                <p className="card-text">
-                  <small className="text-muted">
-                    {card.finish && card.finish !== "Unknown"
-                      ? `Finish: ${card.finish}`
-                      : '\u00A0' /* This is a non-breaking space */
-                    }
-                  </small>
-                </p>
+          <div className="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-4">
+            {cards.map((card) => (
+              <div className="col" key={card.id}>
+                <div className={`card ${styles.shopCard}`}>
+                  <img
+                    src={card.image_url || "/fallback.jpg"}
+                    alt={card.name}
+                    className="card-img-top"
+                  />
+                  <div className={`card-body ${styles.cardBody}`}>
+                    <div className={styles.cardTextWrapper}>
+                      <h5 className="card-title">{truncateText(card.name, 20)}</h5>
+                      <p className="card-text">
+                        {typeof card.price === "number"
+                          ? `£${(card.price / 100).toFixed(2)}`
+                          : "N/A"}
+                      </p>
+                      <p className="card-text">
+                        <small className="text-muted" title={card.set}>
+                            {truncateText(card.set, 18)} <br /> #{card.number}
+                        </small>
+                      </p>
+                      <p className="card-text">
+                        <small className="text-muted">
+                          {card.finish && card.finish !== "Unknown"
+                            ? `Finish: ${card.finish}`
+                            : '\u00A0' /* Non-breaking space */}
+                        </small>
+                      </p>
+                    </div>
+                    
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => handleAddToCart(card)}
+                    >
+                      Add to Cart
+                    </button>
+                  </div>
+                </div>
               </div>
-              
-              <button
-                className="btn btn-primary"
-                onClick={() => handleAddToCart(card)}
-              >
-                Add to Cart
-              </button>
-            </div>
+            ))}
           </div>
         </div>
-      ))}
-    </div>
-        </div>
-
         
       </div>
       <footer style={{ paddingTop: "20px", marginTop: "40px", paddingBottom: "40px", width: "100%", background: "#282828", color: "white", textAlign: "center" }}>
