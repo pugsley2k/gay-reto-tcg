@@ -1,8 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
 import dotenv from "dotenv";
+
+// Load environment variables from .env file
 dotenv.config();
 
+// --- CONFIGURATION ---
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
@@ -12,126 +15,180 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-function normalizeFinish(input: string | null | undefined): string {
-  return (input || "").trim().toUpperCase().replace(/\s+/g, "");
-}
+// --- CONSTANTS for VALID DATA ---
+const VALID_RARITIES = [
+    'Common', 'Uncommon', 'Rare', 'Double Rare', 'Ultra Rare', 
+    'Illustration Rare', 'Special Illustration Rare', 'Hyper Rare', 'Promo', 'N/A'
+];
 
-async function fetchKnownFinishes(keys: string[]): Promise<Record<string, string>> {
+const VALID_FINISHES = [
+    'EX Holo', 'Full Art', 'GX Holo', 'Holo', 'Non-Holo', 'Normal', 
+    'Reverse Holo', 'Textured Holo', 'Unknown', 'VMAX Holo', 'VSTAR Holo'
+];
+
+
+// ==================================================================
+// --- RARITY CORRECTION FUNCTIONS ---
+// ==================================================================
+
+async function fetchIncorrectRarityCards() {
+  console.log("🔎 Searching for cards with incorrect or missing rarity values...");
+  
+  // Updated query to find cards where rarity is NOT in the valid list OR is NULL
   const { data, error } = await supabase
-    .from("finishes")
-    .select("*")
-    .in("code", keys);
+    .from("Card")
+    .select("id, image_url, rarity")
+    .or(`rarity.not.in.(${VALID_RARITIES.map(r => `'${r}'`).join(',')}),rarity.is.null`);
 
   if (error) {
-    console.error("❌ Supabase fetch error:", error);
-    return {};
+    console.error("❌ Supabase fetch error (Rarity):", error);
+    return [];
   }
-
-  const map: Record<string, string> = {};
-  for (const row of data) {
-    map[row.code] = row.name;
-  }
-
-  console.log("📦 Fetched known finishes:", map);
-  return map;
+  
+  console.log(`Found ${data.length} cards with incorrect rarities.`);
+  return data;
 }
 
-async function storeFinishes(map: Record<string, string>) {
-  const payload = Object.entries(map).map(([code, name]) => ({ code, name }));
-  console.log("💾 Writing finishes to Supabase:", payload);
-
-  const { error } = await supabase.from("finishes").upsert(payload);
-  if (error) {
-    console.error("❌ Supabase insert error:", error);
-  } else {
-    console.log("✅ Inserted finishes into Supabase");
+async function getCorrectRarityFromImage(imageUrl: string): Promise<string | null> {
+  if (!imageUrl) {
+    console.warn("⚠️ Skipping card with no image URL.");
+    return null;
   }
-}
-
-async function resolveViaOpenAI(keys: string[]): Promise<Record<string, string>> {
-  if (keys.length === 0) return {};
-
   const prompt = `
-You are a Pokémon TCG expert. Map these finish types to their proper display names. Return a JSON object like:
-{ "RH": "Reverse Holo", "H": "Holo", "N": "Non-Holo", ... }
-
-Codes:
-${keys.map((r) => `- ${r}`).join("\n")}
+    You are a Pokémon TCG expert. Your only job is to identify the rarity of the card in the image based on the symbol at the bottom (●, ◆, ★, etc.).
+    - The rarity MUST be one of: ${VALID_RARITIES.join(', ')}.
+    - If no symbol is visible or it's unclear, return 'N/A'.
+    - **Do not base your answer on the card's shininess or finish.** Focus only on the rarity symbol.
+    Return a single JSON object with one key: {"rarity": "TheRarity"}.
   `.trim();
 
   try {
     const result = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.2,
+      model: "gpt-4o",
+      messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: imageUrl } }] }],
+      response_format: { type: "json_object" },
+      temperature: 0.1,
     });
-
-    const raw = result.choices[0].message.content?.trim() || "{}";
-    const parsed = JSON.parse(raw);
-    console.log("🔮 OpenAI resolved finishes:", parsed);
-    return parsed;
+    const parsed = JSON.parse(result.choices[0].message.content?.trim() || "{}");
+    return parsed.rarity && VALID_RARITIES.includes(parsed.rarity) ? parsed.rarity : null;
   } catch (err) {
-    console.error("❌ OpenAI error or parse fail:", err);
-    return {};
+    console.error("❌ OpenAI error or JSON parse fail (Rarity):", err);
+    return null;
   }
 }
 
-(async () => {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/Card?select=finish`, {
-    headers: {
-      apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
-    },
-  });
-
-  if (!res.ok) {
-    console.error("❌ Failed to fetch finishes from Supabase:", await res.text());
-    return;
-  }
-
-  const rows = (await res.json()) as { finish: string }[];
-  const allKeys = Array.from(
-    new Set(rows.map((r) => normalizeFinish(r.finish)).filter(Boolean))
-  );
-  console.log("🧠 Normalized finish keys:", allKeys);
-
-  const known = await fetchKnownFinishes(allKeys);
-  const unknownKeys = allKeys.filter((key) => !(key in known));
-
-  let aiResults: Record<string, string> = {};
-  if (unknownKeys.length > 0) {
-    aiResults = await resolveViaOpenAI(unknownKeys);
-    await storeFinishes(aiResults);
-  }
-
-  const fullMap = { ...known, ...aiResults };
-
-// Apply human-readable finish labels to Card table
-for (const [code, label] of Object.entries(fullMap)) {
-  const { error } = await supabase
-    .from("Card")
-    .update({ finish: label })
-    .eq("finish", code);
-
+async function updateCardRarity(id: number, oldRarity: string, newRarity: string) {
+  if (oldRarity === newRarity) return;
+  const { error } = await supabase.from("Card").update({ rarity: newRarity }).eq("id", id);
   if (error) {
-    console.error(`❌ Failed to update cards with finish ${code}:`, error);
+    console.error(`❌ Failed to update rarity for card ${id}:`, error);
   } else {
-    console.log(`✅ Updated cards with finish '${code}' → '${label}'`);
+    console.log(`✅ Updated card ${id}: Rarity changed from '${oldRarity || 'NULL'}' → '${newRarity}'`);
   }
 }
 
 
-  const labelToCode = new Map<string, string>();
-  for (const [code, label] of Object.entries(fullMap)) {
-    const normLabel = label.trim();
-    if (!labelToCode.has(normLabel)) {
-      labelToCode.set(normLabel, code);
+// ==================================================================
+// --- FINISH CORRECTION FUNCTIONS ---
+// ==================================================================
+
+async function fetchIncorrectFinishCards() {
+    console.log("🔎 Searching for cards with incorrect or missing finish values...");
+
+    // Updated query to find cards where finish is NOT in the valid list OR is NULL
+    const { data, error } = await supabase
+      .from("Card")
+      .select("id, image_url, finish")
+      .or(`finish.not.in.(${VALID_FINISHES.map(f => `'${f}'`).join(',')}),finish.is.null`);
+  
+    if (error) {
+      console.error("❌ Supabase fetch error (Finish):", error);
+      return [];
+    }
+    
+    console.log(`Found ${data.length} cards with incorrect finishes.`);
+    return data;
+}
+  
+async function getCorrectFinishFromImage(imageUrl: string): Promise<string | null> {
+    if (!imageUrl) {
+      console.warn("⚠️ Skipping card with no image URL.");
+      return null;
+    }
+    const prompt = `
+      You are a Pokémon TCG expert. Your only job is to identify the finish of the card in the image (e.g., is it holographic, reverse holo, or normal?).
+      - The finish MUST be one of these exact values: ${VALID_FINISHES.join(', ')}.
+      - **Do not base your answer on the rarity symbol.** Focus only on the card's visual appearance (shine, texture, etc.).
+      Return a single JSON object with one key: {"finish": "TheFinish"}.
+    `.trim();
+  
+    try {
+      const result = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: imageUrl } }] }],
+        response_format: { type: "json_object" },
+        temperature: 0.1,
+      });
+      const parsed = JSON.parse(result.choices[0].message.content?.trim() || "{}");
+      return parsed.finish && VALID_FINISHES.includes(parsed.finish) ? parsed.finish : null;
+    } catch (err) {
+      console.error("❌ OpenAI error or JSON parse fail (Finish):", err);
+      return null;
+    }
+}
+  
+async function updateCardFinish(id: number, oldFinish: string, newFinish: string) {
+    if (oldFinish === newFinish) return;
+    const { error } = await supabase.from("Card").update({ finish: newFinish }).eq("id", id);
+    if (error) {
+        console.error(`❌ Failed to update finish for card ${id}:`, error);
+    } else {
+        console.log(`✅ Updated card ${id}: Finish changed from '${oldFinish || 'NULL'}' → '${newFinish}'`);
+    }
+}
+
+
+// ==================================================================
+// --- MAIN EXECUTION ---
+// ==================================================================
+
+async function main() {
+  // --- Run Rarity Correction ---
+  console.log("\n--- Starting Rarity Correction Script ---");
+  const incorrectRarityCards = await fetchIncorrectRarityCards();
+  if (incorrectRarityCards.length > 0) {
+    for (const card of incorrectRarityCards) {
+      console.log(`-------------------------------------------------`);
+      console.log(`Processing card ID: ${card.id} (Current Rarity: '${card.rarity || 'NULL'}')`);
+      const correctedRarity = await getCorrectRarityFromImage(card.image_url);
+      if (correctedRarity) {
+        await updateCardRarity(card.id, card.rarity, correctedRarity);
+      } else {
+        console.log(`- Could not determine correct rarity for card ${card.id}. Skipping.`);
+      }
+      await new Promise(resolve => setTimeout(resolve, 500)); 
     }
   }
+  console.log("🏁 Rarity correction finished.");
 
-  const options = Array.from(labelToCode.entries())
-    .map(([label, value]) => ({ value, label }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+  // --- Run Finish Correction ---
+  console.log("\n--- Starting Finish Correction Script ---");
+  const incorrectFinishCards = await fetchIncorrectFinishCards();
+  if (incorrectFinishCards.length > 0) {
+    for (const card of incorrectFinishCards) {
+        console.log(`-------------------------------------------------`);
+        console.log(`Processing card ID: ${card.id} (Current Finish: '${card.finish || 'NULL'}')`);
+        const correctedFinish = await getCorrectFinishFromImage(card.image_url);
+        if (correctedFinish) {
+            await updateCardFinish(card.id, card.finish, correctedFinish);
+        } else {
+            console.log(`- Could not determine correct finish for card ${card.id}. Skipping.`);
+        }
+        await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
+  console.log("🏁 Finish correction finished.");
+}
 
-  console.log("✅ Final finish options returned:", options);
-})();
+// Run the script
+main();

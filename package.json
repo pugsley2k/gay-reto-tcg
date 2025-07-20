@@ -10,7 +10,8 @@
     "fix-sets": "tsx scripts/fix-card-sets.ts",
     "populate-rarities": "tsx scripts/populate-rarities.ts",
     "populate-finishes": "tsx scripts/populate-finishes.ts",
-    "backfill-finishes": "tsx scripts/backfill-finishes.ts"
+    "backfill-finishes": "tsx scripts/backfill-finishes.ts",
+    "fix-rarities": "tsx scripts/fix-rarities.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.23.1",

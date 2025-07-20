@@ -133,8 +133,8 @@ export default function ShopPage() {
 
         <div className="container mt-4">
           {/* 2. Add the sorting dropdown to the UI */}
-          <div className="row mb-3">
-            <div className="col-md-3 mb-2">
+          <div className="row mb-4">
+            <div className="col-md-4 mb-2">
               <input
                 type="text"
                 className="form-control"
@@ -143,7 +143,7 @@ export default function ShopPage() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <div className="col-md-3 mb-2">
+            <div className="col-md-4 mb-2">
               <select
                 className="form-select"
                 value={setName}
@@ -157,21 +157,8 @@ export default function ShopPage() {
                 ))}
               </select>
             </div>
-            <div className="col-md-3 mb-2">
-              <select
-                className="form-select"
-                value={rarity}
-                onChange={(e) => setRarity(e.target.value)}
-              >
-                <option value="">All Rarities</option>
-                {rarityOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="col-md-3 mb-2">
+           
+            <div className="col-md-4 mb-3">
               <select
                 className="form-select"
                 value={sortBy}
@@ -211,13 +198,8 @@ export default function ShopPage() {
                             {truncateText(card.set, 18)} <br /> #{card.number}
                         </small>
                       </p>
-                      <p className="card-text">
-                        <small className="text-muted">
-                          {card.finish && card.finish !== "Unknown"
-                            ? `Finish: ${card.finish}`
-                            : '\u00A0' /* Non-breaking space */}
-                        </small>
-                      </p>
+                     
+                      
                     </div>
                     
                     <button
