@@ -1,6 +1,7 @@
 // app/shop/layout.tsx
 import React from 'react';
-import styles from './ShopLayout.module.css'; // Assuming you have a CSS module for styles
+
+
 
 // You can define metadata specific to the shop section here if needed
 // export const metadata = {

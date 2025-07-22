@@ -1,259 +1,351 @@
 // src/components/AdminUploadForm.tsx
-"use client"; 
+"use client";
 
-import { useState, FormEvent } from "react";
-// Corrected relative path to AdminPage.module.css
-import styles from '../../app/styles/AdminPage.module.css'; 
-import Image from "next/image";
+import { useState, FormEvent, useRef } from "react";
 
-// Define types for Pokémon TCG API response
-interface PokemonTCGCardImage {
-  small: string;
-  large: string;
+/* ────────────────────────────────────────────────────────────
+   Types
+──────────────────────────────────────────────────────────── */
+interface TCGPlayerPrice {
+  low: number | null; mid: number | null; high: number | null;
+  market: number | null; directLow?: number | null;
 }
-
+interface TCGPlayerPrices {
+  normal?: TCGPlayerPrice; holofoil?: TCGPlayerPrice; reverseHolofoil?: TCGPlayerPrice;
+  '1stEditionHolofoil'?: TCGPlayerPrice; '1stEditionNormal'?: TCGPlayerPrice;
+}
+interface TCGPlayer { url: string; updatedAt: string; prices: TCGPlayerPrices; }
+interface PokemonTCGCardImage { small: string; large: string; }
 interface PokemonTCGCard {
-  id: string;
-  name: string;
-  images: PokemonTCGCardImage;
+  id: string; name: string; images: PokemonTCGCardImage;
+  tcgplayer?: TCGPlayer; rarity?: string;
 }
-
-interface PokemonTCGApiResponse {
-  data: PokemonTCGCard[];
-  page: number;
-  pageSize: number;
-  count: number;
-  totalCount: number;
+interface PokemonTCGApiResponse { data: PokemonTCGCard[]; }
+interface ScrapedCard {
+  name: string; number: string; set: string; rarity: string | null;
+  image_url: string; price: number; available: boolean;
+  scan_url: string | null; language: string | null; holo_type: string | null;
 }
-
+// **UPDATED**: Selected image can now hold a generated File object
 interface SelectedImageDetail {
-  url: string;
+  url: string; // temp object URL for display
+  file: File | null; // The generated file to be uploaded
   publicId?: string;
-  source: 'upload' | 'api';
+  source: "upload" | "api" | "generated";
   apiCardName?: string;
+  holoType?: string | null;
 }
 
-export default function AdminUploadForm() {
-  const [name, setName] = useState("");
-  const [files, setFiles] = useState<FileList | null>(null);
-  const [price, setPrice] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState<PokemonTCGCard[]>([]);
-  const [selectedApiImages, setSelectedApiImages] = useState<SelectedImageDetail[]>([]);
+/* ────────────────────────────────────────────────────────────
+   Helpers
+──────────────────────────────────────────────────────────── */
+const isHoloLike = (holoType: string | null | undefined) => /holo/i.test(holoType ?? "");
+const isReverseHolo = (holoType: string | null | undefined) => /reverse\s*holo/i.test(holoType ?? "");
 
-  async function handlePokemonSearch(e: FormEvent) {
-    e.preventDefault();
-    if (!searchTerm.trim()) {
-      setMessage("Please enter a Pokémon card name to search.");
-      setSearchResults([]);
-      return;
+const getWatermarkText = (holoType: string | null | undefined) => {
+  const t = (holoType ?? "").toLowerCase();
+  if (t.includes("reverse holo")) return "ReverseHolo";
+  if (t.includes("holo")) return "Holo";
+  if (t.includes("ex")) return "EX";
+  if (t.includes("gx")) return "GX";
+  if (t.includes("vmax")) return "VMAX";
+  if (t.includes("vstar")) return "VSTAR";
+  return "";
+};
+
+/* ────────────────────────────────────────────────────────────
+   Component
+──────────────────────────────────────────────────────────── */
+export default function AdminUploadForm() {
+  /* core state */
+  const [name, setName]           = useState("");
+  const [cardNumber, setNumber]   = useState("");
+  const [setCode, setSetCode]     = useState("");
+  const [rarity, setRarity]       = useState("");
+  const [price, setPrice]         = useState("");
+  const [files, setFiles]         = useState<FileList | null>(null);
+  const [selectedImages, setSel]  = useState<SelectedImageDetail[]>([]);
+  const [holoType, setHoloType]   = useState<string | null>(null);
+
+  /* helpers */
+  const [msg, setMsg]             = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [scraping, setScraping]   = useState(false);
+  const [searchTerm, setTerm]     = useState("");
+  const [searching, setSearching] = useState(false);
+  const [results, setResults]     = useState<PokemonTCGCard[]>([]);
+
+  // Hidden canvas ref
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const handleApiResponse = async (response: Response) => {
+    const responseText = await response.text();
+    if (!response.ok) throw new Error(responseText || `Request failed with status ${response.status}`);
+    try { return JSON.parse(responseText); }
+    catch {
+      console.error("Failed to parse JSON response:", responseText);
+      throw new Error("Received an invalid response from the server.");
     }
-    setIsSearching(true);
-    setMessage(`Searching for "${searchTerm}"...`);
-    setSearchResults([]);
+  };
+
+  /**
+   * FIXED SHIMMER: now uses blending (screen) + optional reverse stripes.
+   */
+  const processImageWithHolo = (imageUrl: string, holoType: string | null): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext('2d');
+      if (!canvas || !ctx) return reject(new Error("Canvas not ready."));
+
+      const img = new Image();
+      img.crossOrigin = "anonymous"; // ensure non-tainted canvas
+      img.src = `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+
+        const holo = isHoloLike(holoType);
+        const reverse = isReverseHolo(holoType);
+
+        if (holo) {
+          ctx.save();
+          ctx.globalCompositeOperation = 'screen';
+
+          // Multi‑colour shimmer
+          const rainbowStops = ['#ff4d4d','#ffd24d','#4dff4d','#4dd2ff','#b84dff','#ff4dd2'];
+          const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+          rainbowStops.forEach((c, i) => {
+            const stop = i / (rainbowStops.length - 1);
+            gradient.addColorStop(stop, `${c}CC`); // CC ~= 0.8 alpha
+          });
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // Optional moving-ish sheen bands for reverse holo
+          if (reverse) {
+            const stripeW = canvas.width / 14;
+            const angle = -15 * Math.PI / 180;
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate(angle);
+            ctx.translate(-canvas.width / 2, -canvas.height / 2);
+            for (let x = -canvas.height; x < canvas.width + canvas.height; x += stripeW * 2) {
+              // pick a colour cycling through rainbowStops
+              const col = rainbowStops[(Math.floor(x / stripeW)) % rainbowStops.length];
+              ctx.fillStyle = `${col}33`; // light alpha
+              ctx.fillRect(x, 0, stripeW, canvas.height);
+            }
+            ctx.setTransform(1, 0, 0, 1, 0, 0); // reset
+          }
+
+          ctx.restore();
+        }
+
+        // Watermark text
+        const watermarkText = getWatermarkText(holoType);
+        if (watermarkText) {
+          const fontSize = canvas.width / 10;
+          ctx.font = `bold ${fontSize}px Arial`;
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'bottom';
+
+          // Stroke for visibility
+          ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+          ctx.lineWidth = fontSize / 12;
+          ctx.strokeText(watermarkText, canvas.width - 15, canvas.height - 15);
+
+          ctx.fillStyle = 'rgba(255,255,255,0.95)';
+          ctx.fillText(watermarkText, canvas.width - 15, canvas.height - 15);
+        }
+
+        canvas.toBlob((blob) => {
+          if (!blob) return reject(new Error("Failed to create blob from canvas."));
+          const newFile = new File([blob], "generated-card.png", { type: 'image/png' });
+          resolve(newFile);
+        }, 'image/png');
+      };
+
+      img.onerror = () => reject(new Error("Failed to load image for processing via proxy."));
+    });
+  };
+
+  async function handleScrape() {
+    if (!name.trim() || !cardNumber.trim()) { setMsg("Card name and number required."); return; }
+    setScraping(true);
+    setMsg(`Scraping ${name} #${cardNumber}…`);
+    setSetCode(""); setRarity(""); setPrice(""); setSel([]); setResults([]); setTerm(""); setHoloType(null);
 
     try {
-      const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(searchTerm)}*"&pageSize=10`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch from Pokémon TCG API: ${response.statusText}`);
+      const r = await fetch(`/api/card/scrape?name=${encodeURIComponent(name)}&number=${encodeURIComponent(cardNumber)}`);
+      const d: ScrapedCard = await handleApiResponse(r);
+      setSetCode(d.set); setRarity(d.rarity ?? ""); setPrice(String(d.price));
+      if (d.image_url) {
+        setSel([{ url: d.image_url, source: "api", apiCardName: d.name, holoType: d.holo_type, file: null }]);
       }
-      const data: PokemonTCGApiResponse = await response.json();
-      setSearchResults(data.data || []);
-      setMessage(data.data && data.data.length > 0 ? `${data.data.length} cards found.` : "No cards found.");
-    } catch (error: any) {
-      console.error("API error:", error);
-      setMessage(`Error searching cards: ${error.message}`);
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
+      setTerm(d.name); setHoloType(d.holo_type);
+      setMsg("Fields populated.");
+    } catch (e: any) { setMsg(`Error: ${e.message}`); }
+    finally { setScraping(false); }
   }
 
-  const handleSelectApiImage = (card: PokemonTCGCard) => {
-    setSelectedApiImages(prev => [...prev, {
-      url: card.images.large,
-      source: 'api',
-      apiCardName: card.name
-    }]);
-    setMessage(`${card.name} image selected.`);
+  async function handleSearch(e: FormEvent) {
+    e.preventDefault(); if (!searchTerm.trim()) return;
+    setSearching(true); setMsg(`Searching "${searchTerm}"…`);
+    try {
+      const r = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(searchTerm)}*"&pageSize=10`);
+      const j: PokemonTCGApiResponse = await handleApiResponse(r);
+      setResults(j.data); setMsg(j.data.length ? `${j.data.length} cards found.` : "No results.");
+    } catch (e:any) { setMsg(`Search error: ${e.message}`); }
+    finally { setSearching(false); }
+  }
+
+  const pickImage = async (card: PokemonTCGCard, version: string, marketPrice: number | null) => {
+    setMsg(`Processing ${version} image...`);
+    try {
+      const processedFile = await processImageWithHolo(card.images.large, version);
+      const objectURL = URL.createObjectURL(processedFile);
+
+      setSel([{ url: objectURL, file: processedFile, source: "generated", apiCardName: card.name, holoType: version }]);
+      if (marketPrice !== null) setPrice(String(Math.round(marketPrice * 100)));
+      setRarity(card.rarity ?? "");
+      setHoloType(version);
+      setMsg(`${card.name} (${version}) processed and selected.`);
+    } catch (error: any) {
+      setMsg(`Error processing image: ${error.message}`);
+    }
   };
 
   async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setMessage("");
-
-    if (!name || (!files && selectedApiImages.length === 0) || (files && files.length === 0 && selectedApiImages.length === 0) || !price) {
-      setMessage("Card name, at least one image (uploaded or selected from API), and price are required.");
-      return;
-    }
-
-    const priceInPence = Number(price);
-    if (isNaN(priceInPence) || priceInPence <= 0) {
-      setMessage("Price must be a positive number (in pence).");
-      return;
-    }
+    e.preventDefault(); setMsg("");
+    if (!name || !cardNumber || (!files && !selectedImages.length)) { setMsg("Name, number & image required."); return; }
+    const p = Number(price); if (isNaN(p) || p < 0) { setMsg("Price must be a non-negative number."); return; }
 
     setUploading(true);
-    const finalImageDetails: { url: string; publicId?: string }[] = [];
+    let finalImageUrl = '';
+    let finalPublicId: string | undefined = undefined;
 
     try {
-      if (files && files.length > 0) {
-        for (let i = 0; i < files.length; i++) {
-          const file = files[i];
-          const imageFormData = new FormData();
-          imageFormData.append("file", file);
+      const imageToUpload = selectedImages.length > 0 ? selectedImages[0].file : (files ? files[0] : null);
+      if (!imageToUpload) throw new Error("No image file available to upload.");
 
-          setMessage(`Uploading your image ${i + 1} of ${files.length}...`);
-          const uploadRes = await fetch("/api/upload", {
-            method: "POST",
-            body: imageFormData,
-          });
+      const fd = new FormData();
+      fd.append("file", imageToUpload);
+      const u = await fetch("/api/upload", { method: "POST", body: fd });
+      const { url, public_id } = await handleApiResponse(u);
+      finalImageUrl = url;
+      finalPublicId = public_id;
 
-          if (!uploadRes.ok) {
-            const errorData = await uploadRes.json().catch(() => ({ message: `Your image ${i + 1} upload failed.` }));
-            throw new Error(errorData.message || `Your image ${i + 1} upload failed.`);
-          }
-          const { url, public_id } = await uploadRes.json();
-          finalImageDetails.push({ url, publicId: public_id });
-        }
-      }
-
-      selectedApiImages.forEach(img => {
-        finalImageDetails.push({
-          url: img.url,
-          publicId: `api_${img.apiCardName?.replace(/\s+/g, '_') || 'pokemon_image'}`
-        });
-      });
-
-      if (finalImageDetails.length === 0) {
-        throw new Error("No images were processed or selected.");
-      }
-
-      setMessage("All images uploaded. Adding card data...");
-      const cardData = {
-        name,
-        imageDetails: finalImageDetails,
-        price: priceInPence,
-      };
-
-      const res = await fetch("/api/cards", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(cardData),
-      });
-
+      const body = { name, number: cardNumber, price: p, set: setCode, rarity, image_url: finalImageUrl, scan_url: finalPublicId, available: true, language: "EN", holo_type: holoType };
+      const res = await fetch("/api/cards", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ message: "Failed to add card." }));
-        throw new Error(errorData.message || "Failed to add card.");
+        const errorText = await res.text();
+        throw new Error(errorText || "Failed to add card to the database.");
       }
 
-      setMessage("Card added successfully!");
-      setName("");
-      setFiles(null);
-      setPrice("");
-      setSearchTerm("");
-      setSearchResults([]);
-      setSelectedApiImages([]);
-      const fileInput = document.getElementById('file-input') as HTMLInputElement;
-      if (fileInput) fileInput.value = '';
-
-    } catch (error: any) {
-      setMessage(`Error: ${error.message || "An unexpected error occurred."}`);
-    } finally {
-      setUploading(false);
-    }
+      setMsg("Card added ✔︎");
+      setName(""); setNumber(""); setSetCode(""); setRarity(""); setPrice(""); setFiles(null); setSel([]); setTerm(""); setResults([]); setHoloType(null);
+      const fileInputElement = document.getElementById("file-input") as HTMLInputElement | null;
+      if (fileInputElement) fileInputElement.value = "";
+    } catch (e:any) { setMsg(`Error: ${e.message}`); }
+    finally { setUploading(false); }
   }
 
-  // The return JSX for the form remains the same
+  const styles = {
+    formContainer: { maxWidth: '600px', margin: '2rem auto', padding: '2rem', background: '#f9f9f9', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' },
+    formTitle: { textAlign: 'center' as const, color: '#333', marginBottom: '1.5rem' },
+    flash: { padding: '1rem', marginBottom: '1rem', border: '1px solid', borderRadius: '4px', color: '#155724', backgroundColor: '#d4edda', borderColor: '#c3e6cb' },
+    formGroup: { marginBottom: '1rem' },
+    label: { display: 'block' as const, marginBottom: '0.5rem', color: '#555', fontWeight: 'bold' as const },
+    inputField: { width: '100%', padding: '0.75rem', border: '1px solid #ccc', borderRadius: '4px', boxSizing: 'border-box' as const },
+    searchButton: { padding: '0.75rem 1.5rem', border: 'none', borderRadius: '4px', backgroundColor: '#007bff', color: 'white', cursor: 'pointer' as const },
+    searchResultsContainer: { border: '1px solid #eee', borderRadius: '4px', marginTop: '1rem', maxHeight: '300px', overflowY: 'auto' as const },
+    searchResultItem: { display: 'flex', alignItems: 'flex-start', padding: '0.5rem', borderBottom: '1px solid #eee' },
+    selectImageButton: { padding: '0.5rem 1rem', border: 'none', borderRadius: '4px', backgroundColor: '#28a745', color: 'white', cursor: 'pointer' as const, width: '100%', boxSizing: 'border-box' as const },
+    submitButton: { width: '100%', padding: '1rem', border: 'none', borderRadius: '4px', backgroundColor: '#28a745', color: 'white', cursor: 'pointer' as const, fontSize: '1.2rem' },
+    fileInput: { padding: '0.5rem' }
+  };
+
+  const renderVersionButtons = (card: PokemonTCGCard) => {
+    const prices = card.tcgplayer?.prices;
+    if (!prices) return <button style={styles.selectImageButton} onClick={() => pickImage(card, 'Normal', null)}>Use Image</button>;
+
+    const versions = Object.entries(prices)
+      .map(([key, value]) => ({ name: key, price: value?.market }))
+      .filter(v => v.price != null);
+
+    if (versions.length === 0) return <button style={styles.selectImageButton} onClick={() => pickImage(card, 'Normal', null)}>Use Image</button>;
+
+    return versions.map(version => {
+      const displayName = version.name.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+      return (
+        <button key={version.name} type="button" style={styles.selectImageButton} onClick={() => pickImage(card, displayName, version.price)}>
+          {displayName} {version.price ? `($${version.price.toFixed(2)})` : ''}
+        </button>
+      );
+    });
+  };
+
+  /* ── JSX ui ────────────────────────────────────────────── */
   return (
-    <form onSubmit={handleSubmit} className={styles.formContainer}>
-      <h1 className={styles.formTitle}>Add New Card</h1>
-      {message && (
-        <div
-          style={{
-            padding: '10px', marginBottom: '15px', borderRadius: '6px',
-            backgroundColor: message.startsWith('Error:') ? '#ffdddd' : (message.includes("successfully") ? '#ddffdd' : '#eeeeee'),
-            color: message.startsWith('Error:') ? '#d8000c' : (message.includes("successfully") ? '#4f8a10' : '#333333'),
-            border: `1px solid ${message.startsWith('Error:') ? '#ffc3c3' : (message.includes("successfully") ? '#c3ffc3' : '#cccccc')}`,
-            textAlign: 'center'
-          }}
-        >
-          {message}
+    <>
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
+      <form onSubmit={handleSubmit} style={styles.formContainer}>
+        <h1 style={styles.formTitle}>Add New Card</h1>
+        {msg && <div style={styles.flash}>{msg}</div>}
+
+        <div style={styles.formGroup}><label style={styles.label}>Card Name</label><input style={styles.inputField} value={name} onChange={e=>setName(e.target.value)} required /></div>
+        <div style={styles.formGroup}><label style={styles.label}>Card Number</label><input style={styles.inputField} value={cardNumber} onChange={e=>setNumber(e.target.value)} required /></div>
+        <div style={styles.formGroup}><button type="button" style={styles.searchButton} onClick={handleScrape} disabled={scraping}>{scraping?"Scraping…":"Scrape Details"}</button></div>
+        <div style={styles.formGroup}><label style={styles.label}>Price (pence)</label><input type="number" min="0" style={styles.inputField} value={price} onChange={e=>setPrice(e.target.value)} required /></div>
+        <div style={styles.formGroup}><label style={styles.label}>Set Code</label><input style={styles.inputField} value={setCode} onChange={e=>setSetCode(e.target.value)} /></div>
+        <div style={styles.formGroup}><label style={styles.label}>Rarity</label><input style={styles.inputField} value={rarity} onChange={e=>setRarity(e.target.value)} /></div>
+        <div style={styles.formGroup}><label style={styles.label}>Holo Type</label><input style={styles.inputField} value={holoType ?? ''} onChange={e=>setHoloType(e.target.value)} /></div>
+
+        <div style={styles.formGroup}>
+          <label style={styles.label}>Search Pokémon Card Image (Optional)</label>
+          <div style={{ display:"flex", gap:10 }}>
+            <input style={styles.inputField} placeholder="Enter Pokémon name" value={searchTerm} onChange={e=>setTerm(e.target.value)} />
+            <button type="button" style={styles.searchButton} onClick={handleSearch} disabled={searching || !searchTerm.trim()}>{searching?"Searching…":"Search API"}</button>
+          </div>
         </div>
-      )}
 
-      <div className={styles.formGroup}>
-        <label htmlFor="cardName" className={styles.label}>Card Name</label>
-        <input id="cardName" className={styles.inputField} type="text" placeholder="Enter card name" value={name} onChange={(e) => setName(e.target.value)} required />
-      </div>
-
-      <div className={styles.formGroup}>
-        <label htmlFor="cardPrice" className={styles.label}>Price (in pence)</label>
-        <input id="cardPrice" className={styles.inputField} type="number" placeholder="e.g., 1999 for £19.99" value={price} onChange={(e) => setPrice(e.target.value)} required min="1" />
-      </div>
-
-      <div className={styles.formGroup}>
-        <label htmlFor="pokemonSearch" className={styles.label}>Search Pokémon Card Image (Optional)</label>
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-          <input
-            id="pokemonSearch"
-            className={styles.inputField}
-            type="text"
-            placeholder="Enter Pokémon name (e.g., Pikachu)"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <button type="button" onClick={handlePokemonSearch} className={styles.searchButton} disabled={isSearching || !searchTerm.trim()}>
-            {isSearching ? "Searching..." : "Search API"}
-          </button>
-        </div>
-        {searchResults.length > 0 && (
-          <div className={styles.searchResultsContainer}>
-            {searchResults.map(card => (
-              <div key={card.id} className={styles.searchResultItem}>
-                <Image src={card.images.small} alt={card.name} width={60} height={84} style={{ imageRendering: 'pixelated', border: '1px solid #ccc' }}/>
-                <span style={{ flexGrow: 1, paddingLeft: '10px' }}>{card.name}</span>
-                <button type="button" onClick={() => handleSelectApiImage(card)} className={styles.selectImageButton}>
-                  Use Image
-                </button>
+        {results.length > 0 && (
+          <div style={styles.searchResultsContainer}>
+            {results.map((card) => (
+              <div key={card.id} style={styles.searchResultItem}>
+                <img src={card.images.small} alt={card.name} width={60} height={84} style={{ imageRendering: "pixelated", border: "1px solid #ccc", flexShrink: 0 }} />
+                <div style={{ flexGrow: 1, paddingLeft: 10, display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontWeight: 'bold' }}>{card.name}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginTop: '5px', alignItems: 'flex-start' }}>{renderVersionButtons(card)}</div>
+                </div>
               </div>
             ))}
           </div>
         )}
-      </div>
-      
-      {selectedApiImages.length > 0 && (
-        <div className={styles.formGroup}>
-            <p className={styles.label}>Selected API Images:</p>
-            <ul style={{ listStyle: 'none', padding: 0 }}>
-                {selectedApiImages.map((img, index) => (
-                    <li key={index} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
-                        <Image src={img.url} alt={img.apiCardName || 'API Image'} width={40} height={56} style={{imageRendering: 'pixelated', border: '1px solid #ccc'}}/>
-                        <span>{img.apiCardName || 'API Image'}</span>
-                    </li>
-                ))}
+
+        {selectedImages.length > 0 && (
+          <div style={styles.formGroup}>
+            <p style={styles.label}>Selected Images:</p>
+            <ul style={{ listStyle: "none", padding: 0 }}>
+              {selectedImages.map((img, idx) => (
+                <li key={idx} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <img src={img.url} alt={img.apiCardName ?? "img"} width={40} height={56} style={{ imageRendering: "pixelated", border: "1px solid #ccc" }} />
+                  <span>{img.apiCardName ?? "Upload"} {img.holoType ? `(${img.holoType})` : ''}</span>
+                </li>
+              ))}
             </ul>
+          </div>
+        )}
+
+        <div style={styles.formGroup}>
+          <label style={styles.label}>Or Upload Your Own Image(s)</label>
+          <input id="file-input" type="file" multiple accept="image/*" style={{...styles.inputField, ...styles.fileInput}} onChange={e=>setFiles(e.target.files)} />
         </div>
-      )}
 
-      <div className={styles.formGroup}>
-        <label htmlFor="file-input" className={styles.label}>Or Upload Your Own Image(s) (select multiple)</label>
-        <input
-          id="file-input"
-          className={`${styles.inputField} ${styles.fileInput}`}
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={(e) => setFiles(e.target.files)}
-        />
-      </div>
-
-      <button className={styles.submitButton} type="submit" disabled={uploading}>
-        {uploading ? (message.includes("Uploading image") ? message : "Processing...") : "Add Card"}
-      </button>
-    </form>
+        <button style={styles.submitButton} type="submit" disabled={uploading}>{uploading?"Processing…":"Add Card"}</button>
+      </form>
+    </>
   );
 }
