@@ -108,7 +108,7 @@ useEffect(() => {
         <img
           src="/generated-imageee.png"
           alt="Colorful trading card game banner1"
-          style={{ width: "100%", display: "block" }}
+          style={{ width: "100%", display: "block", paddingTop: "50px" }}
         />
       </div>
 
