@@ -106,7 +106,7 @@ useEffect(() => {
     <main className={styles.pageContainer}>
       <div className={styles.shopImageBanner}>
         <img
-          src="/banner3.png"
+          src="/generated-imageee"
           alt="Colorful trading card game banner"
           style={{ width: "100%", display: "block" }}
         />
