@@ -34,6 +34,7 @@ export default function ShopPage() {
 
   // 2. MODIFIED fetchCards to handle pagination
   const fetchCards = useCallback(async () => {
+    setError(null); 
     setLoading(true);
     const from = (currentPage - 1) * CARDS_PER_PAGE;
     const to = from + CARDS_PER_PAGE - 1;
@@ -172,7 +173,7 @@ export default function ShopPage() {
 
         {error && <div className="alert alert-danger">{error}</div>}
         {loading && <div className="text-muted">Loading cards...</div>}
-S
+
         {/* PRODUCT GRID (Unchanged) */}
         <div className={`row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-4 ${styles.productGridRow}`}>
           {cards.map((card) => (
