@@ -25,66 +25,67 @@ export default function ShopPage() {
   const [loading, setLoading] = useState(true);
   const [setOptions, setSetOptions] = useState<{ value: string; label: string }[]>([]);
 
+  // 1. STATE FOR PAGINATION
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCards, setTotalCards] = useState(0);
+  const CARDS_PER_PAGE = 20; // Number of cards per page
 
   const { addToCart } = useCart();
 
-const fetchCards = useCallback(async () => {
-  setLoading(true);
-let query = supabase.from("Card").select("*").eq("available", true);
+  // 2. MODIFIED fetchCards to handle pagination
+  const fetchCards = useCallback(async () => {
+    setLoading(true);
+    const from = (currentPage - 1) * CARDS_PER_PAGE;
+    const to = from + CARDS_PER_PAGE - 1;
 
-if (search) query = query.ilike("name", `%${search}%`);
-if (setName) query = query.eq("set", setName);  // ✅ Only filter if setName has value
-if (rarity) query = query.ilike("rarity", `%${rarity}%`);
-  if (setName) {
-    query = query.eq("set", setName);
-  }
+    let query = supabase
+      .from("Card")
+      .select("*", { count: "exact" }) // Request total count
+      .eq("available", true);
 
-  console.log("🧪 Fetching cards with filters:", { search, rarity, setName });
+    if (search) query = query.ilike("name", `%${search}%`);
+    if (setName) query = query.eq("set", setName);
+    if (rarity) query = query.ilike("rarity", `%${rarity}%`);
 
-  const { data, error } = await query.order("createdAt", { ascending: false });
+    const { data, error, count } = await query
+      .range(from, to) // Apply pagination
+      .order("createdAt", { ascending: false });
 
-  if (error) {
-    console.error("❌ Error fetching cards:", error);
-    setError("Failed to load cards.");
-  } else {
-    console.log("📦 Supabase returned:", data);
-    setCards(data || []);
-  }
+    if (error) {
+      console.error("❌ Error fetching cards:", error);
+      setError("Failed to load cards.");
+    } else {
+      setCards(data || []);
+      setTotalCards(count || 0); // Set the total count
+    }
 
-  setLoading(false);
-}, [search, rarity, setName]);
-
+    setLoading(false);
+  }, [search, rarity, setName, currentPage]); // Add currentPage dependency
 
   useEffect(() => {
-  fetch("/api/sets")
-    .then(res => res.json())
-    .then(data => {
-      console.log("✅ sets from API:", data);
-      const options = (data.sets || []).map((s: any) => ({
-        value: s.value, // use label (the human-readable one) for both
-        label: s.label,
-      }));
-  console.log("👉 Transformed setOptions:", options);
-  console.log("🔎 Filtering with set:", setName);
-  console.log("🧪 Fetching cards with filters:", {
-  search, rarity, setName
-});
+    fetch("/api/sets")
+      .then(res => res.json())
+      .then(data => {
+        const options = (data.sets || []).map((s: any) => ({
+          value: s.value,
+          label: s.label,
+        }));
+        setSetOptions(options);
+      })
+      .catch(err => console.error("Failed to load sets", err));
+  }, []);
 
-
-  setSetOptions(options);
-})
-
-    .catch(err => console.error("Failed to load sets", err));
-}, []);
-
-useEffect(() => {
+  // This useEffect fetches cards whenever the fetchCards function is updated
+  // (i.e., when filters or the current page changes)
+  useEffect(() => {
     fetchCards();
   }, [fetchCards]);
 
+  // 3. NEW useEffect to reset to page 1 when filters change
   useEffect(() => {
-    console.log("🔎 Filtering with set:", setName);
-    fetchCards();
-  }, [setName, fetchCards]);
+    setCurrentPage(1);
+  }, [search, rarity, setName]);
+
   const handleAddToCart = (card: any) => {
     addToCart({
       id: card.id,
@@ -127,6 +128,7 @@ useEffect(() => {
       />
 
       <div className="container mt-4">
+        {/* FILTER CONTROLS (Unchanged) */}
         <div className="row mb-3">
           <div className="col-md-4 mb-2">
             <input
@@ -141,21 +143,15 @@ useEffect(() => {
            <select
             className="form-select"
             value={setName}
-            onChange={(e) => {
-              console.log("📦 Selected Set:", e.target.value);
-              setSetName(e.target.value);
-            }}
->
+            onChange={(e) => setSetName(e.target.value)}
+            >
               <option value="">All Sets</option>
               {setOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                  {opt.label}
                 </option>
-
               ))}
             </select>
-
-
           </div>
           <div className="col-md-4 mb-2">
             <select
@@ -176,7 +172,8 @@ useEffect(() => {
 
         {error && <div className="alert alert-danger">{error}</div>}
         {loading && <div className="text-muted">Loading cards...</div>}
-
+S
+        {/* PRODUCT GRID (Unchanged) */}
         <div className={`row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-4 ${styles.productGridRow}`}>
           {cards.map((card) => (
             <div className={`col ${styles.productColWrapper}`} key={card.id}>
@@ -187,7 +184,6 @@ useEffect(() => {
                   className="card-img-top"
                 />
                 <div className={`card-body ${styles.cardBody}`}>
-                  {/* This new wrapper will grow to push the button down */}
                   <div className={styles.cardTextWrapper}>
                     <h5 className="card-title">{card.name}</h5>
                     <p className="card-text">
@@ -212,6 +208,34 @@ useEffect(() => {
             </div>
           ))}
         </div>
+
+        {/* 4. PAGINATION UI */}
+        {totalCards > CARDS_PER_PAGE && (
+          <div className="d-flex justify-content-center mt-4">
+            <nav aria-label="Page navigation">
+              <ul className="pagination">
+                <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                  <button className="page-link" onClick={() => setCurrentPage(currentPage - 1)}>
+                    Previous
+                  </button>
+                </li>
+                {Array.from({ length: Math.ceil(totalCards / CARDS_PER_PAGE) }, (_, i) => (
+                  <li key={i + 1} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
+                    <button className="page-link" onClick={() => setCurrentPage(i + 1)}>
+                      {i + 1}
+                    </button>
+                  </li>
+                ))}
+                <li className={`page-item ${currentPage === Math.ceil(totalCards / CARDS_PER_PAGE) ? 'disabled' : ''}`}>
+                  <button className="page-link" onClick={() => setCurrentPage(currentPage + 1)}>
+                    Next
+                  </button>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        )}
+
       </div>
       <div style={{ paddingTop: "20px", height: "3rem", width: "100%" }}></div>
          <footer id="footer" style={{ flexShrink: 0, paddingTop: "20px", paddingBottom: "40px", width: "100%", background: "#282828", color: "white", textAlign: "center" }}>
