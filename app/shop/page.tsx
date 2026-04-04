@@ -7,7 +7,6 @@ import { useCart } from "@/components/CartProvider";
 import { ToastContainer, toast, Flip } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// Supabase
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
   throw new Error("Missing Supabase environment variables");
 }
@@ -15,6 +14,11 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
+
+const RARITY_ORDER: Record<string, number> = {
+  "Common": 0, "Uncommon": 1, "Rare": 2,
+  "Holo Rare": 3, "Secret Rare": 4, "Promo": 5,
+};
 
 export default function ShopPage() {
   const [cards, setCards] = useState<any[]>([]);
@@ -24,224 +28,252 @@ export default function ShopPage() {
   const [setName, setSetName] = useState("");
   const [loading, setLoading] = useState(true);
   const [setOptions, setSetOptions] = useState<{ value: string; label: string }[]>([]);
-
-  // 1. STATE FOR PAGINATION
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCards, setTotalCards] = useState(0);
-  const CARDS_PER_PAGE = 20; // Number of cards per page
+  const CARDS_PER_PAGE = 20;
 
   const { addToCart } = useCart();
 
-  // 2. MODIFIED fetchCards to handle pagination
   const fetchCards = useCallback(async () => {
-    setError(null); 
+    setError(null);
     setLoading(true);
     const from = (currentPage - 1) * CARDS_PER_PAGE;
     const to = from + CARDS_PER_PAGE - 1;
 
     let query = supabase
       .from("Card")
-      .select("*", { count: "exact" }) // Request total count
+      .select("*", { count: "exact" })
       .eq("available", true);
 
-    if (search) query = query.ilike("name", `%${search}%`);
+    if (search)  query = query.ilike("name", `%${search}%`);
     if (setName) query = query.eq("set", setName);
-    if (rarity) query = query.ilike("rarity", `%${rarity}%`);
+    if (rarity)  query = query.ilike("rarity", `%${rarity}%`);
 
     const { data, error, count } = await query
-      .range(from, to) // Apply pagination
+      .range(from, to)
       .order("createdAt", { ascending: false });
 
     if (error) {
-      console.error("❌ Error fetching cards:", error);
       setError("Failed to load cards.");
     } else {
       setCards(data || []);
-      setTotalCards(count || 0); // Set the total count
+      setTotalCards(count || 0);
     }
-
     setLoading(false);
-  }, [search, rarity, setName, currentPage]); // Add currentPage dependency
+  }, [search, rarity, setName, currentPage]);
 
   useEffect(() => {
     fetch("/api/sets")
       .then(res => res.json())
-      .then(data => {
-        const options = (data.sets || []).map((s: any) => ({
-          value: s.value,
-          label: s.label,
-        }));
-        setSetOptions(options);
-      })
-      .catch(err => console.error("Failed to load sets", err));
+      .then(data => setSetOptions((data.sets || []).map((s: any) => ({ value: s.value, label: s.label }))))
+      .catch(() => {});
   }, []);
 
-  // This useEffect fetches cards whenever the fetchCards function is updated
-  // (i.e., when filters or the current page changes)
-  useEffect(() => {
-    fetchCards();
-  }, [fetchCards]);
-
-  // 3. NEW useEffect to reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, rarity, setName]);
+  useEffect(() => { fetchCards(); }, [fetchCards]);
+  useEffect(() => { setCurrentPage(1); }, [search, rarity, setName]);
 
   const handleAddToCart = (card: any) => {
-    addToCart({
-      id: card.id,
-      name: card.name,
-      price: card.price,
-      imageUrl: card.image_url,
-    });
+    addToCart({ id: card.id, name: card.name, price: card.price, imageUrl: card.image_url });
     toast.success(`${card.name} added to cart!`);
   };
 
-  const truncateText = (text: string, maxLength: number) => {
-    if (text.length > maxLength) {
-      return text.substring(0, maxLength - 3) + '...';
-    }
-    return text;
-  };
+  const totalPages = Math.ceil(totalCards / CARDS_PER_PAGE);
+  const hasFilters = search || rarity || setName;
 
   return (
     <main className={styles.pageContainer}>
-      <div className={styles.shopImageBanner}>
-        <img
-          src="/generated-imageee.png"
-          alt="Colorful trading card game banner1"
-          style={{ width: "100%", display: "block", paddingTop: "50px" }}
-        />
-      </div>
+
+      {/* ── Hero header (no image) ── */}
+      <header className={styles.shopHero}>
+        <div className={styles.heroCornerTL} aria-hidden="true" />
+        <div className={styles.heroCornerTR} aria-hidden="true" />
+        <div className={styles.heroCornerBL} aria-hidden="true" />
+        <div className={styles.heroCornerBR} aria-hidden="true" />
+
+        <p className={styles.heroPre}>— GAY RETRO TCG —</p>
+        <h1 className={styles.heroTitle}>SHOP ALL CARDS</h1>
+        <p className={styles.heroMeta}>
+          {loading ? "LOADING..." : `${totalCards} CARDS IN STOCK`}
+        </p>
+
+        <div className={styles.heroRainbowBar} aria-hidden="true" />
+      </header>
 
       <ToastContainer
         position="top-center"
-        autoClose={3000}
-        hideProgressBar={false}
+        autoClose={2500}
+        hideProgressBar
         newestOnTop
         closeOnClick
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
         transition={Flip}
         style={{ marginTop: "4rem" }}
         theme="colored"
       />
 
-      <div className="container mt-4">
-        {/* FILTER CONTROLS (Unchanged) */}
-        <div className="row mb-3">
-          <div className="col-md-4 mb-2">
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Search by card name..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <div className="col-md-4 mb-2">
-           <select
-            className="form-select"
-            value={setName}
-            onChange={(e) => setSetName(e.target.value)}
-            >
-              <option value="">All Sets</option>
-              {setOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                 {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="col-md-4 mb-2">
-            <select
-              className="form-select"
-              value={rarity}
-              onChange={(e) => setRarity(e.target.value)}
-            >
-              <option value="">All Rarities</option>
-              <option value="Common">Common</option>
-              <option value="Uncommon">Uncommon</option>
-              <option value="Rare">Rare</option>
-              <option value="Holo Rare">Holo Rare</option>
-              <option value="Secret Rare">Secret Rare</option>
-              <option value="Promo">Promo</option>
-            </select>
+      <div className="container" style={{ paddingTop: "2.5rem", paddingBottom: "3rem" }}>
+
+        {/* ── Filters ── */}
+        <div className={styles.filterSection}>
+          <div className={styles.filterGrid}>
+            <div className={styles.filterItem}>
+              <label className={styles.filterLabel}>Search</label>
+              <input
+                type="text"
+                className={`form-control ${styles.filterInput}`}
+                placeholder="Card name..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </div>
+            <div className={styles.filterItem}>
+              <label className={styles.filterLabel}>Set</label>
+              <select
+                className={`form-select ${styles.filterInput}`}
+                value={setName}
+                onChange={e => setSetName(e.target.value)}
+              >
+                <option value="">All Sets</option>
+                {setOptions.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className={styles.filterItem}>
+              <label className={styles.filterLabel}>Rarity</label>
+              <select
+                className={`form-select ${styles.filterInput}`}
+                value={rarity}
+                onChange={e => setRarity(e.target.value)}
+              >
+                <option value="">All Rarities</option>
+                <option value="Common">Common</option>
+                <option value="Uncommon">Uncommon</option>
+                <option value="Rare">Rare</option>
+                <option value="Holo Rare">Holo Rare</option>
+                <option value="Secret Rare">Secret Rare</option>
+                <option value="Promo">Promo</option>
+              </select>
+            </div>
+            {hasFilters && (
+              <button
+                className={styles.clearBtn}
+                onClick={() => { setSearch(""); setRarity(""); setSetName(""); }}
+              >
+                Clear
+              </button>
+            )}
           </div>
         </div>
 
+        {/* ── Error ── */}
         {error && <div className="alert alert-danger">{error}</div>}
-        {loading && <div className="text-muted">Loading cards...</div>}
 
-        {/* PRODUCT GRID (Unchanged) */}
-        <div className={`row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-4 ${styles.productGridRow}`}>
-          {cards.map((card) => (
-            <div className={`col ${styles.productColWrapper}`} key={card.id}>
-              <div className={`card ${styles.shopCard}`}>
-                <img
-                  src={card.image_url || "/fallback.jpg"}
-                  alt={card.name}
-                  className="card-img-top"
-                />
-                <div className={`card-body ${styles.cardBody}`}>
-                  <div className={styles.cardTextWrapper}>
-                    <h5 className="card-title">{card.name}</h5>
-                    <p className="card-text">
-                      {typeof card.price === "number"
-                        ? `£${(card.price / 100).toFixed(2)}`
-                        : "N/A"}
-                    </p>
-                    <p className="card-text">
-                      <small className="text-muted" title={card.set}>
-                        {truncateText(card.set, 18)} — #{card.number}
-                      </small>
-                    </p>
+        {/* ── Loading ── */}
+        {loading && (
+          <div className={styles.loadingState}>
+            <div className={styles.loadingDots}>
+              <span /><span /><span /><span />
+            </div>
+            <p>LOADING CARDS...</p>
+          </div>
+        )}
+
+        {/* ── Empty state ── */}
+        {!loading && cards.length === 0 && (
+          <div className={styles.emptyState}>
+            <p className={styles.emptyIcon}>◈</p>
+            <p>NO CARDS FOUND</p>
+            {hasFilters && (
+              <button className={styles.clearBtn} onClick={() => { setSearch(""); setRarity(""); setSetName(""); }}>
+                Clear Filters
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ── Card grid ── */}
+        {!loading && cards.length > 0 && (
+          <div className={`row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-3 ${styles.productGridRow}`}>
+            {cards.map((card, i) => (
+              <div className={`col ${styles.productColWrapper}`} key={card.id} style={{ animationDelay: `${Math.min(i, 9) * 0.05}s` }}>
+                <div className={styles.shopCard}>
+                  <div className={styles.cardImageWrap}>
+                    <img
+                      src={card.image_url || "/placeholder.png"}
+                      alt={card.name}
+                      className={styles.cardImage}
+                    />
                   </div>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => handleAddToCart(card)}
-                  >
-                    Add to Cart
-                  </button>
+                  <div className={styles.cardBody}>
+                    <h5 className={styles.cardTitle}>
+                      {card.name}{card.number ? ` · ${card.number}` : ''}
+                    </h5>
+                    <p className={styles.cardPrice}>
+                      {typeof card.price === "number" ? `£${(card.price / 100).toFixed(2)}` : "N/A"}
+                    </p>
+                    <p className={styles.cardMeta} title={card.set ?? ''}>
+                      {card.set ?? ''}
+                      {card.language && card.language !== "English" && (
+                        <span className={styles.langBadge}>{card.language === "Japanese" ? "🇯🇵 JP" : card.language}</span>
+                      )}
+                    </p>
+                    <button className={styles.addToCartBtn} onClick={() => handleAddToCart(card)}>
+                      Add to Cart
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
-        {/* 4. PAGINATION UI */}
-        {totalCards > CARDS_PER_PAGE && (
-          <div className="d-flex justify-content-center mt-4">
-            <nav aria-label="Page navigation">
-              <ul className="pagination">
-                <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                  <button className="page-link" onClick={() => setCurrentPage(currentPage - 1)}>
-                    Previous
-                  </button>
-                </li>
-                {Array.from({ length: Math.ceil(totalCards / CARDS_PER_PAGE) }, (_, i) => (
-                  <li key={i + 1} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
-                    <button className="page-link" onClick={() => setCurrentPage(i + 1)}>
-                      {i + 1}
+        {/* ── Pagination ── */}
+        {totalPages > 1 && (
+          <div className={styles.paginationWrap}>
+            <button
+              className={styles.pageBtn}
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(p => p - 1)}
+            >
+              ← Prev
+            </button>
+            <div className={styles.pageNumbers}>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2)
+                .reduce<(number | string)[]>((acc, p, idx, arr) => {
+                  if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push("…");
+                  acc.push(p);
+                  return acc;
+                }, [])
+                .map((p, idx) =>
+                  typeof p === "string" ? (
+                    <span key={`ellipsis-${idx}`} className={styles.pageEllipsis}>{p}</span>
+                  ) : (
+                    <button
+                      key={p}
+                      className={`${styles.pageBtn} ${currentPage === p ? styles.pageBtnActive : ""}`}
+                      onClick={() => setCurrentPage(p)}
+                    >
+                      {p}
                     </button>
-                  </li>
-                ))}
-                <li className={`page-item ${currentPage === Math.ceil(totalCards / CARDS_PER_PAGE) ? 'disabled' : ''}`}>
-                  <button className="page-link" onClick={() => setCurrentPage(currentPage + 1)}>
-                    Next
-                  </button>
-                </li>
-              </ul>
-            </nav>
+                  )
+                )}
+            </div>
+            <button
+              className={styles.pageBtn}
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(p => p + 1)}
+            >
+              Next →
+            </button>
           </div>
         )}
 
       </div>
-      <div style={{ paddingTop: "20px", height: "3rem", width: "100%" }}></div>
-         <footer id="footer" style={{ flexShrink: 0, paddingTop: "20px", paddingBottom: "40px", width: "100%", background: "#282828", color: "white", textAlign: "center" }}>
-          <p>© {new Date().getFullYear()} GAY RETRO TCG. All Rights Reserved.</p>
-        </footer>
+
+      <footer className={styles.footer}>
+        © {new Date().getFullYear()} GAY RETRO TCG. All Rights Reserved.
+      </footer>
     </main>
   );
 }

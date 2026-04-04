@@ -55,8 +55,8 @@ export default async function handler(
     if (!cardData || typeof cardData !== 'object') {
         return res.status(400).json({ message: "Invalid request body." });
     }
-    if (!cardData.name || !cardData.number || !cardData.set || !cardData.image_url) {
-        return res.status(400).json({ message: "Missing required fields: name, number, set, and image_url are required." });
+    if (!cardData.name || !cardData.image_url) {
+        return res.status(400).json({ message: "Missing required fields: name and image_url are required." });
     }
     if (typeof cardData.price !== 'number' || cardData.price < 0) {
         return res.status(400).json({ message: "Invalid price: Must be a non-negative number." });

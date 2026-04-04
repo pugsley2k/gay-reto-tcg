@@ -63,14 +63,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [cart, hydrated]);
 
-  // 🔁 Remove unavailable cards from cart after hydration
+  // 🔁 Remove unavailable cards from cart — runs once after hydration only
   useEffect(() => {
-    if (!hydrated || cart.length === 0) return;
+    if (!hydrated) return;
 
-    async function removeUnavailableFromCart() {
+    async function removeUnavailableFromCart(currentCart: CartItem[]) {
+      if (currentCart.length === 0) return;
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/Card?id=in.(${cart.map(i => `"${i.id}"`).join(",")})&select=id,available`,
+          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/Card?id=in.(${currentCart.map(i => `"${i.id}"`).join(",")})&select=id,available`,
           {
             headers: {
               apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -79,21 +80,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
           }
         );
 
+        if (!res.ok) return; // don't clear cart on API errors
         const data = await res.json();
+        if (!Array.isArray(data)) return; // guard against unexpected response
         const stillAvailableIds = new Set(data.filter((d: any) => d.available).map((d: any) => d.id));
-        const updatedCart = cart.filter(item => stillAvailableIds.has(item.id));
-
-        if (updatedCart.length !== cart.length) {
-          console.log("🧹 Removing unavailable items from cart");
-          setCart(updatedCart);
-        }
+        setCart(prev => {
+          const updated = prev.filter(item => stillAvailableIds.has(item.id));
+          if (updated.length !== prev.length) {
+            console.log("🧹 Removing unavailable items from cart");
+            return updated;
+          }
+          return prev;
+        });
       } catch (err) {
         console.error("❌ Failed to clean cart from unavailable items:", err);
       }
     }
 
-    removeUnavailableFromCart();
-  }, [hydrated, cart]);
+    // Capture cart value at hydration time — don't re-run on every cart change
+    setCart(current => { removeUnavailableFromCart(current); return current; });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
 
   if (!hydrated) {
     return null;

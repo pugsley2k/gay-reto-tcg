@@ -12,7 +12,13 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'images.pokemontcg.io',
         port: '',
-        pathname: '/**', // allow all image paths from this domain
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        port: '',
+        pathname: '/**',
       },
     ],
   },

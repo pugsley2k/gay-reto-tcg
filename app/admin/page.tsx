@@ -29,14 +29,7 @@ export default async function AdminPage() {
 
   // If the user is an authenticated admin, render the actual form component.
   return (
-    <div>
-      {/* You can add an admin-specific layout or title here if desired */}
-      {/* For example:
-      <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-        <h1>Admin Dashboard</h1>
-        <p>Welcome, Admin {user?.firstName || user?.username}!</p>
-      </div>
-      */}
+    <div style={{ minHeight: '80vh', background: '#06060f' }}>
       <AdminUploadForm />
     </div>
   );

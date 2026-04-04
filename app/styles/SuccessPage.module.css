@@ -1,0 +1,194 @@
+/* ============================================
+   Success Page — Retro Arcade Pride
+   ============================================ */
+
+.page {
+  min-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  position: relative;
+}
+
+.card {
+  max-width: 520px;
+  width: 100%;
+  background: linear-gradient(160deg, #111128 0%, #09091c 100%);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  padding: 3rem 2.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  position: relative;
+  overflow: hidden;
+  animation: cardIn 0.5s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(32px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Rainbow top stripe on card */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #ff3e6c, #ff8c42, #ffd166, #06d6a0, #118ab2, #b84fff);
+  background-size: 200% auto;
+  animation: rainbowShift 4s linear infinite;
+}
+
+@keyframes rainbowShift {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+/* ── Success icon ── */
+.successIcon {
+  font-size: 3.5rem;
+  color: #ffd166;
+  text-shadow: 0 0 20px rgba(255,209,102,0.7), 0 0 40px rgba(255,140,66,0.4);
+  animation: starPop 0.6s 0.2s cubic-bezier(0.34, 1.8, 0.64, 1) both, starGlow 2s 0.8s ease-in-out infinite;
+}
+
+@keyframes starPop {
+  from { transform: scale(0) rotate(-20deg); opacity: 0; }
+  to   { transform: scale(1) rotate(0deg);  opacity: 1; }
+}
+
+@keyframes starGlow {
+  0%, 100% { text-shadow: 0 0 20px rgba(255,209,102,0.7), 0 0 40px rgba(255,140,66,0.4); }
+  50%       { text-shadow: 0 0 30px rgba(255,209,102,1),   0 0 60px rgba(184,79,255,0.5); }
+}
+
+/* ── Error icon ── */
+.errorIcon {
+  font-size: 3rem;
+  color: #ff3e6c;
+  text-shadow: 0 0 20px rgba(255,62,108,0.6);
+  margin: 0;
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+}
+
+/* ── Titles ── */
+.successTitle {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.75rem, 2.5vw, 1.1rem);
+  color: #fff;
+  text-shadow:
+    2px 2px 0 #06d6a0,
+    0 0 16px rgba(6,214,160,0.6),
+    0 0 32px rgba(6,214,160,0.3);
+  line-height: 1.5;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+.errorTitle {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.75rem, 2.5vw, 1.1rem);
+  color: #ff3e6c;
+  text-shadow: 2px 2px 0 #b84fff, 0 0 16px rgba(255,62,108,0.6);
+  line-height: 1.5;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+/* ── Body text ── */
+.bodyText {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.78rem;
+  color: #5a5a8a;
+  line-height: 1.9;
+  letter-spacing: 0.03em;
+  margin: 0;
+}
+
+.metaText {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.68rem;
+  color: #4a4a72;
+  margin: 0;
+}
+
+.code {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 4px;
+  padding: 0.15em 0.4em;
+  font-family: 'Space Mono', monospace;
+  color: #9090c0;
+}
+
+/* ── Loading ── */
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(184,79,255,0.15);
+  border-top-color: #b84fff;
+  border-right-color: #ff3e6c;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loadingText {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  color: #4a4a72;
+  letter-spacing: 0.14em;
+  margin: 0;
+  animation: blink 1.4s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+/* ── CTA button ── */
+.ctaBtn {
+  display: inline-block;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  color: #fff;
+  background: linear-gradient(90deg, #ff3e6c, #ff8c42, #ffd166, #06d6a0, #118ab2, #b84fff);
+  background-size: 200% auto;
+  border-radius: 8px;
+  padding: 0.9rem 1.75rem;
+  text-decoration: none;
+  margin-top: 0.5rem;
+  transition: background-position 0.4s ease, transform 0.2s, box-shadow 0.2s;
+}
+
+.ctaBtn:hover {
+  background-position: right center;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(184,79,255,0.5);
+  color: #fff;
+}
+
+/* ── Bottom rainbow bar ── */
+.rainbowBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #ff3e6c, #ff8c42, #ffd166, #06d6a0, #118ab2, #b84fff, #ff3e6c);
+  background-size: 200% auto;
+  animation: rainbowShift 5s linear infinite;
+  z-index: 100;
+}

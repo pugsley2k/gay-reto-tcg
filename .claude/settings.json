@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell.exe -Command \"Test-Path 'C:\\\\Users\\\\Admin\\\\GRTCG\\\\gay-reto-tcg\\\\.env.local'\")",
+      "Bash(powershell.exe -Command \"Get-ChildItem 'C:\\\\Users\\\\Admin\\\\GRTCG\\\\gay-reto-tcg' -Filter '.env*' | Select-Object Name\")",
+      "Bash(powershell.exe -Command \"Get-Content 'C:\\\\Users\\\\Admin\\\\GRTCG\\\\gay-reto-tcg\\\\node_modules\\\\@clerk\\\\nextjs\\\\package.json' | Select-String '\\\\\"version\\\\\"' | Select-Object -First 1\")",
+      "Bash(powershell.exe -Command \"Get-Content 'C:\\\\Users\\\\Admin\\\\GRTCG\\\\gay-reto-tcg\\\\node_modules\\\\@clerk\\\\backend\\\\package.json' | Select-String '\\\\\"version\\\\\"' | Select-Object -First 1\")",
+      "Bash(powershell.exe -Command \"Remove-Item -Recurse -Force 'C:\\\\Users\\\\Admin\\\\GRTCG\\\\gay-reto-tcg\\\\.next' -ErrorAction SilentlyContinue; Write-Host 'Cache cleared'\")",
+      "Bash(powershell.exe -Command \"Get-ChildItem 'C:\\\\Users\\\\Admin\\\\GRTCG\\\\gay-reto-tcg\\\\app' -Filter 'page.tsx' | Select-Object FullName\")",
+      "Bash(powershell.exe -Command \"Get-ChildItem 'C:\\\\Users\\\\Admin\\\\GRTCG\\\\gay-reto-tcg\\\\app' | Select-Object Name\")",
+      "Bash(powershell.exe -Command \"cd 'C:\\\\Users\\\\Admin\\\\GRTCG\\\\gay-reto-tcg'; npm show @clerk/nextjs version\")",
+      "Bash(powershell.exe -Command \"cd 'C:\\\\Users\\\\Admin\\\\GRTCG\\\\gay-reto-tcg'; npm show @clerk/nextjs versions --json 2>&1 | ConvertFrom-Json | Select-Object -Last 10\")",
+      "Bash(powershell.exe -Command \"node --version\")",
+      "Bash(powershell.exe -Command \"Get-ChildItem 'C:\\\\Users\\\\Admin\\\\GRTCG\\\\gay-reto-tcg\\\\node_modules\\\\next\\\\dist' -Recurse -Filter '*.js' | Select-String -Pattern 'localstorage-file' | Select-Object -First 5 Path, LineNumber, Line\")",
+      "Bash(powershell.exe -Command \"cd 'C:\\\\Users\\\\Admin\\\\GRTCG\\\\gay-reto-tcg'; npm install @clerk/nextjs@latest 2>&1 | tail -5\")",
+      "Bash(powershell.exe -Command \"Test-Path 'C:\\\\Users\\\\Admin\\\\GRTCG\\\\gay-reto-tcg\\\\instrumentation.ts'\")",
+      "Bash(powershell.exe -Command \"Get-Content 'C:\\\\Users\\\\Admin\\\\GRTCG\\\\gay-reto-tcg\\\\node_modules\\\\@clerk\\\\nextjs\\\\dist\\\\server\\\\index.js' | Select-String 'clerkMiddleware|createRouteMatcher' | Select-Object -First 3\")",
+      "Bash(powershell.exe -Command \"Get-ChildItem 'C:\\\\Users\\\\Admin\\\\GRTCG\\\\gay-reto-tcg\\\\node_modules\\\\@clerk\\\\nextjs' | Select-Object Name\")",
+      "Bash(powershell.exe -Command \"Get-ChildItem 'C:\\\\Users\\\\Admin\\\\GRTCG\\\\gay-reto-tcg\\\\node_modules\\\\@clerk\\\\nextjs\\\\server' | Select-Object Name\")",
+      "Bash(powershell.exe -Command \"Get-Content 'C:\\\\Users\\\\Admin\\\\GRTCG\\\\gay-reto-tcg\\\\node_modules\\\\@clerk\\\\nextjs\\\\server\\\\package.json'\")",
+      "Bash(powershell.exe -Command \"Select-String -Path 'C:\\\\Users\\\\Admin\\\\GRTCG\\\\gay-reto-tcg\\\\node_modules\\\\@clerk\\\\nextjs\\\\dist\\\\types\\\\server\\\\index.d.ts' -Pattern 'clerkMiddleware|createRouteMatcher' | Select-Object -First 3 Line\")"
+    ]
+  }
+}

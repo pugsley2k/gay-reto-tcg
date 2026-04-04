@@ -1,194 +1,247 @@
-/* AdminPage.module.css or e.g., app/styles/AdminPage.module.css */
+/* ============================================
+   Admin Page — Retro Arcade Pride
+   ============================================ */
 
 .formContainer {
-  max-width: 600px; /* Slightly wider to accommodate search results if needed */
-  margin: 40px auto;
+  max-width: 640px;
+  margin: 2.5rem auto 4rem;
   padding: 2rem;
-  background-color: #1a1a1a;
-  color: #e0e0e0;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-  border: 1px solid #333;
+  background: linear-gradient(160deg, #111128 0%, #09091c 100%);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  box-shadow: 0 0 40px rgba(184,79,255,0.1), 0 20px 60px rgba(0,0,0,0.5);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Rainbow top stripe */
+.formContainer::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #ff3e6c, #ff8c42, #ffd166, #06d6a0, #118ab2, #b84fff);
+  background-size: 200% auto;
+  animation: rainbowShift 5s linear infinite;
+}
+
+@keyframes rainbowShift {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
 }
 
 .formTitle {
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin-bottom: 1.5rem;
-  color: #ffffff;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.85rem;
+  color: #fff;
+  text-shadow: 2px 2px 0 #b84fff, 0 0 16px rgba(184,79,255,0.6);
   text-align: center;
+  margin-bottom: 2rem;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
 }
 
 .formGroup {
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.1rem;
 }
 
 .label {
   display: block;
-  font-size: 0.9rem;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-  color: #b0b0b0;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.48rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #5a5a8a;
+  margin-bottom: 0.45rem;
 }
 
 .inputField {
   width: 100%;
-  padding: 0.8rem 1rem;
+  padding: 0.7rem 1rem;
   border-radius: 8px;
-  border: 1px solid #444;
-  background-color: #2c2c2c;
-  color: #e0e0e0;
-  font-size: 1rem;
-  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-  box-sizing: border-box; /* Ensure padding doesn't make it overflow */
+  border: 1px solid rgba(255,255,255,0.08);
+  background: #14142a;
+  color: #f0f0ff;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.82rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
 }
 
 .inputField::placeholder {
-  color: #777;
+  color: #3a3a60;
 }
 
 .inputField:focus {
   outline: none;
-  border-color: #ff007f; /* Neon Pink for focus */
-  box-shadow: 0 0 0 3px rgba(255, 0, 127, 0.3);
+  border-color: #b84fff;
+  box-shadow: 0 0 0 3px rgba(184,79,255,0.18);
 }
 
 .fileInput {
-  color: #b0b0b0;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.78rem;
+  color: #7070a0;
+  width: 100%;
+  padding: 0.5rem 0;
 }
 
 .fileInput::-webkit-file-upload-button {
-  background-color: #ff007f;
-  color: #ffffff;
+  background: linear-gradient(90deg, #b84fff, #ff3e6c);
+  color: #fff;
   border: none;
-  padding: 0.6rem 1rem;
+  padding: 0.5rem 1rem;
   border-radius: 6px;
   cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s ease;
-  margin-right: 10px; /* Add some space next to the button */
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: opacity 0.2s;
+  margin-right: 10px;
 }
 
 .fileInput::-webkit-file-upload-button:hover {
-  background-color: #e00070;
+  opacity: 0.85;
 }
 
+/* ── Buttons ── */
 .submitButton {
   width: 100%;
-  background-color: #ff007f;
-  color: #ffffff;
-  padding: 0.9rem 1rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  color: #fff;
+  background: linear-gradient(90deg, #ff3e6c, #ff8c42, #ffd166, #06d6a0, #118ab2, #b84fff);
+  background-size: 200% auto;
   border: none;
   border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 700;
+  padding: 1rem;
   cursor: pointer;
-  transition: background-color 0.2s ease-in-out, transform 0.1s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-top: 1rem; /* Add some space above the main submit button */
+  transition: background-position 0.4s ease, transform 0.2s, box-shadow 0.2s;
+  margin-top: 0.75rem;
+  line-height: 1.6;
 }
 
 .submitButton:hover:not(:disabled) {
-  background-color: #e00070;
-  transform: translateY(-1px);
+  background-position: right center;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(184,79,255,0.5);
 }
 
 .submitButton:disabled {
-  background-color: #555; /* Darker grey for disabled */
-  color: #999;
+  background: rgba(255,255,255,0.05);
+  color: #3a3a5a;
   cursor: not-allowed;
-  transform: translateY(0);
+  transform: none;
+  box-shadow: none;
 }
 
-/* Styles for Pokémon API Search Section */
 .searchButton {
-  background-color: #007bff; /* Example: Blue search button */
-  color: white;
-  padding: 0.8rem 1rem;
-  border: none;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(17,138,178,0.7);
+  border: 1px solid rgba(17,138,178,0.4);
   border-radius: 8px;
-  font-weight: 500;
+  padding: 0.65rem 1rem;
   cursor: pointer;
-  transition: background-color 0.2s ease;
-  white-space: nowrap; /* Prevent text wrapping */
+  white-space: nowrap;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
 }
 
 .searchButton:hover:not(:disabled) {
-  background-color: #0056b3;
+  background: rgba(17,138,178,0.9);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(17,138,178,0.4);
 }
 
 .searchButton:disabled {
-  background-color: #555;
-  color: #999;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
+/* ── Search results ── */
 .searchResultsContainer {
-  margin-top: 1rem;
-  max-height: 300px; /* Limit height and make it scrollable */
+  margin-top: 0.75rem;
+  max-height: 300px;
   overflow-y: auto;
-  border: 1px solid #444;
+  border: 1px solid rgba(255,255,255,0.07);
   border-radius: 8px;
   padding: 0.5rem;
-  background-color: #2c2c2c; /* Background for the results area */
+  background: #0c0c1e;
+  scrollbar-width: thin;
+  scrollbar-color: #b84fff #04040c;
 }
 
 .searchResultItem {
   display: flex;
   align-items: center;
   padding: 0.5rem;
-  margin-bottom: 0.5rem;
-  background-color: #3a3a3a; /* Background for each item */
+  margin-bottom: 0.4rem;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
   border-radius: 6px;
   gap: 10px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+  color: #9090c0;
+  transition: border-color 0.2s, background 0.2s;
 }
 
-.searchResultItem:last-child {
-  margin-bottom: 0;
+.searchResultItem:last-child { margin-bottom: 0; }
+
+.searchResultItem:hover {
+  border-color: rgba(184,79,255,0.2);
+  background: rgba(184,79,255,0.04);
 }
 
 .selectImageButton {
-  background-color: #28a745; /* Example: Green button */
-  color: white;
-  padding: 0.4rem 0.8rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(6,214,160,0.7);
   border: none;
   border-radius: 6px;
-  font-size: 0.85rem;
-  font-weight: 500;
+  padding: 0.35rem 0.75rem;
   cursor: pointer;
-  transition: background-color 0.2s ease;
-  margin-left: auto; /* Push to the right */
+  margin-left: auto;
+  transition: background 0.2s, transform 0.15s;
+  white-space: nowrap;
 }
 
 .selectImageButton:hover {
-  background-color: #1e7e34;
+  background: rgba(6,214,160,0.9);
+  transform: translateY(-1px);
 }
 
-/* Styles for the message area (if you want to use module styles for it) */
+/* ── Messages ── */
 .messageDisplay {
-  padding: 10px;
-  margin-bottom: 15px;
-  border-radius: 6px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 8px;
   text-align: center;
-  font-size: 0.9rem;
+  letter-spacing: 0.03em;
+  line-height: 1.6;
 }
 
 .messageError {
-  background-color: #ffdddd;
-  color: #d8000c;
-  border: 1px solid #ffc3c3;
+  background: rgba(255,62,108,0.08);
+  color: #ff8aaa;
+  border: 1px solid rgba(255,62,108,0.25);
 }
 
 .messageSuccess {
-  background-color: #ddffdd;
-  color: #4f8a10;
-  border: 1px solid #c3ffc3;
+  background: rgba(6,214,160,0.08);
+  color: #60f0c0;
+  border: 1px solid rgba(6,214,160,0.25);
 }
 
-.messageInfo { /* For messages like "Searching..." or "Uploading..." */
-  background-color: #eeeeee;
-  color: #333333;
-  border: 1px solid #cccccc;
+.messageInfo {
+  background: rgba(17,138,178,0.08);
+  color: #70c0e0;
+  border: 1px solid rgba(17,138,178,0.25);
 }
-

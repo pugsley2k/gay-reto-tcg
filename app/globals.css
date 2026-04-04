@@ -1,313 +1,298 @@
-/* app/globals.css */
+/* ============================================
+   GAY RETRO TCG — Global Styles
+   Theme: Retro Arcade Pride
+   ============================================ */
 
-/* Optional custom styles after this */
-html {
-  box-sizing: border-box;
-  background-color: #f0f0f0;
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+
+:root {
+  --bg-base:       #06060f;
+  --bg-surface:    #0b0b1a;
+  --bg-elevated:   #12122a;
+  --bg-card:       #0e0e1e;
+  --text-primary:  #f0f0ff;
+  --text-secondary:#8888b8;
+  --text-muted:    #4a4a72;
+
+  --r1: #ff3e6c;
+  --r2: #ff8c42;
+  --r3: #ffd166;
+  --r4: #06d6a0;
+  --r5: #118ab2;
+  --r6: #b84fff;
+
+  --rainbow:      linear-gradient(90deg, var(--r1), var(--r2), var(--r3), var(--r4), var(--r5), var(--r6));
+  --rainbow-diag: linear-gradient(135deg, var(--r1), var(--r2), var(--r3), var(--r4), var(--r5), var(--r6));
+  --rainbow-shift: linear-gradient(90deg, var(--r1), var(--r2), var(--r3), var(--r4), var(--r5), var(--r6), var(--r1));
+
+  --border-subtle: rgba(255,255,255,0.06);
+  --radius-card:   14px;
+  --radius-btn:    8px;
+
+  --glow-purple: 0 0 20px rgba(184,79,255,0.5), 0 0 60px rgba(184,79,255,0.2);
+  --glow-pink:   0 0 20px rgba(255,62,108,0.5),  0 0 60px rgba(255,62,108,0.2);
+  --glow-multi:  0 0 30px rgba(184,79,255,0.35), 0 0 60px rgba(255,62,108,0.15), 0 0 90px rgba(6,214,160,0.1);
+  --glow-teal:   0 0 20px rgba(6,214,160,0.5),   0 0 60px rgba(6,214,160,0.2);
 }
-*, *:before, *:after {
-  box-sizing: inherit;
+
+/* ── Custom Scrollbar ── */
+::-webkit-scrollbar {
+  width: 8px;
+  background: #04040c;
+}
+::-webkit-scrollbar-track {
+  background: #04040c;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #b84fff, #ff3e6c);
+  border-radius: 4px;
+  border: 1px solid #04040c;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #d070ff, #ff6090);
+}
+
+/* Override Bootstrap's default white body background */
+:root {
+  --bs-body-bg: #06060f;
+  --bs-body-color: #f0f0ff;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  background-color: var(--bg-base) !important;
+  scroll-behavior: smooth;
 }
 
 body {
-  margin: 0;
-  background: #f7fafc;
-  color: #374151;
-  font-family: 'Inter', sans-serif;
-  letter-spacing: 0.1px;
+  background-color: var(--bg-base) !important;
+  background-image:
+    radial-gradient(rgba(184,79,255,0.035) 1px, transparent 1px);
+  background-size: 36px 36px;
+  color: var(--text-primary);
+  font-family: 'Space Mono', 'Courier New', monospace;
+  letter-spacing: 0.01em;
+  min-height: 100vh;
 }
 
-/* Keep .flip-wrapper, .flip-card, .flip-card-inner, .flip-card-front, .flip-card-back styles if you use them elsewhere */
-.flip-wrapper {
-  perspective: 1000px;
-}
-.flip-card {
-  width: 100%;
-  height: 350px;
-  position: relative;
-}
-.flip-card-inner {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  transform-style: preserve-3d;
-  transition: transform 0.6s;
-}
-.flip-card:hover .flip-card-inner {
-  transform: rotateY(180deg);
-}
-.flip-card-front,
-.flip-card-back {
-  width: 100%;
-  height: 100%;
-  backface-visibility: hidden;
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-.flip-card-front {
-  z-index: 2;
-  transform: rotateY(0deg);
-}
-.flip-card-back {
-  transform: rotateY(180deg);
+/* Scanline overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0,0,0,0.04) 3px,
+    rgba(0,0,0,0.04) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
 }
 
-
-/* Shop title */
-.shop-title {
-  font-family: 'Inter', 'sans-serif';
-  font-size: 2.6rem;
-  font-weight: 800;
-  color: #374151;
-  text-align: center;
-  letter-spacing: 0.04em;
-  margin-bottom: 1.2em;
-  margin-top: 0.4em;
-}
-
-@media (max-width: 600px) {
-  .shop-title { font-size: 1.5rem; }
-}
-
-/* MODIFIED: Remove font-size here entirely, let ShopPage.module.css control it for shop cards. */
-.card-title {
-  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
-  padding-top: 10px;
-
-  
-
-}
-
-
-.ShopPage_pageContainer__B1sK6 {
-  min-height:auto !important;
-}
-
-
-/* MODIFIED: Card styles - Remove all height/display/flex properties here.
-   These will be managed by ShopPage.module.css for shop cards.
-   Only keep border, border-radius, padding, box-shadow, transition if they apply globally to ALL cards. */
-.card {
-  background: #fff;
-  border: 1.5px solid #a7c7e7;
-  border-radius: 28px !important;
-  padding: 22px 16px 16px 16px;
-  box-shadow: 0 8px 32px #a7c7e722;
-  transition: box-shadow 0.18s, transform 0.16s;
-  /* REMOVE THE FOLLOWING CONFLICTING LINES */
-  /* display: flex; */
-  /* flex-direction: column; */
-  /* align-items: center; */
-}
-
-.card:hover {
-  box-shadow: 0 8px 48px #b8e0d244, 0 4px 24px #f9c6d633;
-  transform: scale(1.03);
-}
-
-.card-text {
-  font-family: sans-serif;
-  font-size: 1rem;
-  font-weight: 700;
-  color: #000000;
-  text-align: center;
-  margin-top: 0.0em;
-  margin-bottom: 0.0em;
-}
-
-.text-muted {
-  color: #2a3531 !important;
-  font-family: sans-serif;
-  font-size: small !important;
-}
-
-/* MODIFIED: .card-body - Keep padding if global, remove flex properties as module will handle */
-.card-body {
-  padding: 0 !important; /* Keep if this is a global override for all card-bodies */
-  /* REMOVE THE FOLLOWING CONFLICTING LINES */
-  /* display: flex; */
-  /* flex-direction: column; */
-  /* align-items: center; */
-}
-
-/* This .card-img block is for CardItem.tsx. Keep it as is. */
-.card-img {
-  max-width: 170px;
-  align-self: center;
-  object-fit: cover !important;
-  border-radius: 16px;
-  background: #f7fafc;
-  border: 1.5px solid #b8e0d2;
-  box-shadow: 0 2px 16px #b8e0d244;
-  margin-bottom: 1em;
-  display: block;
-}
-
-/* CRITICAL REMOVAL: This .card-img-top block is the main issue.
-   REMOVE THIS ENTIRE BLOCK (and any other .card-img-top definitions) */
-
-.card-img-top {
-  width: 100%;
-  max-width: 100%;
-  max-height: 247.63px;
-  object-fit: contain;
-  display: block;
-  border-radius: 16px;
-  padding-bottom: 1em;
-}
-
-
-@media (max-width: 600px) {
-  /* MODIFIED: .card-img media query - only keep if you want it to apply to .card-img (CardItem.tsx) */
-  .card-img {
-    width: 120px !important;
-    height: 160px !important;
-  }
-  /* MODIFIED: .card and .card-text media queries - these seem appropriate to keep globally if they apply to all cards */
-  .card {
-    padding: 16px 12px;
-  }
-  .card-text {
-    font-size: 1rem;
-  }
-}
-
-/* Button styles */
-.shop-btn {
-  background: #ff007f;
-  color: #ffffff;
-  border: 1.5px solid #f9c6d6;
-  border-radius: 999px;
-  padding: 10px 32px;
-  font-family: 'Inter', sans-serif;
-  font-size: 1rem;
-  font-weight: bold;
-  transition: background 0.18s, color 0.18s, border-color 0.18s, box-shadow 0.13s;
-  box-shadow: 0 2px 8px #b8e0d233;
-  margin-top: 14px;
-  margin-bottom: 4px;
-  cursor: pointer;
-}
-
-.shop-btn:hover {
-  background: #a7c7e7 !important;
-  color: #fff;
-  border-color: #a7c7e7;
-  box-shadow: 0 4px 18px #f9c6d655;
-}
-
-.btn-primary{
-  color: #fff;
-  border: 1px solid #ffffff !important;
-  border-radius: 999px;
-  padding: 10px 32px;
-  font-family: 'Inter', sans-serif;
-  font-size: 1rem;
-  font-weight: bold;
-  transition: background-color 0.18s, color 0.18s, border-color 0.18s, box-shadow 0.13s;
-    --bs-btn-color: #fff!important;
-    --bs-btn-bg: #f83ec0!important;
-    --bs-btn-border-color: #f39bff !important;
-    --bs-btn-hover-color: #fff!important;
-    --bs-btn-hover-bg: #ff8ed4!important;
-    --bs-btn-hover-border-color: #0a58ca;
-    --bs-btn-focus-shadow-rgb: 49, 132, 253!important;
-    --bs-btn-active-color: #fff!important;
-    --bs-btn-active-bg: #e2173283!important;
-    --bs-btn-active-border-color: #0a53be!important;
-    --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125)!important;
-    --bs-btn-disabled-color: #fff!important;
-    --bs-btn-disabled-bg: #0d6efd!important;
-    --bs-btn-disabled-border-color: #0d6efd!important;
-}
-
-
-/* Placeholder for images */
-.placeholder {
-  background: #e2e8f0;
-  color: #bdbdbd;
-  width: 190px;
-  height: 260px;
-  border-radius: 16px;
-  border: 1.5px dashed #b8e0d2;
-  font-size: 1.2rem;
-  margin-bottom: 1em;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden; /* Added to prevent content overflow if image is too big */
-}
-.nav-link {
-  padding: 8px 20px;
-  border-radius: 8px;
-  font-weight: 500;
-  color: #374151;
-  transition: background 0.15s, color 0.15s;
-}
-.nav-link:hover, .nav-link:focus {
-  background: #b8e0d2;
-  color: #374151;
-  text-decoration: none;
-}
-
-.flex-gap-6-pr-3 {padding-right: 20px !important;}
-
-.Banner {background-color: #374151; height: 50px;}
-
-.BorderTop {
-border: 10px rgb(0, 0, 0);
-height: 20px;
-background-color: rgb(134, 134, 134);
-}
-
-.ShopPage_productImage__Vvmkk { border: 2px solid white !important;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-.animate-slide-in {
-  animation: slideIn 0.4s ease-out;
-}
 main {
   padding: 0;
   margin: 0;
 }
 
-  .flip-card {
-    height: 300px; /* reduce card height on small screens */
-  }
+/* ── Keyframe Animations ── */
 
-/* REMOVED THIS BLOCK entirely as it conflicts with ShopPage.module.css */
-/*
-.flip-image-container {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
+@keyframes rainbowShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
-.card-img-top {
-  max-width: 80%;
-  max-height: 100%;
-  object-fit: contain;
-  display: block;
-}
-*/
 
-#footer {
-   position:fixed;
-   bottom:0;
-   width:100%;
-   height:60px;   /* Height of the footer */
-   background:#6cf;
+@keyframes neonPulse {
+  0%, 100% { opacity: 1; filter: brightness(1); }
+  50%       { opacity: 0.75; filter: brightness(1.3); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -400% center; }
+  100% { background-position: 400% center; }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes pixelBlink {
+  0%, 49%  { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes glowRotate {
+  0%   { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+
+@keyframes cardEntrance {
+  from { opacity: 0; transform: translateY(24px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes borderGlow {
+  0%, 100% { box-shadow: 0 0 8px rgba(184,79,255,0.4); }
+  33%       { box-shadow: 0 0 8px rgba(255,62,108,0.4); }
+  66%       { box-shadow: 0 0 8px rgba(6,214,160,0.4); }
+}
+
+/* ── Utility classes ── */
+.animate-slide-in { animation: slideIn 0.4s ease-out; }
+.animate-fade-up  { animation: fadeUp 0.5s ease-out both; }
+
+/* ── Flip card ── */
+.flip-wrapper { perspective: 1000px; }
+.flip-card { width: 100%; height: 350px; position: relative; }
+.flip-card-inner {
+  width: 100%; height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.6s;
+}
+.flip-card:hover .flip-card-inner { transform: rotateY(180deg); }
+.flip-card-front,
+.flip-card-back {
+  width: 100%; height: 100%;
+  backface-visibility: hidden;
+  position: absolute; top: 0; left: 0;
+}
+.flip-card-front { z-index: 2; transform: rotateY(0deg); }
+.flip-card-back  { transform: rotateY(180deg); }
+
+@media (max-width: 600px) {
+  .flip-card { height: 300px; }
+}
+
+/* ── Bootstrap dark overrides ── */
+
+/* Inputs & selects */
+.form-control,
+.form-select {
+  background-color: var(--bg-elevated) !important;
+  border: 1px solid var(--border-subtle) !important;
+  color: var(--text-primary) !important;
+  border-radius: 8px !important;
+  font-family: 'Space Mono', monospace !important;
+  font-size: 0.82rem !important;
+  padding: 0.6rem 1rem !important;
+  transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+.form-control::placeholder {
+  color: var(--text-muted) !important;
+}
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--r6) !important;
+  box-shadow: 0 0 0 3px rgba(184,79,255,0.18), 0 0 16px rgba(184,79,255,0.15) !important;
+  outline: none !important;
+  background-color: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+}
+.form-select option {
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+/* Buttons */
+.btn-primary {
+  background: var(--rainbow) !important;
+  background-size: 200% auto !important;
+  border: none !important;
+  border-radius: var(--radius-btn) !important;
+  color: #fff !important;
+  font-family: 'Space Mono', monospace !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+  padding: 0.5rem 1rem !important;
+  cursor: pointer !important;
+  text-transform: uppercase !important;
+  transition: background-position 0.4s ease, transform 0.15s, box-shadow 0.2s !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+.btn-primary::after {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%) !important;
+  background-size: 200% auto !important;
+  opacity: 0 !important;
+  transition: opacity 0.2s !important;
+}
+.btn-primary:hover {
+  background-position: right center !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 24px rgba(184,79,255,0.55), 0 2px 8px rgba(0,0,0,0.4) !important;
+  color: #fff !important;
+}
+.btn-primary:hover::after {
+  opacity: 1 !important;
+  animation: shimmer 1.2s linear infinite !important;
+}
+.btn-primary:active {
+  transform: translateY(0) !important;
+}
+
+/* Pagination */
+.pagination { gap: 4px; }
+.page-link {
+  background-color: var(--bg-elevated) !important;
+  border: 1px solid var(--border-subtle) !important;
+  color: var(--text-secondary) !important;
+  border-radius: 6px !important;
+  font-family: 'Space Mono', monospace !important;
+  font-size: 0.78rem !important;
+  padding: 0.4rem 0.75rem !important;
+  transition: all 0.2s !important;
+}
+.page-link:hover {
+  background-color: rgba(184,79,255,0.1) !important;
+  border-color: var(--r6) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 0 12px rgba(184,79,255,0.2) !important;
+}
+.page-item.active .page-link {
+  background: var(--rainbow) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 0 16px rgba(184,79,255,0.4) !important;
+}
+.page-item.disabled .page-link {
+  opacity: 0.25 !important;
+  pointer-events: none !important;
+}
+
+/* Alert */
+.alert-danger {
+  background-color: rgba(255,62,108,0.08) !important;
+  border: 1px solid rgba(255,62,108,0.3) !important;
+  color: #ff8aaa !important;
+  border-radius: 8px !important;
+  font-family: 'Space Mono', monospace !important;
+  font-size: 0.82rem !important;
+}
+
+/* Text muted */
+.text-muted {
+  color: var(--text-muted) !important;
 }
