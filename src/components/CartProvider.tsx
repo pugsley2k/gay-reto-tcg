@@ -99,8 +99,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     // Capture cart value at hydration time — don't re-run on every cart change
     setCart(current => { removeUnavailableFromCart(current); return current; });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated]);
+  }, [hydrated]); // intentionally only runs once on hydration
 
   if (!hydrated) {
     return null;

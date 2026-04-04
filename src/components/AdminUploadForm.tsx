@@ -386,9 +386,9 @@ export default function AdminUploadForm() {
       if (card.name) {
         const num = card.number ?? '';
         const total = card.set?.printedTotal ? `/${card.set.printedTotal}` : '';
-        const setName = card.set?.name ?? '';
+        const setDisplayName = card.set?.name ?? '';
         const series = card.set?.series ? ` | ${card.set.series}` : '';
-        const title = `${card.name}${num ? ` ${num}${total}` : ''} ${setName}${series}`.trim();
+        const title = `${card.name}${num ? ` ${num}${total}` : ''} ${setDisplayName}${series}`.trim();
         setName(title);
       }
       setMsg(`${card.name} (${version}) selected.`);
