@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const PROMPT = `You are a Pokémon card expert. Carefully examine this card image and extract the following information.
+const PROMPT = `You are a Pokémon card expert fluent in English, Japanese, and Korean. Carefully examine this card image.
 
 Return ONLY a raw JSON object with no markdown, no code blocks, no explanation. Example format:
-{"name":"Pikachu","card_number":"35","card_total":"108","language":"English"}
+{"name":"Charizard ex","original_name":"リザードンex","card_number":"125","card_total":"197","language":"Japanese"}
 
 Rules:
-- "name" must be the English Pokémon or card name (translate if Japanese)
-- "card_number" and "card_total": look very carefully at the BOTTOM of the card for a small number like "035/108" or "25/165". The number BEFORE the slash is card_number (strip leading zeros), the number AFTER the slash is card_total. Read each digit individually and do not guess — common mistakes are confusing 3 and 2, 0 and 6, 1 and 7. If you are not confident, return null.
-- "language" must be exactly "Japanese" if the card text is in Japanese, or "English" if in English
+- "name": ALWAYS the English Pokémon/card name, even if the card is in another language. Translate from Japanese or Korean if needed. Examples: ピカチュウ→Pikachu, 리자몽→Charizard, リザードンex→Charizard ex, 뮤츠→Mewtwo
+- "original_name": the name exactly as printed on the card (may be Japanese kanji/katakana or Korean hangul). If English, same as "name".
+- "card_number" and "card_total": look very carefully at the BOTTOM of the card for a number like "035/108" or "25/165". Strip leading zeros from card_number. Read each digit individually — common mistakes: 3↔2, 0↔6, 1↔7. Return null if not confident.
+- "language": exactly one of "English", "Japanese", or "Korean" based on the card's text/script. Japanese uses kanji/katakana/hiragana. Korean uses hangul (박, 피카츄 etc).
 - Do not include any text outside the JSON object`;
 
 export async function POST(req: NextRequest) {
@@ -63,7 +64,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       english_name: parsed.name ?? null,
-      japanese_name: null,
+      original_name: parsed.original_name ?? parsed.name ?? null,
+      japanese_name: parsed.language === 'Japanese' ? (parsed.original_name ?? null) : null,
       card_number: parsed.card_number ? String(parsed.card_number).replace(/^0+/, '') : null,
       card_total: parsed.card_total ? String(parsed.card_total) : null,
       language: parsed.language ?? null,

@@ -57,7 +57,7 @@ export default function AdminUploadForm() {
     file: File;
     previewUrl: string;
     status: 'scanning' | 'done' | 'error';
-    japaneseName?: string;
+    originalName?: string;
     englishName?: string;
     cardNumber?: string;
     cardTotal?: string;
@@ -131,7 +131,8 @@ export default function AdminUploadForm() {
         const d = await r.json();
         if (d.error) throw new Error(d.error);
 
-        const englishName = d.english_name ?? d.japanese_name ?? '';
+        const englishName = d.english_name ?? '';
+        const originalName = d.original_name ?? englishName;
         const cardNum: string | undefined = d.card_number ?? undefined;
         const cardTotal: string | undefined = d.card_total ?? undefined;
         const detectedLanguage: string | undefined = d.language ?? undefined;
@@ -139,7 +140,7 @@ export default function AdminUploadForm() {
         const searchResults = await searchPokemonCard(englishName, cardNum, cardTotal);
 
         setScanQueue(prev => prev.map(i => i.id === item.id ? {
-          ...i, status: 'done', japaneseName: d.japanese_name, englishName,
+          ...i, status: 'done', originalName, englishName,
           cardNumber: cardNum, cardTotal, language: detectedLanguage,
           apiResults: searchResults.results, searchQuery: searchResults.query,
         } : i));
@@ -379,9 +380,12 @@ export default function AdminUploadForm() {
                 )}
                 {currentItem.status === 'done' && (
                   <>
-                    <p style={{ margin: '0 0 6px', fontWeight: 700, fontSize: 15 }}>
+                    <p style={{ margin: '0 0 2px', fontWeight: 700, fontSize: 15 }}>
                       {currentItem.englishName || '(unknown)'}
                     </p>
+                    {currentItem.originalName && currentItem.originalName !== currentItem.englishName && (
+                      <p style={{ margin: '0 0 6px', fontSize: 12, color: '#7c7c9e' }}>{currentItem.originalName}</p>
+                    )}
                     <div>
                       {currentItem.apiResults?.length
                         ? <span style={{ ...s.badge, ...s.badgeGreen }}>✓ {currentItem.apiResults.length} matches</span>
@@ -389,6 +393,8 @@ export default function AdminUploadForm() {
                       }
                       {currentItem.language === 'Japanese'
                         ? <span style={{ ...s.badge, ...s.badgeBlue }}>🇯🇵 JP</span>
+                        : currentItem.language === 'Korean'
+                        ? <span style={{ ...s.badge, ...s.badgeBlue }}>🇰🇷 KR</span>
                         : <span style={{ ...s.badge, ...s.badgeBlue }}>🇬🇧 EN</span>
                       }
                     </div>
