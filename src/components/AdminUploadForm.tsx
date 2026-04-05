@@ -83,7 +83,14 @@ export default function AdminUploadForm() {
 
   const handleApiResponse = async (response: Response) => {
     const responseText = await response.text();
-    if (!response.ok) throw new Error(responseText || `Request failed with status ${response.status}`);
+    if (!response.ok) {
+      // Don't leak raw HTML error pages to the user
+      const isHtml = responseText.trim().startsWith('<');
+      const msg = isHtml
+        ? `Server error (${response.status}) — please try again`
+        : responseText || `Request failed (${response.status})`;
+      throw new Error(msg);
+    }
     try { return JSON.parse(responseText); }
     catch { throw new Error("Received an invalid response from the server."); }
   };
@@ -145,9 +152,15 @@ export default function AdminUploadForm() {
           apiResults: searchResults.results, searchQuery: searchResults.query,
         } : i));
       } catch (err: any) {
+        const errMsg = typeof err.message === 'string' && err.message.trim().startsWith('<')
+          ? 'Scan timed out — please try again'
+          : (err.message || 'Unknown error');
         setScanQueue(prev => prev.map(i => i.id === item.id ? {
-          ...i, status: 'error', error: err.message,
+          ...i, status: 'error', error: errMsg,
         } : i));
+        // Keep the photo so the user can still upload manually
+        setSel([{ url: item.previewUrl, file: item.file, source: 'upload', apiCardName: 'Scanned photo', holoType: null }]);
+        setMsg('Scan failed — photo kept. Fill in card name, number & price and click Add Card.');
       }
     }
   }

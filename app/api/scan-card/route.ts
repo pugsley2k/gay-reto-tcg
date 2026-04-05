@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
           },
         ],
       }),
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!response.ok) {
