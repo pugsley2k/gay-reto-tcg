@@ -15,13 +15,11 @@ console.log('------------------------------------------------');
 // ** UPDATED: Use server-side environment variables **
 // These variables do NOT have the NEXT_PUBLIC_ prefix and are only available on the server.
 // Make sure you have SUPABASE_URL and SUPABASE_ANON_KEY in your .env.local file.
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-// Ensure the environment variables are not missing
 if (!supabaseUrl || !supabaseAnonKey) {
-  // This error will now be more informative based on the logs above.
-  throw new Error("Server-side Supabase URL or anon key is missing. Check your .env.local file and restart the server.");
+  throw new Error("Supabase URL or anon key is missing.");
 }
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
