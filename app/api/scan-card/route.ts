@@ -20,52 +20,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No image provided' }, { status: 400 });
     }
 
-    // Convert image to base64
     const bytes = await file.arrayBuffer();
     const base64 = Buffer.from(bytes).toString('base64');
-    const mimeType = file.type || 'image/jpeg';
+    const mimeType = (file.type || 'image/jpeg') as string;
 
-    // Call OpenAI GPT-4o mini (vision)
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const apiKey = process.env.GEMINI_API_KEY;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+    const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        max_tokens: 256,
-        messages: [
+        contents: [
           {
-            role: 'user',
-            content: [
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:${mimeType};base64,${base64}`,
-                  detail: 'high',
-                },
-              },
-              {
-                type: 'text',
-                text: PROMPT,
-              },
+            parts: [
+              { inline_data: { mime_type: mimeType, data: base64 } },
+              { text: PROMPT },
             ],
           },
         ],
+        generationConfig: { temperature: 0, maxOutputTokens: 256 },
       }),
       signal: AbortSignal.timeout(30000),
     });
 
     if (!response.ok) {
       const text = await response.text();
-      return NextResponse.json({ error: `OpenAI error: ${text}` }, { status: 500 });
+      return NextResponse.json({ error: `Gemini error: ${text}` }, { status: 500 });
     }
 
     const data = await response.json();
-    const raw = (data.choices?.[0]?.message?.content ?? '').trim();
+    const raw = (data.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim();
 
-    // Extract JSON from response
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return NextResponse.json({ error: `Could not parse response: ${raw}` }, { status: 500 });
