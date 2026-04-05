@@ -24,33 +24,35 @@ export async function POST(req: NextRequest) {
     const base64 = Buffer.from(bytes).toString('base64');
     const mimeType = (file.type || 'image/jpeg') as string;
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-    const response = await fetch(url, {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
       body: JSON.stringify({
-        contents: [
+        model: 'gpt-4o-mini',
+        max_tokens: 256,
+        messages: [
           {
-            parts: [
-              { inline_data: { mime_type: mimeType, data: base64 } },
-              { text: PROMPT },
+            role: 'user',
+            content: [
+              { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64}`, detail: 'high' } },
+              { type: 'text', text: PROMPT },
             ],
           },
         ],
-        generationConfig: { temperature: 0, maxOutputTokens: 256 },
       }),
       signal: AbortSignal.timeout(30000),
     });
 
     if (!response.ok) {
       const text = await response.text();
-      return NextResponse.json({ error: `Gemini error: ${text}` }, { status: 500 });
+      return NextResponse.json({ error: `OpenAI error: ${text}` }, { status: 500 });
     }
 
     const data = await response.json();
-    const raw = (data.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim();
+    const raw = (data.choices?.[0]?.message?.content ?? '').trim();
 
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
