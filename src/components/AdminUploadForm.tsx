@@ -435,35 +435,155 @@ export default function AdminUploadForm() {
     finally { setUploading(false); }
   }
 
+  /* ── Styles ────────────────────────────────────────────── */
   const styles = {
-    formContainer: { maxWidth: '600px', margin: '2rem auto', padding: '2rem', background: '#f9f9f9', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' },
-    formTitle: { textAlign: 'center' as const, color: '#333', marginBottom: '1.5rem' },
-    flash: { padding: '1rem', marginBottom: '1rem', border: '1px solid', borderRadius: '4px', color: '#155724', backgroundColor: '#d4edda', borderColor: '#c3e6cb' },
+    formContainer: {
+      maxWidth: '640px',
+      margin: '2rem auto',
+      padding: '2rem',
+      background: '#1a1a2e',
+      borderRadius: '12px',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+      border: '1px solid #2d2d4e',
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+    },
+    formTitle: {
+      textAlign: 'center' as const,
+      color: '#ffffff',
+      marginBottom: '1.5rem',
+      fontSize: '1.6rem',
+      fontWeight: 700,
+      letterSpacing: '0.02em',
+      background: 'linear-gradient(90deg, #a78bfa, #7c6af0)',
+      WebkitBackgroundClip: 'text' as const,
+      WebkitTextFillColor: 'transparent' as const,
+    },
+    flash: {
+      padding: '0.85rem 1rem',
+      marginBottom: '1rem',
+      borderRadius: '8px',
+      color: '#d4edda',
+      backgroundColor: '#1e3a2f',
+      border: '1px solid #2d5a45',
+      fontSize: '0.9rem',
+    },
     formGroup: { marginBottom: '1rem' },
-    label: { display: 'block' as const, marginBottom: '0.5rem', color: '#555', fontWeight: 'bold' as const },
-    inputField: { width: '100%', padding: '0.75rem', border: '1px solid #ccc', borderRadius: '4px', boxSizing: 'border-box' as const },
-    searchButton: { padding: '0.75rem 1.5rem', border: 'none', borderRadius: '4px', backgroundColor: '#007bff', color: 'white', cursor: 'pointer' as const },
-    searchResultsContainer: { border: '1px solid #eee', borderRadius: '4px', marginTop: '1rem' },
-    searchResultItem: { display: 'flex', alignItems: 'flex-start', padding: '0.5rem', borderBottom: '1px solid #eee' },
-    selectImageButton: { padding: '0.5rem 1rem', border: 'none', borderRadius: '4px', backgroundColor: '#28a745', color: 'white', cursor: 'pointer' as const, width: '100%', boxSizing: 'border-box' as const },
-    submitButton: { width: '100%', padding: '1rem', border: 'none', borderRadius: '4px', backgroundColor: '#28a745', color: 'white', cursor: 'pointer' as const, fontSize: '1.2rem' },
-    fileInput: { padding: '0.5rem' }
+    label: {
+      display: 'block' as const,
+      marginBottom: '0.4rem',
+      color: '#c4b5fd',
+      fontWeight: 600,
+      fontSize: '0.85rem',
+      letterSpacing: '0.04em',
+      textTransform: 'uppercase' as const,
+    },
+    inputField: {
+      width: '100%',
+      padding: '0.65rem 0.85rem',
+      border: '1px solid #3d3d6e',
+      borderRadius: '8px',
+      boxSizing: 'border-box' as const,
+      background: '#0f0f1e',
+      color: '#e2e8f0',
+      fontSize: '0.95rem',
+      outline: 'none',
+      transition: 'border-color 0.2s',
+    },
+    searchButton: {
+      padding: '0.65rem 1.25rem',
+      border: 'none',
+      borderRadius: '8px',
+      background: 'linear-gradient(135deg, #7c6af0, #5b4dd4)',
+      color: 'white',
+      cursor: 'pointer' as const,
+      fontWeight: 600,
+      fontSize: '0.9rem',
+      whiteSpace: 'nowrap' as const,
+    },
+    searchResultsContainer: {
+      border: '1px solid #2d2d4e',
+      borderRadius: '10px',
+      marginTop: '1rem',
+      overflow: 'hidden',
+      background: '#12122a',
+    },
+    searchResultItem: {
+      display: 'flex',
+      alignItems: 'flex-start',
+      padding: '0.75rem',
+      borderBottom: '1px solid #2d2d4e',
+      gap: '0.75rem',
+    },
+    selectImageButton: {
+      padding: '0.4rem 0.85rem',
+      border: '1px solid #7c6af0',
+      borderRadius: '6px',
+      background: 'transparent',
+      color: '#a78bfa',
+      cursor: 'pointer' as const,
+      fontSize: '0.8rem',
+      fontWeight: 600,
+      boxSizing: 'border-box' as const,
+      transition: 'background 0.15s, color 0.15s',
+    },
+    submitButton: {
+      width: '100%',
+      padding: '0.9rem',
+      border: 'none',
+      borderRadius: '10px',
+      background: 'linear-gradient(135deg, #7c6af0 0%, #5b4dd4 50%, #a78bfa 100%)',
+      color: 'white',
+      cursor: 'pointer' as const,
+      fontSize: '1.1rem',
+      fontWeight: 700,
+      letterSpacing: '0.03em',
+      boxShadow: '0 4px 15px rgba(124, 106, 240, 0.4)',
+      marginTop: '0.5rem',
+    },
+    fileInput: {
+      padding: '0.5rem',
+      color: '#c4b5fd',
+    },
+    sectionDivider: {
+      border: 'none',
+      borderTop: '1px solid #2d2d4e',
+      margin: '1.5rem 0',
+    },
   };
 
   const renderVersionButtons = (card: PokemonTCGCard) => {
     const prices = card.tcgplayer?.prices;
-    if (!prices) return <button style={styles.selectImageButton} onClick={() => pickImage(card, 'Normal', null)}>Use Image</button>;
+    if (!prices) return (
+      <button
+        style={styles.selectImageButton}
+        onClick={() => pickImage(card, 'Normal', null)}
+      >
+        Use Image
+      </button>
+    );
 
     const versions = Object.entries(prices)
       .map(([key, value]) => ({ name: key, price: value?.market }))
       .filter(v => v.price != null);
 
-    if (versions.length === 0) return <button style={styles.selectImageButton} onClick={() => pickImage(card, 'Normal', null)}>Use Image</button>;
+    if (versions.length === 0) return (
+      <button
+        style={styles.selectImageButton}
+        onClick={() => pickImage(card, 'Normal', null)}
+      >
+        Use Image
+      </button>
+    );
 
     return versions.map(version => {
       const displayName = version.name.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
       return (
-        <button key={version.name} type="button" style={styles.selectImageButton} onClick={() => pickImage(card, displayName, version.price)}>
+        <button
+          key={version.name}
+          type="button"
+          style={styles.selectImageButton}
+          onClick={() => pickImage(card, displayName, version.price)}
+        >
           {displayName} {version.price ? `($${version.price.toFixed(2)})` : ''}
         </button>
       );
@@ -475,29 +595,119 @@ export default function AdminUploadForm() {
     <>
       <canvas ref={canvasRef} style={{ display: 'none' }} />
       <form onSubmit={handleSubmit} style={styles.formContainer}>
+
         <h1 style={styles.formTitle}>Add New Card</h1>
-        {msg && <div style={styles.flash}>{msg}</div>}
 
-        <div style={styles.formGroup}><label style={styles.label}>Card Name</label><input style={styles.inputField} value={name} onChange={e=>setName(e.target.value)} required /></div>
-        <div style={styles.formGroup}><label style={styles.label}>Card Number</label><input style={styles.inputField} value={cardNumber} onChange={e=>setNumber(e.target.value)} required /></div>
-        <div style={styles.formGroup}><button type="button" style={styles.searchButton} onClick={handleScrape} disabled={scraping}>{scraping?"Scraping…":"Scrape Details"}</button></div>
-        <div style={styles.formGroup}><label style={styles.label}>Price (pence)</label><input type="number" min="0" style={styles.inputField} value={price} onChange={e=>setPrice(e.target.value)} required /></div>
-        <div style={styles.formGroup}><label style={styles.label}>Set Code</label><input style={styles.inputField} value={setCode} onChange={e=>setSetCode(e.target.value)} /></div>
-        <div style={styles.formGroup}><label style={styles.label}>Rarity</label><input style={styles.inputField} value={rarity} onChange={e=>setRarity(e.target.value)} /></div>
+        {msg && (
+          <div style={{
+            ...styles.flash,
+            ...(msg.startsWith('Error') ? { background: '#3a1a1a', borderColor: '#7a3535', color: '#fca5a5' } : {}),
+            ...(msg.includes('✔') ? { background: '#1a3a2a', borderColor: '#2d7a50', color: '#86efac' } : {}),
+          }}>
+            {msg}
+          </div>
+        )}
+
+        {/* Card Name & Number */}
         <div style={styles.formGroup}>
-          <label style={styles.label}>Language</label>
-          <select style={styles.inputField} value={language} onChange={e => setLanguage(e.target.value)}>
-            <option value="English">English</option>
-            <option value="Japanese">Japanese</option>
-            <option value="Korean">Korean</option>
-            <option value="Chinese">Chinese</option>
-            <option value="French">French</option>
-            <option value="German">German</option>
-            <option value="Spanish">Spanish</option>
-          </select>
+          <label style={styles.label}>Card Name</label>
+          <input
+            style={styles.inputField}
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder="e.g. Charizard"
+            required
+          />
         </div>
-        <div style={styles.formGroup}><label style={styles.label}>Holo Type</label><input style={styles.inputField} value={holoType ?? ''} onChange={e=>setHoloType(e.target.value)} /></div>
 
+        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
+          <div style={{ flex: 1 }}>
+            <label style={styles.label}>Card Number</label>
+            <input
+              style={styles.inputField}
+              value={cardNumber}
+              onChange={e => setNumber(e.target.value)}
+              placeholder="e.g. 4/102"
+              required
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+            <button
+              type="button"
+              style={{ ...styles.searchButton, padding: '0.65rem 1rem' }}
+              onClick={handleScrape}
+              disabled={scraping}
+            >
+              {scraping ? 'Scraping…' : 'Scrape Details'}
+            </button>
+          </div>
+        </div>
+
+        {/* Price, Set, Rarity */}
+        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
+          <div style={{ flex: 1 }}>
+            <label style={styles.label}>Price (pence)</label>
+            <input
+              type="number"
+              min="0"
+              style={styles.inputField}
+              value={price}
+              onChange={e => setPrice(e.target.value)}
+              placeholder="e.g. 499"
+              required
+            />
+          </div>
+          <div style={{ flex: 2 }}>
+            <label style={styles.label}>Set</label>
+            <input
+              style={styles.inputField}
+              value={setCode}
+              onChange={e => setSetCode(e.target.value)}
+              placeholder="e.g. Base Set | Base"
+            />
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
+          <div style={{ flex: 1 }}>
+            <label style={styles.label}>Rarity</label>
+            <input
+              style={styles.inputField}
+              value={rarity}
+              onChange={e => setRarity(e.target.value)}
+              placeholder="e.g. Holo Rare"
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={styles.label}>Language</label>
+            <select
+              style={{ ...styles.inputField }}
+              value={language}
+              onChange={e => setLanguage(e.target.value)}
+            >
+              <option value="English">English</option>
+              <option value="Japanese">Japanese</option>
+              <option value="Korean">Korean</option>
+              <option value="Chinese">Chinese</option>
+              <option value="French">French</option>
+              <option value="German">German</option>
+              <option value="Spanish">Spanish</option>
+            </select>
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={styles.label}>Holo Type</label>
+            <input
+              style={styles.inputField}
+              value={holoType ?? ''}
+              onChange={e => setHoloType(e.target.value)}
+              placeholder="e.g. Holo"
+            />
+          </div>
+        </div>
+
+        <hr style={styles.sectionDivider} />
+
+        {/* Scan Queue */}
         <div style={styles.formGroup}>
           <label style={styles.label}>📷 Scan Physical Card Photos</label>
           <input
@@ -505,71 +715,248 @@ export default function AdminUploadForm() {
             accept="image/*"
             multiple
             onChange={handleScanPhotos}
-            style={{...styles.inputField, ...styles.fileInput}}
+            style={{
+              ...styles.inputField,
+              ...styles.fileInput,
+              cursor: 'pointer',
+            }}
           />
+
           {scanQueue.length > 0 && (
-            <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ marginTop: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {scanQueue.map(item => (
-                <div key={item.id} style={{
-                  padding: '10px', border: '1px solid #ddd', borderRadius: 6,
-                  background: item.status === 'error' ? '#fff0f0' : '#f9f9f9',
-                }}>
-                  {/* Top row: thumbnail + status + remove */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <img src={item.previewUrl} alt="card" style={{ width: 50, height: 70, objectFit: 'cover', borderRadius: 4, border: '1px solid #ccc', flexShrink: 0 }} />
-                    <div style={{ flex: 1 }}>
-                      {item.status === 'scanning' && <p style={{ margin: 0, color: '#888' }}>⏳ Scanning...</p>}
-                      {item.status === 'error' && <p style={{ margin: 0, color: 'red', fontSize: 12 }}>❌ {item.error}</p>}
+                <div
+                  key={item.id}
+                  style={{
+                    background: '#12122a',
+                    border: `1px solid ${item.status === 'error' ? '#7a3535' : item.status === 'scanning' ? '#3d3d6e' : '#2d2d4e'}`,
+                    borderRadius: '10px',
+                    overflow: 'hidden',
+                    transition: 'border-color 0.2s',
+                  }}
+                >
+                  {/* Card header row */}
+                  <div style={{ display: 'flex', gap: '0.85rem', padding: '0.85rem' }}>
+                    {/* Thumbnail */}
+                    <img
+                      src={item.previewUrl}
+                      alt="card"
+                      style={{
+                        width: 80,
+                        height: 112,
+                        objectFit: 'cover',
+                        borderRadius: '6px',
+                        border: '1px solid #3d3d6e',
+                        flexShrink: 0,
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                      }}
+                    />
+
+                    {/* Info column */}
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      {/* Card name + remove button */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                        <span style={{
+                          color: '#e2e8f0',
+                          fontWeight: 600,
+                          fontSize: '0.95rem',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap' as const,
+                        }}>
+                          {item.englishName || item.file.name || 'Scanning…'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeQueueItem(item.id)}
+                          style={{
+                            background: 'rgba(255,255,255,0.05)',
+                            border: '1px solid #3d3d6e',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            color: '#94a3b8',
+                            fontSize: '0.8rem',
+                            padding: '2px 8px',
+                            flexShrink: 0,
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      {/* Status badge */}
+                      {item.status === 'scanning' && (
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '3px 10px',
+                          borderRadius: '999px',
+                          background: '#1e2a4a',
+                          color: '#93c5fd',
+                          border: '1px solid #3b5a8a',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                        }}>
+                          ⏳ Scanning…
+                        </span>
+                      )}
+                      {item.status === 'error' && (
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '3px 10px',
+                          borderRadius: '999px',
+                          background: '#3a1a1a',
+                          color: '#fca5a5',
+                          border: '1px solid #7a3535',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                        }}>
+                          ✗ {item.error ?? 'Scan failed'}
+                        </span>
+                      )}
                       {item.status === 'done' && (
-                        <p style={{ margin: 0, color: item.apiResults?.length ? '#007bff' : '#e67e22', fontSize: 12 }}>
-                          {item.apiResults?.length ? `${item.apiResults.length} matches found` : 'No matches — fix the number below'}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' as const }}>
+                          {item.apiResults?.length ? (
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '3px 10px',
+                              borderRadius: '999px',
+                              background: '#1a3a2a',
+                              color: '#86efac',
+                              border: '1px solid #2d7a50',
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                            }}>
+                              ✓ {item.apiResults.length} match{item.apiResults.length > 1 ? 'es' : ''}
+                            </span>
+                          ) : (
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '3px 10px',
+                              borderRadius: '999px',
+                              background: '#3a1a1a',
+                              color: '#fca5a5',
+                              border: '1px solid #7a3535',
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                            }}>
+                              ✗ No matches
+                            </span>
+                          )}
                           {item.language && (
-                            <span style={{ marginLeft: 6, background: item.language === 'Japanese' ? '#fff0f4' : '#f0f4ff', color: item.language === 'Japanese' ? '#c0392b' : '#2980b9', border: `1px solid ${item.language === 'Japanese' ? '#f5c6cb' : '#bee3f8'}`, borderRadius: 4, padding: '1px 6px', fontSize: 11 }}>
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '3px 8px',
+                              borderRadius: '999px',
+                              background: item.language === 'Japanese' ? '#3a1a2a' : '#1a1a3a',
+                              color: item.language === 'Japanese' ? '#f9a8d4' : '#93c5fd',
+                              border: `1px solid ${item.language === 'Japanese' ? '#7a3560' : '#3b5a8a'}`,
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                            }}>
                               {item.language === 'Japanese' ? '🇯🇵 JP' : '🇬🇧 EN'}
                             </span>
                           )}
-                        </p>
+                        </div>
+                      )}
+
+                      {/* Number / Total info */}
+                      {item.status === 'done' && (item.cardNumber || item.cardTotal) && (
+                        <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>
+                          {item.cardNumber && `#${item.cardNumber}`}{item.cardTotal && ` / ${item.cardTotal}`}
+                        </span>
                       )}
                     </div>
-                    <button type="button" onClick={() => removeQueueItem(item.id)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#aaa', fontSize: 16, padding: '0 4px', flexShrink: 0 }}>✕</button>
                   </div>
 
-                  {/* Edit + search row */}
+                  {/* Edit + action panel (only when done) */}
                   {item.status === 'done' && (
-                    <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' as const, alignItems: 'center' }}>
-                      <input
-                        placeholder="Name"
-                        defaultValue={item.englishName ?? ''}
-                        onChange={e => setScanQueue(prev => prev.map(i => i.id === item.id ? { ...i, englishName: e.target.value } : i))}
-                        style={{ flex: '2 1 120px', padding: '4px 8px', border: '1px solid #ccc', borderRadius: 4, fontSize: 13 }}
-                      />
-                      <input
-                        placeholder="Num (e.g. 25)"
-                        defaultValue={item.cardNumber ?? ''}
-                        onChange={e => setScanQueue(prev => prev.map(i => i.id === item.id ? { ...i, cardNumber: e.target.value } : i))}
-                        style={{ flex: '1 1 60px', padding: '4px 8px', border: '1px solid #ccc', borderRadius: 4, fontSize: 13 }}
-                      />
-                      <input
-                        placeholder="Total (e.g. 165)"
-                        defaultValue={item.cardTotal ?? ''}
-                        onChange={e => setScanQueue(prev => prev.map(i => i.id === item.id ? { ...i, cardTotal: e.target.value } : i))}
-                        style={{ flex: '1 1 70px', padding: '4px 8px', border: '1px solid #ccc', borderRadius: 4, fontSize: 13 }}
-                      />
-                      <button type="button"
-                        style={{ padding: '4px 10px', background: '#6c757d', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12, flexShrink: 0 }}
-                        onClick={async () => {
-                          setScanQueue(prev => prev.map(i => i.id === item.id ? { ...i, status: 'scanning' } : i));
-                          const r = await searchPokemonCard(item.englishName ?? '', item.cardNumber, item.cardTotal);
-                          setScanQueue(prev => prev.map(i => i.id === item.id ? { ...i, status: 'done', apiResults: r.results, searchQuery: r.query } : i));
-                        }}>
-                        🔍 Re-search
-                      </button>
-                      <button type="button"
-                        style={{ padding: '4px 10px', background: '#28a745', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12, flexShrink: 0 }}
-                        onClick={() => loadQueueItem(item)}>
-                        Load →
-                      </button>
+                    <div style={{
+                      borderTop: '1px solid #2d2d4e',
+                      padding: '0.75rem 0.85rem',
+                      background: '#0f0f1e',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.5rem',
+                    }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                        <input
+                          placeholder="Card name"
+                          defaultValue={item.englishName ?? ''}
+                          onChange={e => setScanQueue(prev => prev.map(i => i.id === item.id ? { ...i, englishName: e.target.value } : i))}
+                          style={{
+                            ...styles.inputField,
+                            padding: '0.5rem 0.75rem',
+                            fontSize: '0.85rem',
+                          }}
+                        />
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <input
+                            placeholder="Card # (e.g. 25)"
+                            defaultValue={item.cardNumber ?? ''}
+                            onChange={e => setScanQueue(prev => prev.map(i => i.id === item.id ? { ...i, cardNumber: e.target.value } : i))}
+                            style={{
+                              ...styles.inputField,
+                              padding: '0.5rem 0.75rem',
+                              fontSize: '0.85rem',
+                              flex: 1,
+                            }}
+                          />
+                          <input
+                            placeholder="Set total (e.g. 165)"
+                            defaultValue={item.cardTotal ?? ''}
+                            onChange={e => setScanQueue(prev => prev.map(i => i.id === item.id ? { ...i, cardTotal: e.target.value } : i))}
+                            style={{
+                              ...styles.inputField,
+                              padding: '0.5rem 0.75rem',
+                              fontSize: '0.85rem',
+                              flex: 1,
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          type="button"
+                          style={{
+                            flex: 1,
+                            padding: '0.5rem',
+                            background: 'transparent',
+                            border: '1px solid #3d3d6e',
+                            borderRadius: '7px',
+                            color: '#c4b5fd',
+                            cursor: 'pointer',
+                            fontSize: '0.82rem',
+                            fontWeight: 600,
+                          }}
+                          onClick={async () => {
+                            setScanQueue(prev => prev.map(i => i.id === item.id ? { ...i, status: 'scanning' } : i));
+                            const r = await searchPokemonCard(item.englishName ?? '', item.cardNumber, item.cardTotal);
+                            setScanQueue(prev => prev.map(i => i.id === item.id ? { ...i, status: 'done', apiResults: r.results, searchQuery: r.query } : i));
+                          }}
+                        >
+                          🔍 Re-search
+                        </button>
+                        <button
+                          type="button"
+                          style={{
+                            flex: 1,
+                            padding: '0.5rem',
+                            background: 'linear-gradient(135deg, #7c6af0, #5b4dd4)',
+                            border: 'none',
+                            borderRadius: '7px',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: '0.82rem',
+                            fontWeight: 600,
+                            boxShadow: '0 2px 8px rgba(124,106,240,0.35)',
+                          }}
+                          onClick={() => loadQueueItem(item)}
+                        >
+                          Load into Form →
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -578,56 +965,136 @@ export default function AdminUploadForm() {
           )}
         </div>
 
+        <hr style={styles.sectionDivider} />
+
+        {/* API Search */}
         <div style={styles.formGroup}>
           <label style={styles.label}>Search Pokémon Card Image (Optional)</label>
-          <div style={{ display:"flex", gap:10 }}>
-            <input style={styles.inputField} placeholder="Enter Pokémon name" value={searchTerm} onChange={e=>setTerm(e.target.value)} />
-            <button type="button" style={styles.searchButton} onClick={handleSearch} disabled={searching || !searchTerm.trim()}>{searching?"Searching…":"Search API"}</button>
+          <div style={{ display: 'flex', gap: '0.65rem' }}>
+            <input
+              style={{ ...styles.inputField, flex: 1 }}
+              placeholder="Enter Pokémon name"
+              value={searchTerm}
+              onChange={e => setTerm(e.target.value)}
+            />
+            <button
+              type="button"
+              style={styles.searchButton}
+              onClick={handleSearch}
+              disabled={searching || !searchTerm.trim()}
+            >
+              {searching ? 'Searching…' : 'Search API'}
+            </button>
           </div>
         </div>
 
+        {/* Search Results */}
         {results.length > 0 && (
           <div style={styles.searchResultsContainer}>
             {results.map((card) => (
               <div key={card.id} style={styles.searchResultItem}>
-                <img src={card.images.small} alt={card.name} width={60} height={84} style={{ imageRendering: "pixelated", border: "1px solid #ccc", flexShrink: 0 }} />
-                <div style={{ flexGrow: 1, paddingLeft: 10, display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontWeight: 'bold' }}>{card.name}</span>
+                <img
+                  src={card.images.small}
+                  alt={card.name}
+                  width={60}
+                  height={84}
+                  style={{
+                    imageRendering: 'pixelated',
+                    border: '1px solid #3d3d6e',
+                    borderRadius: '6px',
+                    flexShrink: 0,
+                  }}
+                />
+                <div style={{ flexGrow: 1, paddingLeft: 4, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  <span style={{ fontWeight: 700, color: '#e2e8f0', fontSize: '0.95rem' }}>{card.name}</span>
                   {card.set && (
-                    <span style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>
+                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '0.5rem' }}>
                       {card.set.name}{card.set.series ? ` | ${card.set.series}` : ''} · #{card.number}{card.set.printedTotal ? `/${card.set.printedTotal}` : ''}
                     </span>
                   )}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginTop: '5px', alignItems: 'flex-start' }}>{renderVersionButtons(card)}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: '0.4rem', marginTop: '0.25rem', alignItems: 'flex-start' }}>
+                    {renderVersionButtons(card)}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
 
+        {/* Selected Images Preview */}
         {selectedImages.length > 0 && (
-          <div style={styles.formGroup}>
-            <p style={styles.label}>Selected Images:</p>
-            <ul style={{ listStyle: "none", padding: 0 }}>
+          <div style={{ ...styles.formGroup, marginTop: '1rem' }}>
+            <label style={styles.label}>Selected Image</label>
+            <div style={{
+              display: 'flex',
+              gap: '0.75rem',
+              alignItems: 'center',
+              background: '#0f0f1e',
+              borderRadius: '8px',
+              border: '1px solid #2d2d4e',
+              padding: '0.75rem',
+            }}>
               {selectedImages.map((img, idx) => (
-                <li key={idx} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <img src={img.url} alt={img.apiCardName ?? "img"} width={40} height={56} style={{ imageRendering: "pixelated", border: "1px solid #ccc" }} />
-                  <span>{img.apiCardName ?? "Upload"} {img.holoType ? `(${img.holoType})` : ''}</span>
-                </li>
+                <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <img
+                    src={img.url}
+                    alt={img.apiCardName ?? 'img'}
+                    width={50}
+                    height={70}
+                    style={{
+                      imageRendering: 'pixelated',
+                      border: '1px solid #3d3d6e',
+                      borderRadius: '5px',
+                      boxShadow: '0 4px 10px rgba(0,0,0,0.4)',
+                    }}
+                  />
+                  <div>
+                    <div style={{ color: '#e2e8f0', fontWeight: 600, fontSize: '0.9rem' }}>
+                      {img.apiCardName ?? 'Upload'}
+                    </div>
+                    {img.holoType && (
+                      <div style={{ color: '#a78bfa', fontSize: '0.8rem' }}>{img.holoType}</div>
+                    )}
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         )}
 
+        <hr style={styles.sectionDivider} />
+
+        {/* Manual Upload */}
         <div style={styles.formGroup}>
-          <label style={styles.label}>Or Upload Your Own Image(s)</label>
-          <input id="file-input" type="file" accept="image/*" style={{...styles.inputField, ...styles.fileInput}} onChange={e => { setFiles(e.target.files); if (e.target.files?.length) setMsg(`Image ready — fill in card name, number & price then click Add Card.`); }} />
+          <label style={styles.label}>Or Upload Your Own Image</label>
+          <input
+            id="file-input"
+            type="file"
+            accept="image/*"
+            style={{ ...styles.inputField, ...styles.fileInput, cursor: 'pointer' }}
+            onChange={e => {
+              setFiles(e.target.files);
+              if (e.target.files?.length) setMsg(`Image ready — fill in card name, number & price then click Add Card.`);
+            }}
+          />
           {files && files.length > 0 && (
-            <p style={{ margin: '6px 0 0', fontSize: 13, color: '#28a745' }}>✔ {files[0].name} selected</p>
+            <p style={{ margin: '6px 0 0', fontSize: '0.82rem', color: '#86efac' }}>
+              ✔ {files[0].name} selected
+            </p>
           )}
         </div>
 
-        <button style={styles.submitButton} type="submit" disabled={uploading}>{uploading?"Processing…":"Add Card"}</button>
+        <button
+          style={{
+            ...styles.submitButton,
+            opacity: uploading ? 0.7 : 1,
+            cursor: uploading ? 'not-allowed' : 'pointer',
+          }}
+          type="submit"
+          disabled={uploading}
+        >
+          {uploading ? '⏳ Processing…' : '✦ Add Card'}
+        </button>
       </form>
     </>
   );
