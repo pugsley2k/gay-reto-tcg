@@ -321,6 +321,9 @@ export default function AdminUploadForm() {
           status: 'error',
           error: err.message,
         } : i));
+        // Even if scan fails, keep the photo so the user can upload it manually
+        setSel([{ url: item.previewUrl, file: item.file, source: 'upload', apiCardName: 'Scanned photo', holoType: null }]);
+        setMsg('Scan unavailable — your photo has been kept. Fill in the card name, number & price then click Add Card.');
       }
     }
   }
@@ -618,7 +621,10 @@ export default function AdminUploadForm() {
 
         <div style={styles.formGroup}>
           <label style={styles.label}>Or Upload Your Own Image(s)</label>
-          <input id="file-input" type="file" multiple accept="image/*" style={{...styles.inputField, ...styles.fileInput}} onChange={e=>setFiles(e.target.files)} />
+          <input id="file-input" type="file" accept="image/*" style={{...styles.inputField, ...styles.fileInput}} onChange={e => { setFiles(e.target.files); if (e.target.files?.length) setMsg(`Image ready — fill in card name, number & price then click Add Card.`); }} />
+          {files && files.length > 0 && (
+            <p style={{ margin: '6px 0 0', fontSize: 13, color: '#28a745' }}>✔ {files[0].name} selected</p>
+          )}
         </div>
 
         <button style={styles.submitButton} type="submit" disabled={uploading}>{uploading?"Processing…":"Add Card"}</button>

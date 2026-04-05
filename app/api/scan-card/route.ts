@@ -67,6 +67,17 @@ export async function POST(req: NextRequest) {
 
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
+    // Ollama not reachable (only works when running locally on the same machine)
+    if (
+      message.toLowerCase().includes('fetch failed') ||
+      message.toLowerCase().includes('econnrefused') ||
+      message.toLowerCase().includes('connect')
+    ) {
+      return NextResponse.json(
+        { error: 'Ollama not reachable — scan only works when running locally. Fill in card details manually.' },
+        { status: 503 }
+      );
+    }
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
