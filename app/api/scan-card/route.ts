@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const PROMPT = `You are a Pokémon card expert. Carefully examine this card image and extract the following information.
 
@@ -26,38 +23,49 @@ export async function POST(req: NextRequest) {
     // Convert image to base64
     const bytes = await file.arrayBuffer();
     const base64 = Buffer.from(bytes).toString('base64');
+    const mimeType = file.type || 'image/jpeg';
 
-    // Determine media type
-    const mimeType = (file.type || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
-
-    // Call Claude claude-3-haiku (fast + cheap vision model)
-    const message = await client.messages.create({
-      model: 'claude-3-haiku-20240307',
-      max_tokens: 256,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: mimeType,
-                data: base64,
+    // Call OpenAI GPT-4o mini (vision)
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        max_tokens: 256,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:${mimeType};base64,${base64}`,
+                  detail: 'high',
+                },
               },
-            },
-            {
-              type: 'text',
-              text: PROMPT,
-            },
-          ],
-        },
-      ],
+              {
+                type: 'text',
+                text: PROMPT,
+              },
+            ],
+          },
+        ],
+      }),
+      signal: AbortSignal.timeout(30000),
     });
 
-    const raw = (message.content[0].type === 'text' ? message.content[0].text : '').trim();
+    if (!response.ok) {
+      const text = await response.text();
+      return NextResponse.json({ error: `OpenAI error: ${text}` }, { status: 500 });
+    }
 
-    // Extract JSON from response (strip any accidental markdown wrapping)
+    const data = await response.json();
+    const raw = (data.choices?.[0]?.message?.content ?? '').trim();
+
+    // Extract JSON from response
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return NextResponse.json({ error: `Could not parse response: ${raw}` }, { status: 500 });
