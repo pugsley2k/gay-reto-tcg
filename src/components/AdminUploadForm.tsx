@@ -242,7 +242,7 @@ export default function AdminUploadForm() {
 
       const body = { name, number: cardNumber, price: p, set: setCode, rarity, image_url: url, scan_url: public_id, available: true, language, holo_type: holoType };
       const res = await fetch("/api/cards", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      if (!res.ok) throw new Error((await res.text()) || "Failed to add card.");
+      await handleApiResponse(res);
 
       // Reset form fields
       setName(""); setNumber(""); setSetCode(""); setRarity(""); setPrice("");
