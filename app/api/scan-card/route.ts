@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import Anthropic from '@anthropic-ai/sdk';
 
-const OLLAMA_URL = 'http://localhost:11434/api/generate';
-const MODEL = 'llava:13b';
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const PROMPT = `You are a Pokémon card expert. Carefully examine this card image and extract the following information.
 
@@ -27,27 +27,35 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer();
     const base64 = Buffer.from(bytes).toString('base64');
 
-    // Call Ollama
-    const ollamaRes = await fetch(OLLAMA_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: MODEL,
-        prompt: PROMPT,
-        images: [base64],
-        stream: false,
-        options: { temperature: 0 },
-      }),
-      signal: AbortSignal.timeout(60000),
+    // Determine media type
+    const mimeType = (file.type || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+
+    // Call Claude claude-3-haiku (fast + cheap vision model)
+    const message = await client.messages.create({
+      model: 'claude-3-haiku-20240307',
+      max_tokens: 256,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: mimeType,
+                data: base64,
+              },
+            },
+            {
+              type: 'text',
+              text: PROMPT,
+            },
+          ],
+        },
+      ],
     });
 
-    if (!ollamaRes.ok) {
-      const text = await ollamaRes.text();
-      return NextResponse.json({ error: `Ollama error: ${text}` }, { status: 500 });
-    }
-
-    const ollamaData = await ollamaRes.json();
-    const raw = (ollamaData.response ?? '').trim();
+    const raw = (message.content[0].type === 'text' ? message.content[0].text : '').trim();
 
     // Extract JSON from response (strip any accidental markdown wrapping)
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
@@ -67,17 +75,6 @@ export async function POST(req: NextRequest) {
 
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    // Ollama not reachable (only works when running locally on the same machine)
-    if (
-      message.toLowerCase().includes('fetch failed') ||
-      message.toLowerCase().includes('econnrefused') ||
-      message.toLowerCase().includes('connect')
-    ) {
-      return NextResponse.json(
-        { error: 'Ollama not reachable — scan only works when running locally. Fill in card details manually.' },
-        { status: 503 }
-      );
-    }
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
