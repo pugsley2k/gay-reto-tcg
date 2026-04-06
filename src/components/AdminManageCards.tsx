@@ -28,13 +28,12 @@ const SPECIAL_HOLOS = new Set([
 /** Extract Pokemon name, card number, set name and series from the stored composite name */
 function parseStoredName(name: string, number: string | null) {
   if (!number) {
-    // No number stored — just use first word(s) up to a likely set boundary
     const pipeIdx = name.indexOf(' | ');
     const pokemonName = pipeIdx >= 0 ? name.slice(0, pipeIdx).trim() : name;
     const afterPipe = pipeIdx >= 0 ? name.slice(pipeIdx + 3).trim() : '';
     return { pokemonName, cardNum: '', setName: pokemonName, setSeries: afterPipe };
   }
-  // e.g. "Scyther 6/165 Pokémon Card 151 | Scarlet & Violet"
+  // e.g. "Snover 10/189 Snow Hazard | Scarlet & Violet"
   const numIndex = name.indexOf(number);
   const pokemonName = numIndex > 0 ? name.slice(0, numIndex).trim() : name.split(' ')[0];
   const afterNum    = numIndex >= 0 ? name.slice(numIndex + number.length).trim() : '';
@@ -52,28 +51,34 @@ const s: Record<string, React.CSSProperties> = {
   filterSel:  { background: '#0f0f22', border: '1px solid #2d2d50', borderRadius: 6, color: '#d0d0f0', padding: '6px 8px', fontSize: 12 },
   table:      { width: '100%', borderCollapse: 'collapse' as const },
   th:         { textAlign: 'left' as const, fontSize: 10, color: '#5a5a8a', padding: '6px 8px', borderBottom: '1px solid #1e1e3a', letterSpacing: '0.1em', textTransform: 'uppercase' as const },
-  td:         { padding: '8px', borderBottom: '1px solid #111128', verticalAlign: 'middle' as const, fontSize: 12 },
+  td:         { padding: '8px', borderBottom: '1px solid #111128', verticalAlign: 'top' as const, fontSize: 12 },
   thumb:      { width: 40, height: 56, objectFit: 'contain' as const, borderRadius: 3, background: '#08081a' },
   name:       { maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, fontSize: 11, color: '#c0c0e0' },
   holo:       { fontSize: 10, color: '#a78bfa', background: 'rgba(124,106,240,0.15)', padding: '2px 6px', borderRadius: 4 },
   price:      { fontSize: 13, color: '#ffd166', fontWeight: 700 },
   btnFix:     { background: 'linear-gradient(90deg,#7c6af0,#b84fff)', border: 'none', borderRadius: 5, color: '#fff', padding: '5px 12px', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap' as const },
-  btnFixDone: { background: '#1a3a1a', border: '1px solid #2a6a2a', borderRadius: 5, color: '#86efac', padding: '5px 12px', fontSize: 11, cursor: 'default', whiteSpace: 'nowrap' as const },
+  btnFixDone: { background: '#1a3a1a', border: '1px solid #2a6a2a', borderRadius: 5, color: '#86efac', padding: '5px 12px', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap' as const },
   btnFixFail: { background: '#3a1a1a', border: '1px solid #6a2a2a', borderRadius: 5, color: '#f87171', padding: '5px 12px', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap' as const },
   btnDelete:  { background: 'transparent', border: '1px solid #3a1a1a', borderRadius: 5, color: '#f87171', padding: '5px 10px', fontSize: 11, cursor: 'pointer' },
+  btnSave:    { background: '#1a3050', border: '1px solid #2a5080', borderRadius: 5, color: '#93c5fd', padding: '4px 10px', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap' as const },
   statusTxt:  { fontSize: 10, marginTop: 2, color: '#7070a0' },
+  manualRow:  { display: 'flex', gap: 5, alignItems: 'center', marginTop: 6, flexWrap: 'wrap' as const },
+  manualInput:{ background: '#0a0a1a', border: '1px solid #2d2d50', borderRadius: 4, color: '#ffd166', padding: '3px 7px', fontSize: 12, width: 80 },
 };
 
 type FixStatus = 'idle' | 'loading' | 'done' | 'fail' | 'not_found';
 
 export default function AdminManageCards() {
-  const [cards, setCards]       = useState<Card[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [search, setSearch]     = useState('');
+  const [cards, setCards]         = useState<Card[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [search, setSearch]       = useState('');
   const [holoFilter, setHoloFilter] = useState('');
   const [fixStatus, setFixStatus] = useState<Record<number, FixStatus>>({});
-  const [fixMsg, setFixMsg]     = useState<Record<number, string>>({});
-  const [deleting, setDeleting] = useState<Record<number, boolean>>({});
+  const [fixMsg, setFixMsg]       = useState<Record<number, string>>({});
+  const [pcUrl, setPcUrl]         = useState<Record<number, string>>({});
+  const [manualPrice, setManualPrice] = useState<Record<number, string>>({});
+  const [saving, setSaving]       = useState<Record<number, boolean>>({});
+  const [deleting, setDeleting]   = useState<Record<number, boolean>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -93,9 +98,20 @@ export default function AdminManageCards() {
     return matchSearch && matchHolo;
   });
 
+  async function patchCard(id: number, updates: { price?: number; image_url?: string }) {
+    const res = await fetch('/api/cards', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...updates }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    setCards(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+  }
+
   async function fixCard(card: Card) {
     setFixStatus(p => ({ ...p, [card.id]: 'loading' }));
     setFixMsg(p => ({ ...p, [card.id]: '' }));
+    setPcUrl(p => ({ ...p, [card.id]: '' }));
     try {
       const { pokemonName, cardNum, setName, setSeries } = parseStoredName(card.name, card.number);
       const params = new URLSearchParams({
@@ -108,9 +124,12 @@ export default function AdminManageCards() {
       });
       const pcData = await fetch(`/api/pricecharting?${params}`).then(r => r.json());
 
+      // Always store the URL PC searched so user can inspect it
+      if (pcData.url) setPcUrl(p => ({ ...p, [card.id]: pcData.url }));
+
       if (pcData.not_found) {
         setFixStatus(p => ({ ...p, [card.id]: 'not_found' }));
-        setFixMsg(p => ({ ...p, [card.id]: `Not found on PC · query: "${pokemonName} ${cardNum}"` }));
+        setFixMsg(p => ({ ...p, [card.id]: `Not found — set manual price below` }));
         return;
       }
       if (pcData.error) {
@@ -125,19 +144,11 @@ export default function AdminManageCards() {
 
       if (!Object.keys(updates).length) {
         setFixStatus(p => ({ ...p, [card.id]: 'not_found' }));
-        setFixMsg(p => ({ ...p, [card.id]: 'PC found page but no price or image data' }));
+        setFixMsg(p => ({ ...p, [card.id]: 'PC found page but no price or image — set manually below' }));
         return;
       }
 
-      const patchRes = await fetch('/api/cards', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: card.id, ...updates }),
-      });
-      if (!patchRes.ok) throw new Error(await patchRes.text());
-
-      // Update local state so UI reflects new values instantly
-      setCards(prev => prev.map(c => c.id === card.id ? { ...c, ...updates } : c));
+      await patchCard(card.id, updates);
       setFixStatus(p => ({ ...p, [card.id]: 'done' }));
       const parts: string[] = [];
       if (updates.price)     parts.push(`£${(updates.price / 100).toFixed(2)}`);
@@ -146,6 +157,23 @@ export default function AdminManageCards() {
     } catch (e: any) {
       setFixStatus(p => ({ ...p, [card.id]: 'fail' }));
       setFixMsg(p => ({ ...p, [card.id]: e.message ?? 'Unknown error' }));
+    }
+  }
+
+  async function saveManualPrice(card: Card) {
+    const raw = manualPrice[card.id] ?? '';
+    const pounds = parseFloat(raw.replace('£', '').trim());
+    if (isNaN(pounds) || pounds < 0) return;
+    setSaving(p => ({ ...p, [card.id]: true }));
+    try {
+      await patchCard(card.id, { price: Math.round(pounds * 100) });
+      setFixStatus(p => ({ ...p, [card.id]: 'done' }));
+      setFixMsg(p => ({ ...p, [card.id]: `Manual price saved: £${pounds.toFixed(2)}` }));
+      setManualPrice(p => ({ ...p, [card.id]: '' }));
+    } catch (e: any) {
+      setFixMsg(p => ({ ...p, [card.id]: `Save failed: ${e.message}` }));
+    } finally {
+      setSaving(p => ({ ...p, [card.id]: false }));
     }
   }
 
@@ -193,8 +221,10 @@ export default function AdminManageCards() {
           </thead>
           <tbody>
             {filtered.map(card => {
-              const st = fixStatus[card.id] ?? 'idle';
+              const st  = fixStatus[card.id] ?? 'idle';
               const msg = fixMsg[card.id] ?? '';
+              const url = pcUrl[card.id] ?? '';
+              const showManual = st === 'not_found' || st === 'fail';
               return (
                 <tr key={card.id}>
                   <td style={s.td}>
@@ -202,7 +232,7 @@ export default function AdminManageCards() {
                   </td>
                   <td style={s.td}>
                     <div style={s.name} title={card.name}>{card.name}</div>
-                    {card.number && <div style={{ ...s.statusTxt }}># {card.number}</div>}
+                    {card.number && <div style={s.statusTxt}># {card.number}</div>}
                   </td>
                   <td style={s.td}>
                     {card.holo_type
@@ -227,8 +257,8 @@ export default function AdminManageCards() {
                           <button style={{ ...s.btnFix, opacity: 0.6 }} disabled>Checking PC…</button>
                         ) : st === 'done' ? (
                           <button style={s.btnFixDone} onClick={() => fixCard(card)}>✓ Fixed · Retry?</button>
-                        ) : st === 'fail' || st === 'not_found' ? (
-                          <button style={s.btnFixFail} onClick={() => fixCard(card)}>✗ Retry Fix</button>
+                        ) : showManual ? (
+                          <button style={s.btnFixFail} onClick={() => fixCard(card)}>✗ Retry PC</button>
                         ) : (
                           <button style={s.btnFix} onClick={() => fixCard(card)}>Fix Price &amp; Image</button>
                         )}
@@ -236,13 +266,40 @@ export default function AdminManageCards() {
                           style={{ ...s.btnDelete, opacity: deleting[card.id] ? 0.5 : 1 }}
                           disabled={deleting[card.id]}
                           onClick={() => deleteCard(card)}
-                        >
-                          🗑
-                        </button>
+                        >🗑</button>
                       </div>
+
+                      {/* Status message */}
                       {msg && (
                         <div style={{ ...s.statusTxt, color: st === 'done' ? '#86efac' : st === 'not_found' ? '#fb923c' : '#f87171' }}>
                           {msg}
+                        </div>
+                      )}
+
+                      {/* PC search URL — so you can see exactly what was searched */}
+                      {url && (
+                        <a href={url} target="_blank" rel="noreferrer"
+                          style={{ fontSize: 10, color: '#4a6a9a', wordBreak: 'break-all' }}>
+                          🔗 View PC page
+                        </a>
+                      )}
+
+                      {/* Manual price entry — shown when PC lookup failed */}
+                      {showManual && (
+                        <div style={s.manualRow}>
+                          <span style={{ fontSize: 10, color: '#5a5a8a' }}>Set price:</span>
+                          <input
+                            style={s.manualInput}
+                            placeholder="£0.00"
+                            value={manualPrice[card.id] ?? ''}
+                            onChange={e => setManualPrice(p => ({ ...p, [card.id]: e.target.value }))}
+                            onKeyDown={e => { if (e.key === 'Enter') saveManualPrice(card); }}
+                          />
+                          <button
+                            style={{ ...s.btnSave, opacity: saving[card.id] ? 0.6 : 1 }}
+                            disabled={saving[card.id]}
+                            onClick={() => saveManualPrice(card)}
+                          >{saving[card.id] ? '…' : 'Save'}</button>
                         </div>
                       )}
                     </div>
