@@ -62,10 +62,29 @@ export default function AdminUploadForm() {
     cardNumber?: string;
     cardTotal?: string;
     language?: string;
+    holoType?: string | null;   // null = not detected, must be picked before match grid shows
     error?: string;
     apiResults?: PokemonTCGCard[];
     searchQuery?: string;
   }
+
+  const SPECIAL_HOLOS = ['Pokeball Holo','Master Ball Holo','Cosmos Holo','Full Art','Alt Art',
+    'Special Illustration Rare','Hyper Rare','Promo','Double Rare','Ultra Rare'];
+
+  const HOLO_OPTIONS = [
+    { label: 'Normal',                    color: '#3a3a5e' },
+    { label: 'Reverse Holo',             color: '#1a3a5e' },
+    { label: 'Holo Rare',                color: '#5e4a10' },
+    { label: 'Pokeball Holo',            color: '#5e1a1a' },
+    { label: 'Master Ball Holo',         color: '#3a1a6e' },
+    { label: 'Cosmos Holo',              color: '#1a3a6e' },
+    { label: 'Full Art',                 color: '#1a5e3a' },
+    { label: 'Alt Art',                  color: '#2e5e1a' },
+    { label: 'Special Illustration Rare',color: '#5e3010' },
+    { label: 'Hyper Rare',               color: '#5e1a3a' },
+    { label: 'Double Rare',              color: '#4a3a10' },
+    { label: 'Promo',                    color: '#5e1040' },
+  ];
 
   const [scanQueue, setScanQueue] = useState<ScanQueueItem[]>([]);
   const [wizardIndex, setWizardIndex] = useState(0);
@@ -143,12 +162,15 @@ export default function AdminUploadForm() {
         const cardNum: string | undefined = d.card_number ?? undefined;
         const cardTotal: string | undefined = d.card_total ?? undefined;
         const detectedLanguage: string | undefined = d.language ?? undefined;
+        // null means AI didn't detect it — user must pick before match grid shows
+        const detectedHoloType: string | null = d.holo_type ?? null;
 
         const searchResults = await searchPokemonCard(englishName, cardNum, cardTotal);
 
         setScanQueue(prev => prev.map(i => i.id === item.id ? {
           ...i, status: 'done', originalName, englishName,
           cardNumber: cardNum, cardTotal, language: detectedLanguage,
+          holoType: detectedHoloType,
           apiResults: searchResults.results, searchQuery: searchResults.query,
         } : i));
       } catch (err: any) {
@@ -195,6 +217,42 @@ export default function AdminUploadForm() {
         setName(`${card.name}${num ? ` ${num}${total}` : ''} ${setDisplayName}${series}`.trim());
       }
       setMsg('');
+
+      // ── Background PriceCharting fetch ──────────────────────────────────────
+      // For JP/KR cards: get a clean card image + accurate price
+      // For special holos: get accurate sold price (TCGPlayer doesn't track these)
+      const isNonEnglish = currentItem?.language && currentItem.language !== 'English';
+      const needsPC = isNonEnglish || SPECIAL_HOLOS.includes(version);
+      if (needsPC) {
+        void (async () => {
+          try {
+            const params = new URLSearchParams({
+              name: card.name,
+              // JP/KR: use the AI-scanned number (e.g. 123), not the English TCG API number (e.g. 6)
+              number: (isNonEnglish && currentItem?.cardNumber) ? currentItem.cardNumber : (card.number ?? ''),
+              holo_type: version,
+              language: currentItem?.language ?? 'English',
+              set_name: card.set?.name ?? '',
+              set_series: card.set?.series ?? '',
+            });
+            const pcRes = await fetch(`/api/pricecharting?${params}`);
+            const pcData = await pcRes.json();
+            if (!pcData.error && !pcData.not_found) {
+              // Update price if PriceCharting found one (pence, ready to store)
+              if (pcData.price) setPrice(String(pcData.price));
+              // Update image for JP/KR cards — cleaner scan from PC
+              if (isNonEnglish && pcData.image_url) {
+                const imgRes = await fetch(`/api/image-proxy?url=${encodeURIComponent(pcData.image_url)}`);
+                if (imgRes.ok) {
+                  const imgBlob = await imgRes.blob();
+                  const imgFile = new File([imgBlob], 'card.jpg', { type: imgBlob.type || 'image/jpeg' });
+                  setSel([{ url: URL.createObjectURL(imgFile), file: imgFile, source: 'api', apiCardName: card.name, holoType: version }]);
+                }
+              }
+            }
+          } catch { /* silent — best effort */ }
+        })();
+      }
     } catch (error: any) {
       setMsg(`Error loading image: ${error.message}`);
     }
@@ -421,8 +479,43 @@ export default function AdminUploadForm() {
               </div>
             </div>
 
-            {/* Inline re-search if no matches */}
-            {currentItem.status === 'done' && (
+            {/* ── Holo type blocker ── shown when scan is done but type unknown */}
+            {currentItem.status === 'done' && !currentItem.holoType && (
+              <div style={{ background: '#0a0a1a', borderRadius: 10, padding: '1rem', border: '2px solid #7c6af0', marginTop: 4 }}>
+                <p style={{ margin: '0 0 10px', fontWeight: 700, color: '#c4b5fd', fontSize: 13 }}>
+                  🃏 AI couldn't detect the holo type — what type is this card?
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                  {HOLO_OPTIONS.map(({ label, color }) => (
+                    <button key={label} type="button"
+                      style={{ background: color, border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: '#e2e8f0', padding: '7px 4px', fontSize: 10, cursor: 'pointer', fontWeight: 600, lineHeight: 1.3 }}
+                      onClick={() => {
+                        setScanQueue(prev => prev.map(i => i.id === currentItem.id ? { ...i, holoType: label } : i));
+                        setHoloType(label);
+                      }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── AI detected holo type — show with change button ── */}
+            {currentItem.status === 'done' && currentItem.holoType && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, marginBottom: 2 }}>
+                <span style={{ fontSize: 12, color: '#86efac' }}>
+                  ✓ <strong>{currentItem.holoType}</strong>
+                </span>
+                <button type="button"
+                  style={{ ...s.btnGhost, fontSize: 10, padding: '2px 8px' }}
+                  onClick={() => setScanQueue(prev => prev.map(i => i.id === currentItem.id ? { ...i, holoType: null } : i))}>
+                  Change
+                </button>
+              </div>
+            )}
+
+            {/* ── Search correction row + match grid (only when holo type is set) ── */}
+            {currentItem.status === 'done' && currentItem.holoType && (
               <>
                 <div style={s.rescanRow}>
                   <input
@@ -450,38 +543,41 @@ export default function AdminUploadForm() {
                   }}>🔍</button>
                 </div>
 
-                {/* Match grid */}
+                {/* Match grid — one Select button per card, price reflects chosen holo type */}
                 {currentItem.apiResults && currentItem.apiResults.length > 0 && (
                   <>
-                    <p style={{ margin: '12px 0 4px', fontSize: 12, color: '#7c7c9e' }}>Pick the right version:</p>
+                    <p style={{ margin: '10px 0 4px', fontSize: 12, color: '#7c7c9e' }}>Pick the matching card:</p>
                     <div style={s.matchGrid}>
                       {currentItem.apiResults.map(card => {
                         const prices = card.tcgplayer?.prices;
-                        const versions = prices
-                          ? Object.entries(prices).map(([k, v]) => ({ name: k, price: v?.market })).filter(v => v.price != null)
-                          : [];
+                        const ht = currentItem.holoType!;
+                        // Choose the most relevant TCGPlayer price tier for this holo type
+                        let refPrice: number | null = null;
+                        if (['Reverse Holo','Pokeball Holo','Master Ball Holo','Cosmos Holo'].includes(ht))
+                          refPrice = prices?.reverseHolofoil?.market ?? prices?.holofoil?.market ?? null;
+                        else if (ht === 'Holo Rare')
+                          refPrice = prices?.holofoil?.market ?? null;
+                        else if (ht === 'Normal')
+                          refPrice = prices?.normal?.market ?? null;
+                        else
+                          // Special holos — show holofoil as a reference; PC will give the real price in background
+                          refPrice = prices?.holofoil?.market ?? prices?.normal?.market ?? null;
+
+                        const priceLabel = refPrice
+                          ? `£${(refPrice * 0.79).toFixed(2)}${SPECIAL_HOLOS.includes(ht) ? ' ref' : ''}`
+                          : null;
+
                         return (
                           <div key={card.id} style={s.matchItem}>
                             <img src={card.images.small} alt={card.name} style={s.matchImg} />
                             <div style={s.matchName}>{card.name}</div>
                             <div style={s.matchSet}>{card.set?.name}</div>
-                            <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                              {versions.length > 0 ? versions.map(v => {
-                                const label = v.name.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase());
-                                return (
-                                  <button key={v.name} type="button"
-                                    style={{ ...s.btn, fontSize: 10, padding: '4px 6px' }}
-                                    onClick={() => pickImage(card, label, v.price ?? null)}>
-                                    {label}<br />£{((v.price ?? 0) * 0.79).toFixed(2)}
-                                  </button>
-                                );
-                              }) : (
-                                <button type="button"
-                                  style={{ ...s.btn, fontSize: 10, padding: '4px 6px' }}
-                                  onClick={() => pickImage(card, 'Normal', null)}>
-                                  Select
-                                </button>
-                              )}
+                            <div style={{ marginTop: 6 }}>
+                              <button type="button"
+                                style={{ ...s.btn, fontSize: 10, padding: '5px 6px', width: '100%' }}
+                                onClick={() => pickImage(card, ht, refPrice)}>
+                                Select{priceLabel ? ` — ${priceLabel}` : ''}
+                              </button>
                             </div>
                           </div>
                         );
