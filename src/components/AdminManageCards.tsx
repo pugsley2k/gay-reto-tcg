@@ -139,7 +139,7 @@ export default function AdminManageCards() {
       // Update local state so UI reflects new values instantly
       setCards(prev => prev.map(c => c.id === card.id ? { ...c, ...updates } : c));
       setFixStatus(p => ({ ...p, [card.id]: 'done' }));
-      const parts = [];
+      const parts: string[] = [];
       if (updates.price)     parts.push(`£${(updates.price / 100).toFixed(2)}`);
       if (updates.image_url) parts.push('image updated');
       setFixMsg(p => ({ ...p, [card.id]: parts.join(' · ') }));
