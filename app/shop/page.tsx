@@ -7,6 +7,43 @@ import { useCart } from "@/components/CartProvider";
 import { ToastContainer, toast, Flip } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+/* ── Set name abbreviations applied to card title display ── */
+const SET_ABBREVIATIONS: [RegExp, string][] = [
+  [/Scarlet\s*&\s*Violet/g,     'S&V'],
+  [/Sword\s*&\s*Shield/g,       'SwSh'],
+  [/Sun\s*&\s*Moon/g,           'S&M'],
+  [/Black\s*&\s*White/g,        'B&W'],
+  [/HeartGold\s*SoulSilver/g,   'HGSS'],
+  [/Diamond\s*&\s*Pearl/g,      'D&P'],
+  [/Legends:\s*Arceus/g,        'LA'],
+  [/Brilliant\s*Stars/g,        'BRS'],
+  [/Fusion\s*Strike/g,          'FST'],
+  [/Battle\s*Styles/g,          'BST'],
+  [/Chilling\s*Reign/g,         'CRE'],
+  [/Evolving\s*Skies/g,         'EVS'],
+  [/Astral\s*Radiance/g,        'ASR'],
+  [/Silver\s*Tempest/g,         'SIT'],
+  [/Crown\s*Zenith/g,           'CRZ'],
+  [/Paldea\s*Evolved/g,         'PAL'],
+  [/Obsidian\s*Flames/g,        'OBF'],
+  [/Paradox\s*Rift/g,           'PAR'],
+  [/Temporal\s*Forces/g,        'TEF'],
+  [/Twilight\s*Masquerade/g,    'TWM'],
+  [/Stellar\s*Crown/g,          'SCR'],
+  [/Surging\s*Sparks/g,         'SSP'],
+  [/Prismatic\s*Evolutions/g,   'PRE'],
+];
+
+function abbreviateTitle(name: string): string {
+  let result = name;
+  for (const [pattern, replacement] of SET_ABBREVIATIONS) {
+    result = result.replace(pattern, replacement);
+  }
+  return result;
+}
+
+
+
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
   throw new Error("Missing Supabase environment variables");
 }
@@ -206,7 +243,8 @@ export default function ShopPage() {
                   </div>
                   <div className={styles.cardBody}>
                     <h5 className={styles.cardTitle}>
-                      {card.name}{card.number ? ` · ${card.number}` : ''}
+                      {abbreviateTitle(card.name ?? '')}
+                      {card.holo_type && card.holo_type !== "Normal" && ` · ${card.holo_type}`}
                     </h5>
                     <p className={styles.cardPrice}>
                       {typeof card.price === "number" ? `£${(card.price / 100).toFixed(2)}` : "N/A"}
