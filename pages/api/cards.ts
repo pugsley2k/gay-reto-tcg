@@ -28,8 +28,24 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  if (req.method === 'PATCH') {
+    try {
+      const { id, price, image_url, holo_type } = req.body ?? {};
+      if (!id) return res.status(400).json({ message: 'id is required' });
+      const updates: Record<string, unknown> = {};
+      if (price     !== undefined) updates.price     = price;
+      if (image_url !== undefined) updates.image_url = image_url;
+      if (holo_type !== undefined) updates.holo_type = holo_type;
+      const { error } = await supabase.from('Card').update(updates).eq('id', id);
+      if (error) return res.status(400).json({ message: error.message });
+      return res.status(200).json({ message: 'Card updated' });
+    } catch (err: any) {
+      return res.status(500).json({ message: err.message ?? 'Server error' });
+    }
+  }
+
   if (req.method !== 'POST') {
-    res.setHeader('Allow', ['POST']);
+    res.setHeader('Allow', ['POST', 'PATCH']);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 

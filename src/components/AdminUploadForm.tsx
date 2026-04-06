@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, FormEvent, useRef } from "react";
+import AdminManageCards from "./AdminManageCards";
 
 /* ────────────────────────────────────────────────────────────
    Types
@@ -40,6 +41,8 @@ interface SelectedImageDetail {
    Component
 ──────────────────────────────────────────────────────────── */
 export default function AdminUploadForm() {
+  const [tab, setTab] = useState<'upload' | 'manage'>('upload');
+
   /* core state */
   const [name, setName]           = useState("");
   const [cardNumber, setNumber]   = useState("");
@@ -410,9 +413,35 @@ export default function AdminUploadForm() {
     rescanRow: { display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' as const },
   };
 
+  const tabBar: React.CSSProperties = { display: 'flex', gap: 6, padding: '1rem 1rem 0', borderBottom: '1px solid #1e1e3a', marginBottom: 0 };
+  const tabBtn = (active: boolean): React.CSSProperties => ({
+    fontFamily: 'Space Mono, monospace', fontSize: 12, fontWeight: 700,
+    padding: '8px 20px', border: '1px solid', borderBottom: 'none', borderRadius: '8px 8px 0 0', cursor: 'pointer',
+    background: active ? '#0f0f22' : 'transparent',
+    color: active ? '#c4b5fd' : '#4a4a72',
+    borderColor: active ? '#3d3d6e' : 'transparent',
+    position: 'relative', bottom: -1,
+  });
+
   return (
     <>
       <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+      {/* ── Tab bar ── */}
+      <div style={tabBar}>
+        <button style={tabBtn(tab === 'upload')} onClick={() => setTab('upload')}>➕ Upload</button>
+        <button style={tabBtn(tab === 'manage')} onClick={() => setTab('manage')}>🗂 Manage Cards</button>
+      </div>
+
+      {/* ── Manage tab ── */}
+      {tab === 'manage' && (
+        <div style={{ ...s.wrap, padding: '1.5rem' }}>
+          <AdminManageCards />
+        </div>
+      )}
+
+      {/* ── Upload tab ── */}
+      {tab !== 'manage' && (
       <div style={s.wrap}>
 
         {/* ── WIZARD MODE ─────────────────────────────────── */}
@@ -710,6 +739,7 @@ export default function AdminUploadForm() {
           </button>
         </form>
       </div>
+      )}
     </>
   );
 }
