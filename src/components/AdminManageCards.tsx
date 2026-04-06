@@ -18,12 +18,16 @@ interface Card {
   image_url: string | null;
 }
 
-const SPECIAL_HOLOS = new Set([
-  'Pokeball Holo', 'Master Ball Holo', 'Cosmos Holo',
-  'Full Art', 'Alt Art', 'Special Illustration Rare',
-  'Hyper Rare', 'Double Rare', 'Ultra Rare', 'Holo Rare',
-  'Reverse Holo', 'Promo',
-]);
+const ALL_HOLO_TYPES = [
+  'Normal','Common','Uncommon','Rare',
+  'Rare Holo','Rare Holo EX','Rare Holo GX','Rare Holo Lv.X','Rare Prime','LEGEND',
+  'Ultra Rare','Double Rare','ACE SPEC rare','Rare BREAK','Promo','Amazing',
+  'Radiant Rare','Illustration Rare','Special Illustration Rare',
+  'Shiny Rare','Shiny Ultra Rare','Hyper Rare',
+  'Black White rare','Mega Hyper Rare','Mega Attack Rare',
+  'Reverse Holo','Pokeball Holo','Master Ball Holo','Cosmos Holo',
+  'Full Art','Alt Art','Holo Rare',
+];
 
 /** Extract Pokemon name, card number, set name and series from the stored composite name */
 function parseStoredName(name: string, number: string | null) {
@@ -79,6 +83,7 @@ export default function AdminManageCards() {
   const [manualPrice, setManualPrice] = useState<Record<number, string>>({});
   const [saving, setSaving]       = useState<Record<number, boolean>>({});
   const [deleting, setDeleting]   = useState<Record<number, boolean>>({});
+  const [holoEdit, setHoloEdit]   = useState<Record<number, boolean>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -94,7 +99,8 @@ export default function AdminManageCards() {
 
   const filtered = cards.filter(c => {
     const matchSearch = !search || c.name?.toLowerCase().includes(search.toLowerCase());
-    const matchHolo   = !holoFilter || c.holo_type === holoFilter || (holoFilter === '__special__' && c.holo_type && SPECIAL_HOLOS.has(c.holo_type));
+    const NORMALS = new Set(['Normal','Common','Uncommon','Rare']);
+    const matchHolo = !holoFilter || c.holo_type === holoFilter || (holoFilter === '__special__' && c.holo_type && !NORMALS.has(c.holo_type));
     return matchSearch && matchHolo;
   });
 
@@ -177,6 +183,15 @@ export default function AdminManageCards() {
     }
   }
 
+  async function saveHoloType(card: Card, newType: string) {
+    await patchCard(card.id, { holo_type: newType } as any);
+    setCards(prev => prev.map(c => c.id === card.id ? { ...c, holo_type: newType } : c));
+    setHoloEdit(p => ({ ...p, [card.id]: false }));
+    // Reset fix status so user can re-run with updated type
+    setFixStatus(p => ({ ...p, [card.id]: 'idle' }));
+    setFixMsg(p => ({ ...p, [card.id]: '' }));
+  }
+
   async function deleteCard(card: Card) {
     if (!confirm(`Delete "${card.name}"? This cannot be undone.`)) return;
     setDeleting(p => ({ ...p, [card.id]: true }));
@@ -235,9 +250,26 @@ export default function AdminManageCards() {
                     {card.number && <div style={s.statusTxt}># {card.number}</div>}
                   </td>
                   <td style={s.td}>
-                    {card.holo_type
-                      ? <span style={s.holo}>{card.holo_type}</span>
-                      : <span style={{ color: '#3a3a5a' }}>—</span>}
+                    {holoEdit[card.id] ? (
+                      <select
+                        style={{ ...s.filterSel, fontSize: 10, padding: '3px 4px' }}
+                        defaultValue={card.holo_type ?? ''}
+                        autoFocus
+                        onChange={e => saveHoloType(card, e.target.value)}
+                        onBlur={() => setHoloEdit(p => ({ ...p, [card.id]: false }))}
+                      >
+                        <option value="">—</option>
+                        {ALL_HOLO_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    ) : (
+                      <span
+                        style={{ ...s.holo, cursor: 'pointer' }}
+                        title="Click to edit"
+                        onClick={() => setHoloEdit(p => ({ ...p, [card.id]: true }))}
+                      >
+                        {card.holo_type ?? <span style={{ color: '#3a3a5a' }}>— edit</span>}
+                      </span>
+                    )}
                   </td>
                   <td style={s.td}>
                     <span style={{ fontSize: 11, color: '#7070a0' }}>

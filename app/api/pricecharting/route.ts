@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Maps our holo type labels → PriceCharting search query modifier
 const HOLO_MODIFIERS: Record<string, string> = {
-  // Reverse-slot holos
   'Reverse Holo':               'reverse',
   'Pokeball Holo':              'reverse',
   'Master Ball Holo':           'reverse',
   'Cosmos Holo':                'reverse',
-  // Standard holos
   'Holo Rare':                  'holo',
   'Rare Holo':                  'holo',
   'Rare Holo EX':               'holo',
@@ -15,7 +14,6 @@ const HOLO_MODIFIERS: Record<string, string> = {
   'Rare Prime':                 'holo',
   'LEGEND':                     'holo',
   'Black White rare':           'holo',
-  // Ultra / secret
   'Ultra Rare':                 'ultra-rare',
   'Double Rare':                'double-rare',
   'Full Art':                   'full-art',
@@ -27,7 +25,38 @@ const HOLO_MODIFIERS: Record<string, string> = {
   'Mega Attack Rare':           'hyper-rare',
   'Shiny Rare':                 'shiny-rare',
   'Shiny Ultra Rare':           'shiny-ultra-rare',
-  // Other
+  'Radiant Rare':               'radiant',
+  'Amazing':                    'amazing-rare',
+  'ACE SPEC rare':              'ace-spec',
+  'Rare BREAK':                 'break',
+  'Promo':                      'promo',
+};
+
+// Maps our holo type labels → PriceCharting URL slug suffix
+const PC_URL_SUFFIXES: Record<string, string> = {
+  'Reverse Holo':               'reverse-holo',
+  'Pokeball Holo':              'reverse-holo',
+  'Master Ball Holo':           'reverse-holo',
+  'Cosmos Holo':                'reverse-holo',
+  'Holo Rare':                  'holofoil',
+  'Rare Holo':                  'holofoil',
+  'Rare Holo EX':               'holofoil',
+  'Rare Holo GX':               'holofoil',
+  'Rare Holo Lv.X':             'holofoil',
+  'Rare Prime':                 'holofoil',
+  'LEGEND':                     'holofoil',
+  'Black White rare':           'holofoil',
+  'Ultra Rare':                 'ultra-rare',
+  'Double Rare':                'double-rare',
+  'Full Art':                   'full-art',
+  'Alt Art':                    'secret-rare',
+  'Illustration Rare':          'illustration-rare',
+  'Special Illustration Rare':  'special-illustration-rare',
+  'Hyper Rare':                 'hyper-rare',
+  'Mega Hyper Rare':            'hyper-rare',
+  'Mega Attack Rare':           'hyper-rare',
+  'Shiny Rare':                 'shiny-rare',
+  'Shiny Ultra Rare':           'shiny-ultra-rare',
   'Radiant Rare':               'radiant',
   'Amazing':                    'amazing-rare',
   'ACE SPEC rare':              'ace-spec',
@@ -38,9 +67,16 @@ const HOLO_MODIFIERS: Record<string, string> = {
 const USD_TO_GBP = 0.79;
 const STOP_WORDS = new Set(['pokemon', 'card', 'cards', 'the', 'of', 'a', 'and', '']);
 
+function slugify(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
 function extractSetKeywords(setName: string): string[] {
-  // Use only the specific set name — NOT the series (e.g. "Paldea Evolved", not "Scarlet & Violet")
-  // Including the series adds noise that breaks PriceCharting searches
+  // Only the specific set name — NOT the series (drops noise like "scarlet violet")
   return [...new Set(
     setName
       .toLowerCase()
@@ -51,11 +87,6 @@ function extractSetKeywords(setName: string): string[] {
   )];
 }
 
-/**
- * Builds a search query specific enough to auto-redirect to the correct
- * PriceCharting product page.
- * e.g. "scyther reverse 123 pokemon japanese scarlet violet 151"
- */
 function buildSearchQuery(
   name: string, number: string, holoType: string,
   language: string, setName: string,
@@ -68,6 +99,27 @@ function buildSearchQuery(
   return [name, modifier, number, 'pokemon', langTag, ...setKws]
     .filter(Boolean)
     .join(' ');
+}
+
+/**
+ * Build direct product page URLs to try before falling back to search.
+ * PC URL format: /game/pokemon-{set-slug}/{card-slug}-{suffix}
+ * Returns multiple candidates (with suffix, without suffix) to try in order.
+ */
+function buildDirectUrls(
+  name: string, holoType: string, language: string, setName: string,
+): string[] {
+  const langPrefix = language === 'Japanese' ? 'japanese-pokemon'
+                   : language === 'Korean'   ? 'korean-pokemon'
+                   : 'pokemon';
+  const setSlug  = slugify(setName);
+  const nameSlug = slugify(name);
+  const suffix   = PC_URL_SUFFIXES[holoType];
+  const base     = `https://www.pricecharting.com/game/${langPrefix}-${setSlug}`;
+  const urls: string[] = [];
+  if (suffix) urls.push(`${base}/${nameSlug}-${suffix}`);
+  urls.push(`${base}/${nameSlug}`);   // no-suffix fallback (normal / base card)
+  return urls;
 }
 
 async function fetchHtml(url: string): Promise<{ html: string; finalUrl: string }> {
@@ -87,11 +139,9 @@ async function fetchHtml(url: string): Promise<{ html: string; finalUrl: string 
 }
 
 function parseProductPage(html: string) {
-  // Card image hosted on Google Cloud Storage
   const imgMatch = html.match(
     /https:\/\/storage\.googleapis\.com\/images\.pricecharting\.com\/[a-f0-9]+\/\d+\.jpg/
   );
-  // Ungraded (loose) price from <td id="used_price">$2.54 +$0.12</td>
   const section  = html.match(/id="used_price"[^>]*>([\s\S]*?)<\/td>/)?.[1] ?? '';
   const usdMatch = section.match(/\$([\d,]+\.?\d*)/);
   const usdPrice = usdMatch ? parseFloat(usdMatch[1].replace(',', '')) : null;
@@ -108,27 +158,44 @@ export async function GET(req: NextRequest) {
   const holoType  = sp.get('holo_type')  ?? '';
   const language  = sp.get('language')   ?? 'English';
   const setName   = sp.get('set_name')   ?? '';
-  const setSeries = sp.get('set_series') ?? '';
 
   if (!name) return NextResponse.json({ error: 'name required' }, { status: 400 });
 
+  // ── Step 1: Try direct URL construction (most reliable, no HTML parsing) ──
+  const directUrls = buildDirectUrls(name, holoType, language, setName);
+  for (const directUrl of directUrls) {
+    try {
+      const { html, finalUrl } = await fetchHtml(directUrl);
+      if (finalUrl.includes('/game/')) {
+        const { imageUrl, pricePence } = parseProductPage(html);
+        if (imageUrl || pricePence) {
+          return NextResponse.json({
+            price: pricePence, image_url: imageUrl, url: finalUrl, not_found: false,
+          });
+        }
+      }
+    } catch (e: any) {
+      if (e.status !== 404) break; // non-404 error = stop trying
+      // 404 = card slug not found at this URL, try next candidate
+    }
+  }
+
+  // ── Step 2: Fall back to search (handles edge cases / name variations) ──
   const query     = buildSearchQuery(name, number, holoType, language, setName);
   const searchUrl = `https://www.pricecharting.com/search-products?q=${encodeURIComponent(query)}&type=prices`;
 
   try {
-    // Step 1 — fetch search page (may auto-redirect to product page via HTTP redirect)
     const { html: html1, finalUrl: url1 } = await fetchHtml(searchUrl);
 
     let productHtml: string;
     let productUrl:  string;
 
     if (url1.includes('/game/')) {
-      // Single-result: PriceCharting redirected straight to the product page
       productHtml = html1;
       productUrl  = url1;
     } else {
-      // Multiple results: extract first /game/pokemon link and follow it
-      const linkMatch = html1.match(/href="(\/game\/pokemon[^"]+)"/);
+      // Search results may be JS-rendered; try broader link pattern
+      const linkMatch = html1.match(/href="(\/game\/(?:pokemon|japanese-pokemon|korean-pokemon)[^"]+)"/);
       if (!linkMatch) {
         return NextResponse.json({ price: null, image_url: null, url: searchUrl, not_found: true });
       }
@@ -140,10 +207,7 @@ export async function GET(req: NextRequest) {
     const { imageUrl, pricePence } = parseProductPage(productHtml);
 
     return NextResponse.json({
-      price:     pricePence,   // GBP pence
-      image_url: imageUrl,
-      url:       productUrl,
-      not_found: false,
+      price: pricePence, image_url: imageUrl, url: productUrl, not_found: false,
     });
 
   } catch (err: unknown) {
