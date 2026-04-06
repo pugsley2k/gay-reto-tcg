@@ -103,22 +103,31 @@ function buildSearchQuery(
 
 /**
  * Build direct product page URLs to try before falling back to search.
- * PC URL format: /game/pokemon-{set-slug}/{card-slug}-{suffix}
- * Returns multiple candidates (with suffix, without suffix) to try in order.
+ * PC URL format: /game/pokemon-{set-slug}/{name-slug}-{suffix}-{number}
+ * e.g. /game/pokemon-paldea-evolved/snover-reverse-holo-10
+ *
+ * Notes:
+ * - PC always uses 'pokemon-' prefix regardless of language
+ * - Card number goes at the END of the slug (after the holo suffix)
+ * Returns candidates ordered from most-specific to least-specific.
  */
 function buildDirectUrls(
-  name: string, holoType: string, language: string, setName: string,
+  name: string, number: string, holoType: string, setName: string,
 ): string[] {
-  const langPrefix = language === 'Japanese' ? 'japanese-pokemon'
-                   : language === 'Korean'   ? 'korean-pokemon'
-                   : 'pokemon';
   const setSlug  = slugify(setName);
   const nameSlug = slugify(name);
   const suffix   = PC_URL_SUFFIXES[holoType];
-  const base     = `https://www.pricecharting.com/game/${langPrefix}-${setSlug}`;
+  const cardNum  = number.split('/')[0]; // "10/189" → "10"
+  const base     = `https://www.pricecharting.com/game/pokemon-${setSlug}`;
   const urls: string[] = [];
-  if (suffix) urls.push(`${base}/${nameSlug}-${suffix}`);
-  urls.push(`${base}/${nameSlug}`);   // no-suffix fallback (normal / base card)
+  // Most specific first: name-suffix-number
+  if (suffix && cardNum) urls.push(`${base}/${nameSlug}-${suffix}-${cardNum}`);
+  // Without number (some cards omit it)
+  if (suffix)            urls.push(`${base}/${nameSlug}-${suffix}`);
+  // No suffix, with number
+  if (cardNum)           urls.push(`${base}/${nameSlug}-${cardNum}`);
+  // Bare name fallback
+  urls.push(`${base}/${nameSlug}`);
   return urls;
 }
 
@@ -162,7 +171,7 @@ export async function GET(req: NextRequest) {
   if (!name) return NextResponse.json({ error: 'name required' }, { status: 400 });
 
   // ── Step 1: Try direct URL construction (most reliable, no HTML parsing) ──
-  const directUrls = buildDirectUrls(name, holoType, language, setName);
+  const directUrls = buildDirectUrls(name, number, holoType, setName);
   for (const directUrl of directUrls) {
     try {
       const { html, finalUrl } = await fetchHtml(directUrl);
