@@ -3,10 +3,14 @@ import { NextRequest, NextResponse } from 'next/server';
 // Maps our holo type labels → PriceCharting search query modifier
 const HOLO_MODIFIERS: Record<string, string> = {
   'Reverse Holo':               'reverse',
+  'Reverse Holofoil':           'reverse',   // TCGPlayer API name
+  'reverseHolofoil':            'reverse',   // raw TCGPlayer key
   'Pokeball Holo':              'reverse',
   'Master Ball Holo':           'reverse',
   'Cosmos Holo':                'reverse',
   'Holo Rare':                  'holo',
+  'Holofoil':                   'holo',      // TCGPlayer API name
+  'holofoil':                   'holo',      // raw TCGPlayer key
   'Rare Holo':                  'holo',
   'Rare Holo EX':               'holo',
   'Rare Holo GX':               'holo',
@@ -35,10 +39,14 @@ const HOLO_MODIFIERS: Record<string, string> = {
 // Maps our holo type labels → PriceCharting URL slug suffix
 const PC_URL_SUFFIXES: Record<string, string> = {
   'Reverse Holo':               'reverse-holo',
+  'Reverse Holofoil':           'reverse-holo',   // TCGPlayer API name
+  'reverseHolofoil':            'reverse-holo',   // raw TCGPlayer key
   'Pokeball Holo':              'reverse-holo',
   'Master Ball Holo':           'reverse-holo',
   'Cosmos Holo':                'reverse-holo',
   'Holo Rare':                  'holofoil',
+  'Holofoil':                   'holofoil',        // TCGPlayer API name
+  'holofoil':                   'holofoil',        // raw TCGPlayer key
   'Rare Holo':                  'holofoil',
   'Rare Holo EX':               'holofoil',
   'Rare Holo GX':               'holofoil',
