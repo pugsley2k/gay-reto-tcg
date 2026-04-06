@@ -1,31 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const HOLO_MODIFIERS: Record<string, string> = {
+  // Reverse-slot holos
   'Reverse Holo':               'reverse',
   'Pokeball Holo':              'reverse',
   'Master Ball Holo':           'reverse',
   'Cosmos Holo':                'reverse',
+  // Standard holos
   'Holo Rare':                  'holo',
+  'Rare Holo':                  'holo',
+  'Rare Holo EX':               'holo',
+  'Rare Holo GX':               'holo',
+  'Rare Holo Lv.X':             'holo',
+  'Rare Prime':                 'holo',
+  'LEGEND':                     'holo',
+  'Black White rare':           'holo',
+  // Ultra / secret
+  'Ultra Rare':                 'ultra-rare',
+  'Double Rare':                'double-rare',
   'Full Art':                   'full-art',
   'Alt Art':                    'secret-rare',
+  'Illustration Rare':          'illustration-rare',
   'Special Illustration Rare':  'special-illustration-rare',
   'Hyper Rare':                 'hyper-rare',
-  'Double Rare':                'double-rare',
-  'Ultra Rare':                 'ultra-rare',
+  'Mega Hyper Rare':            'hyper-rare',
+  'Mega Attack Rare':           'hyper-rare',
+  'Shiny Rare':                 'shiny-rare',
+  'Shiny Ultra Rare':           'shiny-ultra-rare',
+  // Other
+  'Radiant Rare':               'radiant',
+  'Amazing':                    'amazing-rare',
+  'ACE SPEC rare':              'ace-spec',
+  'Rare BREAK':                 'break',
   'Promo':                      'promo',
 };
 
 const USD_TO_GBP = 0.79;
 const STOP_WORDS = new Set(['pokemon', 'card', 'cards', 'the', 'of', 'a', 'and', '']);
 
-function extractSetKeywords(setName: string, setSeries: string): string[] {
-  const combined = `${setSeries} ${setName}`
-    .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .split(/\s+/)
-    .filter(w => w.length > 0 && !STOP_WORDS.has(w));
-  return [...new Set(combined)];
+function extractSetKeywords(setName: string): string[] {
+  // Use only the specific set name — NOT the series (e.g. "Paldea Evolved", not "Scarlet & Violet")
+  // Including the series adds noise that breaks PriceCharting searches
+  return [...new Set(
+    setName
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter(w => w.length > 0 && !STOP_WORDS.has(w))
+  )];
 }
 
 /**
@@ -35,13 +58,13 @@ function extractSetKeywords(setName: string, setSeries: string): string[] {
  */
 function buildSearchQuery(
   name: string, number: string, holoType: string,
-  language: string, setName: string, setSeries: string,
+  language: string, setName: string,
 ): string {
   const modifier = HOLO_MODIFIERS[holoType] ?? null;
   const langTag  = language === 'Japanese' ? 'japanese'
                  : language === 'Korean'   ? 'korean'
                  : null;
-  const setKws   = extractSetKeywords(setName, setSeries);
+  const setKws   = extractSetKeywords(setName);
   return [name, modifier, number, 'pokemon', langTag, ...setKws]
     .filter(Boolean)
     .join(' ');
@@ -89,7 +112,7 @@ export async function GET(req: NextRequest) {
 
   if (!name) return NextResponse.json({ error: 'name required' }, { status: 400 });
 
-  const query     = buildSearchQuery(name, number, holoType, language, setName, setSeries);
+  const query     = buildSearchQuery(name, number, holoType, language, setName);
   const searchUrl = `https://www.pricecharting.com/search-products?q=${encodeURIComponent(query)}&type=prices`;
 
   try {

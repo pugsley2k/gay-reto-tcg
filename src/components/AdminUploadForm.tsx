@@ -71,22 +71,47 @@ export default function AdminUploadForm() {
     searchQuery?: string;
   }
 
-  const SPECIAL_HOLOS = ['Pokeball Holo','Master Ball Holo','Cosmos Holo','Full Art','Alt Art',
-    'Special Illustration Rare','Hyper Rare','Promo','Double Rare','Ultra Rare'];
+  const SPECIAL_HOLOS = [
+    'Pokeball Holo','Master Ball Holo','Cosmos Holo',
+    'Full Art','Alt Art','Illustration Rare','Special Illustration Rare',
+    'Hyper Rare','Mega Hyper Rare','Mega Attack Rare',
+    'Double Rare','Ultra Rare','Shiny Rare','Shiny Ultra Rare',
+    'Radiant Rare','Amazing','ACE SPEC rare','Rare BREAK','Promo',
+  ];
 
   const HOLO_OPTIONS = [
-    { label: 'Normal',                    color: '#3a3a5e' },
+    { label: 'Normal',                    color: '#2a2a42' },
+    { label: 'Common',                    color: '#2a2a42' },
+    { label: 'Uncommon',                  color: '#1a3a2a' },
+    { label: 'Rare',                      color: '#1a2a4a' },
+    { label: 'Rare Holo',                color: '#5e4a10' },
+    { label: 'Rare Holo EX',             color: '#5e4a10' },
+    { label: 'Rare Holo GX',             color: '#5e4a10' },
+    { label: 'Rare Holo Lv.X',           color: '#5e4a10' },
+    { label: 'Rare Prime',               color: '#4a3a10' },
+    { label: 'LEGEND',                   color: '#5e4510' },
+    { label: 'Ultra Rare',               color: '#3a1a6e' },
+    { label: 'Double Rare',              color: '#4a3a10' },
+    { label: 'ACE SPEC rare',            color: '#5e2a00' },
+    { label: 'Rare BREAK',              color: '#4a2a00' },
+    { label: 'Promo',                    color: '#5e1040' },
+    { label: 'Amazing',                  color: '#1a4a3a' },
+    { label: 'Radiant Rare',             color: '#3a4a1a' },
+    { label: 'Illustration Rare',        color: '#1a3a5e' },
+    { label: 'Special Illustration Rare',color: '#5e3010' },
+    { label: 'Shiny Rare',               color: '#2a1a5e' },
+    { label: 'Shiny Ultra Rare',         color: '#3a1a6e' },
+    { label: 'Hyper Rare',               color: '#5e1a3a' },
+    { label: 'Black White rare',         color: '#3a3a3a' },
+    { label: 'Mega Hyper Rare',          color: '#6e1a1a' },
+    { label: 'Mega Attack Rare',         color: '#6e2a00' },
     { label: 'Reverse Holo',             color: '#1a3a5e' },
-    { label: 'Holo Rare',                color: '#5e4a10' },
     { label: 'Pokeball Holo',            color: '#5e1a1a' },
-    { label: 'Master Ball Holo',         color: '#3a1a6e' },
-    { label: 'Cosmos Holo',              color: '#1a3a6e' },
+    { label: 'Master Ball Holo',         color: '#2a1a6e' },
+    { label: 'Cosmos Holo',              color: '#0a2a5e' },
     { label: 'Full Art',                 color: '#1a5e3a' },
     { label: 'Alt Art',                  color: '#2e5e1a' },
-    { label: 'Special Illustration Rare',color: '#5e3010' },
-    { label: 'Hyper Rare',               color: '#5e1a3a' },
-    { label: 'Double Rare',              color: '#4a3a10' },
-    { label: 'Promo',                    color: '#5e1040' },
+    { label: 'Holo Rare',                color: '#5e4a10' },
   ];
 
   const [scanQueue, setScanQueue] = useState<ScanQueueItem[]>([]);
