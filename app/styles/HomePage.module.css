@@ -346,6 +346,70 @@
   letter-spacing: 0.02em;
 }
 
+/* ── Latest Arrivals ── */
+.latestSection {
+  width: 100%;
+  max-width: 780px;
+  padding: 0 1.5rem 3rem;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.latestTitle {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.65rem;
+  color: #a78bfa;
+  letter-spacing: 0.15em;
+  margin-bottom: 1.5rem;
+}
+
+.latestGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.latestCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  text-decoration: none;
+  transition: transform 0.2s;
+}
+
+.latestCard:hover { transform: translateY(-4px); }
+
+.latestImgWrap {
+  width: 100%;
+  aspect-ratio: 63 / 88;
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+.latestCardName {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  color: #c0c0e0;
+  margin: 0;
+  text-align: center;
+}
+
+.latestCardPrice {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.5rem;
+  color: #ffd166;
+  margin: 0;
+}
+
+@media (max-width: 480px) {
+  .latestGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
 /* ── CTA strip ── */
 .ctaStrip {
   position: relative;

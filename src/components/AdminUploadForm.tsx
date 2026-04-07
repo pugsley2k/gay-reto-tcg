@@ -3,6 +3,8 @@
 
 import { useState, FormEvent, useRef } from "react";
 import AdminManageCards from "./AdminManageCards";
+import AdminOrderLog from "./AdminOrderLog";
+import AdminBulkUpload from "./AdminBulkUpload";
 
 /* ────────────────────────────────────────────────────────────
    Types
@@ -41,7 +43,7 @@ interface SelectedImageDetail {
    Component
 ──────────────────────────────────────────────────────────── */
 export default function AdminUploadForm() {
-  const [tab, setTab] = useState<'upload' | 'manage'>('upload');
+  const [tab, setTab] = useState<'upload' | 'manage' | 'bulk' | 'orders'>('upload');
 
   /* core state */
   const [name, setName]           = useState("");
@@ -456,12 +458,28 @@ export default function AdminUploadForm() {
       <div style={tabBar}>
         <button style={tabBtn(tab === 'upload')} onClick={() => setTab('upload')}>➕ Upload</button>
         <button style={tabBtn(tab === 'manage')} onClick={() => setTab('manage')}>🗂 Manage Cards</button>
+        <button style={tabBtn(tab === 'bulk')}   onClick={() => setTab('bulk')}>📋 Bulk CSV</button>
+        <button style={tabBtn(tab === 'orders')} onClick={() => setTab('orders')}>📦 Orders</button>
       </div>
 
       {/* ── Manage tab ── */}
       {tab === 'manage' && (
         <div style={{ ...s.wrap, padding: '1.5rem' }}>
           <AdminManageCards />
+        </div>
+      )}
+
+      {/* ── Bulk CSV tab ── */}
+      {tab === 'bulk' && (
+        <div style={{ ...s.wrap, padding: '1.5rem' }}>
+          <AdminBulkUpload />
+        </div>
+      )}
+
+      {/* ── Orders tab ── */}
+      {tab === 'orders' && (
+        <div style={{ ...s.wrap, padding: '1.5rem' }}>
+          <AdminOrderLog />
         </div>
       )}
 

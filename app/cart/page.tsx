@@ -144,7 +144,7 @@ export default function CartPage() {
         </div>
         {isBelowMinimumSpend && (
           <div className={styles.minimumSpendMessage}>
-            Your order total is below the minimum of £{(MINIMUM_SPEND_PENCE / 100).toFixed(2)} required for checkout.
+            Add <strong>£{((MINIMUM_SPEND_PENCE - totalPrice) / 100).toFixed(2)}</strong> more to reach the £{(MINIMUM_SPEND_PENCE / 100).toFixed(2)} minimum.
           </div>
         )}
         <button

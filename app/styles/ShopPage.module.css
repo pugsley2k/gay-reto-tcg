@@ -137,7 +137,7 @@
 
 .filterGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr auto;
   gap: 0.75rem;
   align-items: end;
 }
@@ -597,6 +597,211 @@
   font-family: 'Space Mono', monospace;
   font-size: 0.75rem;
   padding: 0 0.2rem;
+}
+
+/* ────────────────────────────────────────────
+   RECENTLY VIEWED
+   ──────────────────────────────────────────── */
+
+.recentWrap {
+  width: 100%;
+  padding: 1.5rem 2rem;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.015);
+}
+
+.recentLabel {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.45rem;
+  color: #4a4a72;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 0.85rem;
+}
+
+.recentStrip {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(184,79,255,0.3) transparent;
+}
+
+.recentItem {
+  flex: 0 0 auto;
+  background: none;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  width: 80px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.recentItem:hover {
+  border-color: rgba(184,79,255,0.35);
+  transform: translateY(-2px);
+}
+
+.recentImgWrap {
+  width: 56px;
+  aspect-ratio: 63/88;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.recentImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.recentName {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem;
+  color: #8080a0;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.recentPrice {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.42rem;
+  color: #ffd166;
+}
+
+/* ────────────────────────────────────────────
+   CARD DETAIL MODAL
+   ──────────────────────────────────────────── */
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(6px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modalCard {
+  background: #0f0f22;
+  border: 1px solid rgba(184,79,255,0.3);
+  border-radius: 16px;
+  box-shadow: 0 0 60px rgba(184,79,255,0.2);
+  padding: 1.5rem;
+  max-width: 680px;
+  width: 100%;
+  position: relative;
+  animation: slideUp 0.2s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.modalClose {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 50%;
+  color: #7070a0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: color 0.2s, background 0.2s;
+}
+
+.modalClose:hover { color: #ff3e6c; background: rgba(255,62,108,0.1); }
+
+.modalInner {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.modalImageWrap {
+  flex: 0 0 auto;
+  width: 180px;
+  height: 252px; /* 63:88 ratio */
+  position: relative;
+}
+
+.modalInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.modalName {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.95rem;
+  color: #e0e0ff;
+  line-height: 1.4;
+  margin: 0;
+  padding-right: 1.5rem;
+}
+
+.modalHoloBadge {
+  display: inline-block;
+  font-size: 0.7rem;
+  color: #a78bfa;
+  background: rgba(124,106,240,0.15);
+  border: 1px solid rgba(124,106,240,0.25);
+  padding: 2px 8px;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.modalMeta {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  color: #5a5a8a;
+  margin: 0;
+}
+
+.modalPrice {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1.1rem;
+  color: #ffd166;
+  margin: 0.25rem 0 0;
+}
+
+@media (max-width: 480px) {
+  .modalInner {
+    flex-direction: column;
+    align-items: center;
+  }
+  .modalImageWrap {
+    width: 140px;
+    height: 196px;
+  }
+  .modalName { padding-right: 0; text-align: center; }
 }
 
 /* ────────────────────────────────────────────

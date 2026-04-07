@@ -1,8 +1,26 @@
 import Link from "next/link";
 import Image from "next/image";
 import styles from "./styles/HomePage.module.css";
+import { createClient } from "@supabase/supabase-js";
 
-export default function HomePage() {
+async function getNewestCards() {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+  const { data } = await supabase
+    .from("Card")
+    .select("id, name, image_url, price, holo_type")
+    .eq("available", true)
+    .not("image_url", "is", null)
+    .order("createdAt", { ascending: false })
+    .limit(4);
+  return data ?? [];
+}
+
+export default async function HomePage() {
+  const newestCards = await getNewestCards();
+
   return (
     <main className={styles.main}>
       {/* Background decorative orbs */}
@@ -82,6 +100,32 @@ export default function HomePage() {
           </p>
         </div>
       </section>
+
+      {/* Latest Arrivals */}
+      {newestCards.length > 0 && (
+        <section className={styles.latestSection}>
+          <h2 className={styles.latestTitle}>✦ Latest Arrivals</h2>
+          <div className={styles.latestGrid}>
+            {newestCards.map(card => (
+              <Link key={card.id} href="/shop" className={styles.latestCard}>
+                <div className={styles.latestImgWrap}>
+                  <Image
+                    src={card.image_url}
+                    alt={card.name}
+                    fill
+                    style={{ objectFit: 'cover' }}
+                    sizes="160px"
+                  />
+                </div>
+                <p className={styles.latestCardName}>{card.name?.split(' ')[0]}</p>
+                <p className={styles.latestCardPrice}>
+                  {typeof card.price === 'number' ? `£${(card.price / 100).toFixed(2)}` : ''}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* CTA strip */}
       <section className={styles.ctaStrip}>

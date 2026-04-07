@@ -57,12 +57,25 @@ const RARITY_ORDER: Record<string, number> = {
   "Holo Rare": 3, "Secret Rare": 4, "Promo": 5,
 };
 
+const HOLO_TYPE_OPTIONS = [
+  'Normal','Common','Uncommon','Rare',
+  'Reverse Holo','Pokeball Holo','Master Ball Holo','Cosmos Holo',
+  'Holo Rare','Rare Holo','Rare Holo EX','Rare Holo GX',
+  'Double Rare','Ultra Rare','Full Art','Alt Art',
+  'Illustration Rare','Special Illustration Rare',
+  'Hyper Rare','Shiny Rare','Shiny Ultra Rare','Radiant Rare',
+  'ACE SPEC rare','Promo',
+];
+
 export default function ShopPage() {
   const [cards, setCards] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [rarity, setRarity] = useState("");
   const [setName, setSetName] = useState("");
+  const [holoFilter, setHoloFilter] = useState("");
+  const [langFilter, setLangFilter] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
   const [loading, setLoading] = useState(true);
   const [setOptions, setSetOptions] = useState<{ value: string; label: string }[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -82,13 +95,20 @@ export default function ShopPage() {
       .select("*", { count: "exact" })
       .eq("available", true);
 
-    if (search)  query = query.ilike("name", `%${search}%`);
-    if (setName) query = query.eq("set", setName);
-    if (rarity)  query = query.ilike("rarity", `%${rarity}%`);
+    if (search)     query = query.ilike("name", `%${search}%`);
+    if (setName)    query = query.eq("set", setName);
+    if (rarity)     query = query.ilike("rarity", `%${rarity}%`);
+    if (holoFilter) query = query.eq("holo_type", holoFilter);
+    if (langFilter) query = query.eq("language", langFilter);
+
+    const orderCol  = sortBy === "price-asc" || sortBy === "price-desc" ? "price"
+                    : sortBy === "name-asc"  || sortBy === "name-desc"  ? "name"
+                    : "createdAt";
+    const ascending = sortBy === "price-asc" || sortBy === "name-asc";
 
     const { data, error, count } = await query
       .range(from, to)
-      .order("createdAt", { ascending: false });
+      .order(orderCol, { ascending });
 
     if (error) {
       setError("Failed to load cards.");
@@ -107,15 +127,48 @@ export default function ShopPage() {
   }, []);
 
   useEffect(() => { fetchCards(); }, [fetchCards]);
-  useEffect(() => { setCurrentPage(1); }, [search, rarity, setName]);
+  useEffect(() => { setCurrentPage(1); }, [search, rarity, setName, holoFilter, langFilter, sortBy]);
 
   const handleAddToCart = (card: any) => {
     addToCart({ id: card.id, name: card.name, price: card.price, imageUrl: card.image_url });
     toast.success(`${card.name} added to cart!`);
   };
 
+  const [modalCard, setModalCard] = useState<any | null>(null);
+
+  // ── Recently viewed ──
+  const [recentIds, setRecentIds]     = useState<string[]>([]);
+  const [recentCards, setRecentCards] = useState<any[]>([]);
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('grtcg_recent') ?? '[]');
+      setRecentIds(stored);
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    if (!recentIds.length) { setRecentCards([]); return; }
+    supabase.from('Card').select('id,name,image_url,price,holo_type').in('id', recentIds)
+      .then(({ data }) => {
+        if (!data) return;
+        // preserve view order
+        const map = Object.fromEntries(data.map(c => [c.id, c]));
+        setRecentCards(recentIds.map(id => map[id]).filter(Boolean));
+      });
+  }, [recentIds]);
+
+  function trackViewed(card: any) {
+    setModalCard(card);
+    setRecentIds(prev => {
+      const next = [card.id, ...prev.filter((id: string) => id !== card.id)].slice(0, 12);
+      try { localStorage.setItem('grtcg_recent', JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }
+
   const totalPages = Math.ceil(totalCards / CARDS_PER_PAGE);
-  const hasFilters = search || rarity || setName;
+  const hasFilters = search || rarity || setName || holoFilter || langFilter;
 
   return (
     <main className={styles.pageContainer}>
@@ -164,11 +217,7 @@ export default function ShopPage() {
             </div>
             <div className={styles.filterItem}>
               <label className={styles.filterLabel}>Set</label>
-              <select
-                className={`form-select ${styles.filterInput}`}
-                value={setName}
-                onChange={e => setSetName(e.target.value)}
-              >
+              <select className={`form-select ${styles.filterInput}`} value={setName} onChange={e => setSetName(e.target.value)}>
                 <option value="">All Sets</option>
                 {setOptions.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -176,25 +225,35 @@ export default function ShopPage() {
               </select>
             </div>
             <div className={styles.filterItem}>
-              <label className={styles.filterLabel}>Rarity</label>
-              <select
-                className={`form-select ${styles.filterInput}`}
-                value={rarity}
-                onChange={e => setRarity(e.target.value)}
-              >
-                <option value="">All Rarities</option>
-                <option value="Common">Common</option>
-                <option value="Uncommon">Uncommon</option>
-                <option value="Rare">Rare</option>
-                <option value="Holo Rare">Holo Rare</option>
-                <option value="Secret Rare">Secret Rare</option>
-                <option value="Promo">Promo</option>
+              <label className={styles.filterLabel}>Holo Type</label>
+              <select className={`form-select ${styles.filterInput}`} value={holoFilter} onChange={e => setHoloFilter(e.target.value)}>
+                <option value="">All Types</option>
+                {HOLO_TYPE_OPTIONS.map(h => <option key={h} value={h}>{h}</option>)}
+              </select>
+            </div>
+            <div className={styles.filterItem}>
+              <label className={styles.filterLabel}>Language</label>
+              <select className={`form-select ${styles.filterInput}`} value={langFilter} onChange={e => setLangFilter(e.target.value)}>
+                <option value="">All Languages</option>
+                <option value="English">🇬🇧 English</option>
+                <option value="Japanese">🇯🇵 Japanese</option>
+                <option value="Korean">🇰🇷 Korean</option>
+              </select>
+            </div>
+            <div className={styles.filterItem}>
+              <label className={styles.filterLabel}>Sort By</label>
+              <select className={`form-select ${styles.filterInput}`} value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                <option value="newest">Newest First</option>
+                <option value="price-asc">Price: Low → High</option>
+                <option value="price-desc">Price: High → Low</option>
+                <option value="name-asc">Name: A → Z</option>
+                <option value="name-desc">Name: Z → A</option>
               </select>
             </div>
             {hasFilters && (
               <button
                 className={styles.clearBtn}
-                onClick={() => { setSearch(""); setRarity(""); setSetName(""); }}
+                onClick={() => { setSearch(""); setRarity(""); setSetName(""); setHoloFilter(""); setLangFilter(""); }}
               >
                 Clear
               </button>
@@ -234,13 +293,18 @@ export default function ShopPage() {
             {cards.map((card, i) => (
               <div className={`col ${styles.productColWrapper}`} key={card.id} style={{ animationDelay: `${Math.min(i, 9) * 0.05}s` }}>
                 <div className={styles.shopCard}>
-                  <div className={styles.cardImageWrap}>
+                  <div className={styles.cardImageWrap} onClick={() => trackViewed(card)} style={{ cursor: 'zoom-in' }}>
                     <div className={styles.cardImageInner}>
                       <img
                         src={card.image_url || "/placeholder.png"}
                         alt={card.name}
                         className={styles.cardImage}
                       />
+                      {['Reverse Holo','Reverse Holofoil','reverseHolofoil'].includes(card.holo_type ?? '') && (
+                        <div className={styles.holoOverlay}>
+                          <div className={styles.holoReverse} />
+                        </div>
+                      )}
                       {card.holo_type === 'Pokeball Holo' && (
                         <div className={styles.holoOverlay}>
                           <div className={`${styles.holoPattern} ${styles.holoPokeball}`} />
@@ -329,9 +393,76 @@ export default function ShopPage() {
 
       </div>
 
+      {/* ── Recently viewed strip ── */}
+      {recentCards.length > 1 && (
+        <div className={styles.recentWrap}>
+          <p className={styles.recentLabel}>Recently Viewed</p>
+          <div className={styles.recentStrip}>
+            {recentCards.map(card => (
+              <button key={card.id} className={styles.recentItem} onClick={() => trackViewed(card)}>
+                <div className={styles.recentImgWrap}>
+                  <img src={card.image_url || '/placeholder.png'} alt={card.name} className={styles.recentImg} />
+                </div>
+                <span className={styles.recentName}>{card.name?.split(' ')[0]}</span>
+                <span className={styles.recentPrice}>
+                  {typeof card.price === 'number' ? `£${(card.price / 100).toFixed(2)}` : ''}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <footer className={styles.footer}>
         © {new Date().getFullYear()} GAY RETRO TCG. All Rights Reserved.
       </footer>
+
+      {/* ── Card detail modal ── */}
+      {modalCard && (
+        <div className={styles.modalBackdrop} onClick={() => setModalCard(null)}>
+          <div className={styles.modalCard} onClick={e => e.stopPropagation()}>
+            <button className={styles.modalClose} onClick={() => setModalCard(null)} aria-label="Close">✕</button>
+            <div className={styles.modalInner}>
+              <div className={styles.modalImageWrap}>
+                <div className={styles.cardImageInner} style={{ height: '100%' }}>
+                  <img src={modalCard.image_url || "/placeholder.png"} alt={modalCard.name} className={styles.cardImage} />
+                  {['Reverse Holo','Reverse Holofoil','reverseHolofoil'].includes(modalCard.holo_type ?? '') && (
+                    <div className={styles.holoOverlay}><div className={styles.holoReverse} /></div>
+                  )}
+                  {modalCard.holo_type === 'Pokeball Holo' && (
+                    <div className={styles.holoOverlay}><div className={`${styles.holoPattern} ${styles.holoPokeball}`} /><div className={styles.holoShimmer} /></div>
+                  )}
+                  {modalCard.holo_type === 'Master Ball Holo' && (
+                    <div className={styles.holoOverlay}><div className={`${styles.holoPattern} ${styles.holoMasterBall}`} /><div className={styles.holoShimmer} /></div>
+                  )}
+                  {modalCard.holo_type === 'Cosmos Holo' && (
+                    <div className={styles.holoOverlay}><div className={`${styles.holoPattern} ${styles.holoCosmos}`} /><div className={styles.holoShimmer} /></div>
+                  )}
+                </div>
+              </div>
+              <div className={styles.modalInfo}>
+                <h2 className={styles.modalName}>{modalCard.name}</h2>
+                {modalCard.holo_type && modalCard.holo_type !== 'Normal' && (
+                  <span className={styles.modalHoloBadge}>{modalCard.holo_type}</span>
+                )}
+                {modalCard.set && <p className={styles.modalMeta}>{modalCard.set}</p>}
+                {modalCard.language && modalCard.language !== 'English' && (
+                  <p className={styles.modalMeta}>
+                    {modalCard.language === 'Japanese' ? '🇯🇵' : modalCard.language === 'Korean' ? '🇰🇷' : '🌐'} {modalCard.language}
+                  </p>
+                )}
+                {modalCard.rarity && <p className={styles.modalMeta}>{modalCard.rarity}</p>}
+                <p className={styles.modalPrice}>
+                  {typeof modalCard.price === 'number' ? `£${(modalCard.price / 100).toFixed(2)}` : 'N/A'}
+                </p>
+                <button className={styles.addToCartBtn} style={{ width: '100%', marginTop: '0.5rem' }} onClick={() => { handleAddToCart(modalCard); setModalCard(null); }}>
+                  Add to Cart
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

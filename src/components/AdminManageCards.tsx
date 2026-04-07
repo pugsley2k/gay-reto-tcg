@@ -16,6 +16,7 @@ interface Card {
   language: string | null;
   price: number | null;
   image_url: string | null;
+  available: boolean | null;
 }
 
 const ALL_HOLO_TYPES = [
@@ -89,7 +90,7 @@ export default function AdminManageCards() {
     setLoading(true);
     const { data } = await supabase
       .from('Card')
-      .select('id, name, number, set, holo_type, language, price, image_url')
+      .select('id, name, number, set, holo_type, language, price, image_url, available')
       .order('id', { ascending: false });
     setCards((data as Card[]) ?? []);
     setLoading(false);
@@ -197,12 +198,35 @@ export default function AdminManageCards() {
     setFixMsg(p => ({ ...p, [card.id]: '' }));
   }
 
+  async function toggleAvailable(card: Card) {
+    const next = !card.available;
+    const { error } = await supabase.from('Card').update({ available: next }).eq('id', card.id);
+    if (!error) setCards(prev => prev.map(c => c.id === card.id ? { ...c, available: next } : c));
+  }
+
   async function deleteCard(card: Card) {
     if (!confirm(`Delete "${card.name}"? This cannot be undone.`)) return;
     setDeleting(p => ({ ...p, [card.id]: true }));
     const { error } = await supabase.from('Card').delete().eq('id', card.id);
     if (error) { alert(error.message); setDeleting(p => ({ ...p, [card.id]: false })); return; }
     setCards(prev => prev.filter(c => c.id !== card.id));
+  }
+
+  const [fixAllRunning, setFixAllRunning] = useState(false);
+  const [fixAllProgress, setFixAllProgress] = useState('');
+
+  async function fixAll() {
+    const toFix = filtered.filter(c => fixStatus[c.id] !== 'done');
+    if (!toFix.length) return;
+    if (!confirm(`Run Fix Price & Image on ${toFix.length} card(s)? This may take a while.`)) return;
+    setFixAllRunning(true);
+    for (let i = 0; i < toFix.length; i++) {
+      const card = toFix[i];
+      setFixAllProgress(`${i + 1} / ${toFix.length} — ${card.name?.split(' ')[0] ?? ''}…`);
+      await fixCard(card);
+    }
+    setFixAllRunning(false);
+    setFixAllProgress('');
   }
 
   const allHoloTypes = [...new Set(cards.map(c => c.holo_type).filter(Boolean))].sort();
@@ -223,6 +247,13 @@ export default function AdminManageCards() {
         </select>
         <span style={{ fontSize: 11, color: '#4a4a72' }}>{filtered.length} card{filtered.length !== 1 ? 's' : ''}</span>
         <button style={{ ...s.btnFix, background: '#1a1a30' }} onClick={load}>↺ Refresh</button>
+        <button
+          style={{ ...s.btnFix, opacity: fixAllRunning ? 0.6 : 1, whiteSpace: 'nowrap' }}
+          disabled={fixAllRunning}
+          onClick={fixAll}
+        >
+          {fixAllRunning ? `⏳ ${fixAllProgress}` : '⚡ Fix All'}
+        </button>
       </div>
 
       {loading ? (
@@ -299,6 +330,16 @@ export default function AdminManageCards() {
                         ) : (
                           <button style={s.btnFix} onClick={() => fixCard(card)}>Fix Price &amp; Image</button>
                         )}
+                        <button
+                          title={card.available ? 'Mark as sold' : 'Mark as available'}
+                          style={{
+                            background: card.available ? 'rgba(6,214,160,0.1)' : 'rgba(255,62,108,0.1)',
+                            border: `1px solid ${card.available ? 'rgba(6,214,160,0.4)' : 'rgba(255,62,108,0.4)'}`,
+                            borderRadius: 5, color: card.available ? '#06d6a0' : '#ff3e6c',
+                            padding: '5px 8px', fontSize: 11, cursor: 'pointer',
+                          }}
+                          onClick={() => toggleAvailable(card)}
+                        >{card.available ? '✓ Live' : '✗ Sold'}</button>
                         <button
                           style={{ ...s.btnDelete, opacity: deleting[card.id] ? 0.5 : 1 }}
                           disabled={deleting[card.id]}

@@ -55,6 +55,13 @@
   flex-shrink: 0;
 }
 
+.logoImg {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .logoLink:hover .logoPixel {
   transform: scale(1.1);
   opacity: 0.85;
@@ -173,17 +180,121 @@
   50%       { box-shadow: 0 0 12px rgba(184,79,255,0.9), 0 0 24px rgba(255,62,108,0.5); }
 }
 
-/* ── Mobile ── */
-@media (max-width: 600px) {
-  .navbar {
-    padding: 0 1rem;
-    height: 56px;
-  }
-  .logoText {
-    font-size: 1rem;
-  }
-  .navLink {
-    padding: 0.35rem 0.6rem;
-    font-size: 0.72rem;
-  }
+/* ── Cart total ── */
+.cartTotal {
+  font-size: 0.65rem;
+  color: #ffd166;
+  font-family: 'Space Mono', monospace;
+  margin-left: 0.15rem;
+}
+
+/* ── Mobile right ── */
+.mobileRight {
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mobileCartLink {
+  font-size: 0.7rem !important;
+}
+
+/* ── Hamburger ── */
+.hamburger {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.hamburger:hover { background: rgba(255,255,255,0.05); }
+
+.hamburgerLine {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: #a0a0c0;
+  border-radius: 2px;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+  transform-origin: center;
+}
+
+.hamburgerLineTop  { transform: translateY(7px) rotate(45deg); }
+.hamburgerLineMid  { opacity: 0; }
+.hamburgerLineBot  { transform: translateY(-7px) rotate(-45deg); }
+
+/* ── Mobile menu overlay ── */
+.mobileOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 999;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.mobileMenu {
+  position: absolute;
+  top: 56px;
+  left: 0;
+  right: 0;
+  background: rgba(8,8,20,0.98);
+  border-bottom: 1px solid rgba(184,79,255,0.2);
+  padding: 1rem 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-10px); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+.mobileLink {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #686898;
+  text-decoration: none;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: color 0.2s;
+}
+
+.mobileLink:hover, .mobileLinkActive { color: #e8e8ff; }
+
+.mobilePriceTag {
+  font-size: 0.75rem;
+  color: #ffd166;
+  margin-left: auto;
+}
+
+.mobileAuthRow {
+  padding-top: 0.75rem;
+  display: flex;
+  align-items: center;
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .navbar { padding: 0 1rem; height: 56px; }
+  .navList { display: none; }
+  .mobileRight { display: flex; }
 }

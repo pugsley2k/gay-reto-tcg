@@ -14,9 +14,24 @@ const honk = Honk({
 
 export const metadata = {
   title: "GAY RETRO TCG",
-  description: "Your one-stop shop for Gay Retro Trading Cards!",
+  description: "Rare Pokémon cards. Loud colours. Zero apologies.",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/favicon.png",
+    apple: "/favicon.png",
+  },
+  openGraph: {
+    title: "GAY RETRO TCG",
+    description: "Rare Pokémon cards. Loud colours. Zero apologies.",
+    url: "https://gay-reto-tcg.vercel.app",
+    siteName: "GAY RETRO TCG",
+    images: [{ url: "/logo.png", width: 930, height: 930, alt: "GAY RETRO TCG" }],
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "GAY RETRO TCG",
+    description: "Rare Pokémon cards. Loud colours. Zero apologies.",
+    images: ["/logo.png"],
   },
 };
 
