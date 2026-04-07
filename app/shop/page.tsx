@@ -241,13 +241,22 @@ export default function ShopPage() {
                       className={styles.cardImage}
                     />
                     {card.holo_type === 'Pokeball Holo' && (
-                      <div className={`${styles.holoOverlay} ${styles.holoPokeball}`} />
+                      <div className={styles.holoOverlay}>
+                        <div className={`${styles.holoPattern} ${styles.holoPokeball}`} />
+                        <div className={styles.holoShimmer} />
+                      </div>
                     )}
                     {card.holo_type === 'Master Ball Holo' && (
-                      <div className={`${styles.holoOverlay} ${styles.holoMasterBall}`} />
+                      <div className={styles.holoOverlay}>
+                        <div className={`${styles.holoPattern} ${styles.holoMasterBall}`} />
+                        <div className={styles.holoShimmer} />
+                      </div>
                     )}
                     {card.holo_type === 'Cosmos Holo' && (
-                      <div className={`${styles.holoOverlay} ${styles.holoCosmos}`} />
+                      <div className={styles.holoOverlay}>
+                        <div className={`${styles.holoPattern} ${styles.holoCosmos}`} />
+                        <div className={styles.holoShimmer} />
+                      </div>
                     )}
                   </div>
                   <div className={styles.cardBody}>
