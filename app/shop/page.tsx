@@ -240,6 +240,15 @@ export default function ShopPage() {
                       alt={card.name}
                       className={styles.cardImage}
                     />
+                    {card.holo_type === 'Pokeball Holo' && (
+                      <div className={`${styles.holoOverlay} ${styles.holoPokeball}`} />
+                    )}
+                    {card.holo_type === 'Master Ball Holo' && (
+                      <div className={`${styles.holoOverlay} ${styles.holoMasterBall}`} />
+                    )}
+                    {card.holo_type === 'Cosmos Holo' && (
+                      <div className={`${styles.holoOverlay} ${styles.holoCosmos}`} />
+                    )}
                   </div>
                   <div className={styles.cardBody}>
                     <h5 className={styles.cardTitle}>

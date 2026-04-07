@@ -358,6 +358,67 @@
   100% { background-position: 200% center; }
 }
 
+/* ── Pokeball / Master Ball / Cosmos holo overlays ── */
+.holoOverlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+}
+
+/* Tiled pokeball SVG pattern */
+.holoOverlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat;
+  background-size: 28px 28px;
+  mix-blend-mode: overlay;
+  opacity: 0.55;
+}
+
+/* Rotating rainbow shimmer */
+.holoOverlay::after {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(255,30,80,0.18),
+    rgba(255,160,0,0.18),
+    rgba(255,240,0,0.18),
+    rgba(30,220,90,0.18),
+    rgba(30,140,255,0.18),
+    rgba(180,30,255,0.18),
+    rgba(255,30,80,0.18)
+  );
+  animation: holoSpin 6s linear infinite;
+  mix-blend-mode: screen;
+}
+
+@keyframes holoSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Pokeball — red/white circles */
+.holoPokeball::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M2 14 A12 12 0 0 1 26 14Z' fill='rgba(255,40,40,.28)'/%3E%3Cpath d='M2 14 A12 12 0 0 0 26 14Z' fill='rgba(255,255,255,.14)'/%3E%3Ccircle cx='14' cy='14' r='12' fill='none' stroke='rgba(255,255,255,.35)' stroke-width='1.5'/%3E%3Cline x1='2' y1='14' x2='26' y2='14' stroke='rgba(255,255,255,.35)' stroke-width='1.5'/%3E%3Ccircle cx='14' cy='14' r='3.5' fill='rgba(255,255,255,.22)' stroke='rgba(255,255,255,.5)' stroke-width='1.5'/%3E%3C/svg%3E");
+}
+
+/* Master Ball — purple/pink circles */
+.holoMasterBall::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M2 14 A12 12 0 0 1 26 14Z' fill='rgba(160,40,255,.28)'/%3E%3Cpath d='M2 14 A12 12 0 0 0 26 14Z' fill='rgba(220,180,255,.14)'/%3E%3Ccircle cx='14' cy='14' r='12' fill='none' stroke='rgba(200,150,255,.4)' stroke-width='1.5'/%3E%3Cline x1='2' y1='14' x2='26' y2='14' stroke='rgba(200,150,255,.4)' stroke-width='1.5'/%3E%3Ccircle cx='14' cy='14' r='3.5' fill='rgba(220,180,255,.25)' stroke='rgba(220,180,255,.55)' stroke-width='1.5'/%3E%3C/svg%3E");
+}
+
+/* Cosmos Holo — blue/starfield circles */
+.holoCosmos::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M2 14 A12 12 0 0 1 26 14Z' fill='rgba(20,80,220,.28)'/%3E%3Cpath d='M2 14 A12 12 0 0 0 26 14Z' fill='rgba(150,200,255,.14)'/%3E%3Ccircle cx='14' cy='14' r='12' fill='none' stroke='rgba(140,200,255,.4)' stroke-width='1.5'/%3E%3Cline x1='2' y1='14' x2='26' y2='14' stroke='rgba(140,200,255,.4)' stroke-width='1.5'/%3E%3Ccircle cx='14' cy='14' r='3.5' fill='rgba(150,210,255,.25)' stroke='rgba(160,220,255,.55)' stroke-width='1.5'/%3E%3C/svg%3E");
+}
+
 /* ── Card body ── */
 .cardBody {
   display: flex;
