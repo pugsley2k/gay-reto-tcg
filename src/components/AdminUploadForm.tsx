@@ -694,6 +694,16 @@ export default function AdminUploadForm() {
             <div style={{ ...s.group, flex: 1 }}>
               <label style={s.label}>Price (pence)</label>
               <input type="number" min="0" style={s.input} value={price} onChange={e => setPrice(e.target.value)} required />
+              {(holoType === 'Pokeball Holo' || holoType === 'Master Ball Holo' || holoType === 'Cosmos Holo') && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+                  {[1,2,3,4,5,6,7,8].map(p => (
+                    <button key={p} type="button"
+                      style={{ background: '#1a2a40', border: '1px solid #2a4a70', borderRadius: 4, color: '#93c5fd', padding: '3px 8px', fontSize: 11, cursor: 'pointer' }}
+                      onClick={() => setPrice(String(p * 100))}
+                    >£{p}</button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
