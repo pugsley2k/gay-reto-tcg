@@ -27,16 +27,7 @@ export default function Navbar() {
     <nav className={styles.navbar}>
       <Link href="/" className={styles.logoLink} aria-label="GAY RETRO TCG Home">
         <div className={styles.logoContainer}>
-          <svg width="28" height="36" viewBox="0 0 6 8" xmlns="http://www.w3.org/2000/svg" style={{ imageRendering: 'pixelated' }} aria-hidden="true" className={styles.logoPixel}>
-            <rect fill="#FF3E6C" x="0" y="0" width="6" height="1"/>
-            <rect fill="#FF8C42" x="0" y="1" width="6" height="1"/>
-            <rect fill="#FFD166" x="0" y="2" width="6" height="1"/>
-            <rect fill="#06D6A0" x="0" y="3" width="6" height="1"/>
-            <rect fill="#118AB2" x="0" y="4" width="6" height="2"/>
-            <rect fill="#B84FFF" x="0" y="6" width="6" height="2"/>
-            <rect fill="#080810" x="1" y="1" width="4" height="6" opacity="0.65"/>
-            <rect fill="#FFFFFF" x="2" y="3" width="2" height="2" opacity="0.9"/>
-          </svg>
+          <img src="/favicon.png" alt="" aria-hidden="true" className={styles.logoPixel} style={{ width: 32, height: 32, objectFit: 'contain' }} />
           <span className={styles.logoText}>GAY RETRO TCG</span>
         </div>
       </Link>
