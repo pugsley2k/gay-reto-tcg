@@ -378,15 +378,13 @@
   opacity: 0.55;
 }
 
-/* Rotating rainbow shimmer */
+/* Rotating rainbow shimmer — scale(2) keeps corners covered without overflowing parent */
 .holoOverlay::after {
   content: '';
   position: absolute;
-  inset: -50%;
-  width: 200%;
-  height: 200%;
+  inset: 0;
   background: conic-gradient(
-    from 0deg,
+    from 0deg at 50% 50%,
     rgba(255,30,80,0.18),
     rgba(255,160,0,0.18),
     rgba(255,240,0,0.18),
@@ -395,13 +393,14 @@
     rgba(180,30,255,0.18),
     rgba(255,30,80,0.18)
   );
+  transform-origin: 50% 50%;
   animation: holoSpin 6s linear infinite;
   mix-blend-mode: screen;
 }
 
 @keyframes holoSpin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+  from { transform: scale(2) rotate(0deg); }
+  to   { transform: scale(2) rotate(360deg); }
 }
 
 /* Pokeball — red/white circles */
