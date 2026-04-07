@@ -230,7 +230,7 @@ export default function ShopPage() {
 
         {/* ── Card grid ── */}
         {!loading && cards.length > 0 && (
-          <div className={`row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-3 ${styles.productGridRow}`}>
+          <div className={`row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-4 g-3 ${styles.productGridRow}`}>
             {cards.map((card, i) => (
               <div className={`col ${styles.productColWrapper}`} key={card.id} style={{ animationDelay: `${Math.min(i, 9) * 0.05}s` }}>
                 <div className={styles.shopCard}>
