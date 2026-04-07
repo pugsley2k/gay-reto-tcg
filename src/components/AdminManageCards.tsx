@@ -144,21 +144,26 @@ export default function AdminManageCards() {
         return;
       }
 
+      const SPECIAL_HOLOS = new Set(['Pokeball Holo', 'Master Ball Holo', 'Cosmos Holo']);
+      const isSpecialHolo = SPECIAL_HOLOS.has(card.holo_type ?? '');
+
       const updates: { price?: number; image_url?: string } = {};
-      if (pcData.price)     updates.price     = pcData.price;
+      // For special holos, only save the image — PC has no specific price for these variants
       if (pcData.image_url) updates.image_url = pcData.image_url;
+      if (pcData.price && !isSpecialHolo) updates.price = pcData.price;
 
       if (!Object.keys(updates).length) {
         setFixStatus(p => ({ ...p, [card.id]: 'not_found' }));
-        setFixMsg(p => ({ ...p, [card.id]: 'PC found page but no price or image — set manually below' }));
+        setFixMsg(p => ({ ...p, [card.id]: 'PC found page but no image — set price manually below' }));
         return;
       }
 
       await patchCard(card.id, updates);
-      setFixStatus(p => ({ ...p, [card.id]: 'done' }));
+      setFixStatus(p => ({ ...p, [card.id]: isSpecialHolo ? 'not_found' : 'done' }));
       const parts: string[] = [];
-      if (updates.price)     parts.push(`£${(updates.price / 100).toFixed(2)}`);
       if (updates.image_url) parts.push('image updated');
+      if (isSpecialHolo) parts.push('set price manually — PC has no Pokeball/MB/Cosmos Holo pricing');
+      else if (updates.price) parts.push(`£${(updates.price / 100).toFixed(2)}`);
       setFixMsg(p => ({ ...p, [card.id]: parts.join(' · ') }));
     } catch (e: any) {
       setFixStatus(p => ({ ...p, [card.id]: 'fail' }));

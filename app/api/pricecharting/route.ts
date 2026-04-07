@@ -196,6 +196,7 @@ export async function GET(req: NextRequest) {
   if (!name) return NextResponse.json({ error: 'name required' }, { status: 400 });
 
   // ── Step 1: Try direct URL construction (most reliable, no HTML parsing) ──
+
   const directUrls = buildDirectUrls(name, number, holoType, setName);
   for (const directUrl of directUrls) {
     try {
