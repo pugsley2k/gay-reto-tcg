@@ -235,29 +235,31 @@ export default function ShopPage() {
               <div className={`col ${styles.productColWrapper}`} key={card.id} style={{ animationDelay: `${Math.min(i, 9) * 0.05}s` }}>
                 <div className={styles.shopCard}>
                   <div className={styles.cardImageWrap}>
-                    <img
-                      src={card.image_url || "/placeholder.png"}
-                      alt={card.name}
-                      className={styles.cardImage}
-                    />
-                    {card.holo_type === 'Pokeball Holo' && (
-                      <div className={styles.holoOverlay}>
-                        <div className={`${styles.holoPattern} ${styles.holoPokeball}`} />
-                        <div className={styles.holoShimmer} />
-                      </div>
-                    )}
-                    {card.holo_type === 'Master Ball Holo' && (
-                      <div className={styles.holoOverlay}>
-                        <div className={`${styles.holoPattern} ${styles.holoMasterBall}`} />
-                        <div className={styles.holoShimmer} />
-                      </div>
-                    )}
-                    {card.holo_type === 'Cosmos Holo' && (
-                      <div className={styles.holoOverlay}>
-                        <div className={`${styles.holoPattern} ${styles.holoCosmos}`} />
-                        <div className={styles.holoShimmer} />
-                      </div>
-                    )}
+                    <div className={styles.cardImageInner}>
+                      <img
+                        src={card.image_url || "/placeholder.png"}
+                        alt={card.name}
+                        className={styles.cardImage}
+                      />
+                      {card.holo_type === 'Pokeball Holo' && (
+                        <div className={styles.holoOverlay}>
+                          <div className={`${styles.holoPattern} ${styles.holoPokeball}`} />
+                          <div className={styles.holoShimmer} />
+                        </div>
+                      )}
+                      {card.holo_type === 'Master Ball Holo' && (
+                        <div className={styles.holoOverlay}>
+                          <div className={`${styles.holoPattern} ${styles.holoMasterBall}`} />
+                          <div className={styles.holoShimmer} />
+                        </div>
+                      )}
+                      {card.holo_type === 'Cosmos Holo' && (
+                        <div className={styles.holoOverlay}>
+                          <div className={`${styles.holoPattern} ${styles.holoCosmos}`} />
+                          <div className={styles.holoShimmer} />
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className={styles.cardBody}>
                     <h5 className={styles.cardTitle}>

@@ -312,14 +312,26 @@
   border-radius: 12px 12px 0 0;
   overflow: hidden;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+}
+
+/* Inner wrapper sized to Pokemon card proportions — overlay is confined here */
+.cardImageInner {
+  position: relative;
+  height: 100%;
+  aspect-ratio: 63 / 88;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .cardImage {
   width: 100%;
-  height: 168px;
-  object-fit: contain;
+  height: 100%;
+  object-fit: cover;
   display: block;
-  padding: 0.6rem;
   transition: transform 0.3s ease;
 }
 
@@ -358,45 +370,41 @@
   100% { background-position: 200% center; }
 }
 
-/* ── Pokeball / Master Ball / Cosmos holo overlays ── */
+/* ── Pokeball / Master Ball / Cosmos holo overlays ──
+   These live inside .cardImageInner which is sized to the card's 63:88 aspect ratio,
+   so they can never escape onto the dark background — no blend modes needed. */
 
-/* Outer wrapper — clips everything inside hard to the image area */
 .holoOverlay {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  border-radius: 12px 12px 0 0;
-  overflow: hidden;
 }
 
-/* Child div 1: tiled pokeball pattern */
+/* Tiled pokeball SVG pattern — semi-transparent fills, transparent background */
 .holoPattern {
   position: absolute;
   inset: 0;
   background-repeat: repeat;
   background-size: 28px 28px;
-  mix-blend-mode: overlay;
-  opacity: 0.55;
+  opacity: 0.45;
 }
 
-/* Child div 2: moving rainbow shimmer — no transforms, stays within bounds */
+/* Shifting rainbow shimmer */
 .holoShimmer {
   position: absolute;
   inset: 0;
   background: linear-gradient(
     125deg,
-    rgba(255,30,80,0)    0%,
-    rgba(255,30,80,0.22) 12%,
-    rgba(255,160,0,0.22) 25%,
-    rgba(255,240,0,0.22) 38%,
-    rgba(30,220,90,0.22) 52%,
-    rgba(30,140,255,0.22)65%,
-    rgba(180,30,255,0.22)78%,
-    rgba(180,30,255,0)   90%
+    rgba(255,240,0,0)    0%,
+    rgba(255,240,0,0.35) 20%,
+    rgba(30,220,90,0.35) 40%,
+    rgba(30,140,255,0.35)60%,
+    rgba(180,30,255,0.35)80%,
+    rgba(180,30,255,0)   100%
   );
   background-size: 300% 300%;
   animation: holoShift 3s ease-in-out infinite alternate;
-  mix-blend-mode: screen;
+  opacity: 0.5;
 }
 
 @keyframes holoShift {
@@ -404,19 +412,19 @@
   100% { background-position: 100% 100%; }
 }
 
-/* Pokeball — red/white circles */
+/* Pokeball — white/silver, no red */
 .holoPokeball {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M2 14 A12 12 0 0 1 26 14Z' fill='rgba(255,40,40,.28)'/%3E%3Cpath d='M2 14 A12 12 0 0 0 26 14Z' fill='rgba(255,255,255,.14)'/%3E%3Ccircle cx='14' cy='14' r='12' fill='none' stroke='rgba(255,255,255,.35)' stroke-width='1.5'/%3E%3Cline x1='2' y1='14' x2='26' y2='14' stroke='rgba(255,255,255,.35)' stroke-width='1.5'/%3E%3Ccircle cx='14' cy='14' r='3.5' fill='rgba(255,255,255,.22)' stroke='rgba(255,255,255,.5)' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M2 14 A12 12 0 0 1 26 14Z' fill='rgba(200,200,200,.6)'/%3E%3Cpath d='M2 14 A12 12 0 0 0 26 14Z' fill='rgba(255,255,255,.5)'/%3E%3Ccircle cx='14' cy='14' r='12' fill='none' stroke='rgba(255,255,255,.8)' stroke-width='1.5'/%3E%3Cline x1='2' y1='14' x2='26' y2='14' stroke='rgba(255,255,255,.8)' stroke-width='1.5'/%3E%3Ccircle cx='14' cy='14' r='3.5' fill='rgba(255,255,255,.6)' stroke='rgba(255,255,255,.9)' stroke-width='1.5'/%3E%3C/svg%3E");
 }
 
-/* Master Ball — purple/pink circles */
+/* Master Ball — purple/pink */
 .holoMasterBall {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M2 14 A12 12 0 0 1 26 14Z' fill='rgba(160,40,255,.28)'/%3E%3Cpath d='M2 14 A12 12 0 0 0 26 14Z' fill='rgba(220,180,255,.14)'/%3E%3Ccircle cx='14' cy='14' r='12' fill='none' stroke='rgba(200,150,255,.4)' stroke-width='1.5'/%3E%3Cline x1='2' y1='14' x2='26' y2='14' stroke='rgba(200,150,255,.4)' stroke-width='1.5'/%3E%3Ccircle cx='14' cy='14' r='3.5' fill='rgba(220,180,255,.25)' stroke='rgba(220,180,255,.55)' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M2 14 A12 12 0 0 1 26 14Z' fill='rgba(150,40,255,.7)'/%3E%3Cpath d='M2 14 A12 12 0 0 0 26 14Z' fill='rgba(220,180,255,.5)'/%3E%3Ccircle cx='14' cy='14' r='12' fill='none' stroke='rgba(210,160,255,.9)' stroke-width='1.5'/%3E%3Cline x1='2' y1='14' x2='26' y2='14' stroke='rgba(210,160,255,.9)' stroke-width='1.5'/%3E%3Ccircle cx='14' cy='14' r='3.5' fill='rgba(220,180,255,.6)' stroke='rgba(230,200,255,.9)' stroke-width='1.5'/%3E%3C/svg%3E");
 }
 
-/* Cosmos Holo — blue/starfield circles */
+/* Cosmos — blue/cyan */
 .holoCosmos {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M2 14 A12 12 0 0 1 26 14Z' fill='rgba(20,80,220,.28)'/%3E%3Cpath d='M2 14 A12 12 0 0 0 26 14Z' fill='rgba(150,200,255,.14)'/%3E%3Ccircle cx='14' cy='14' r='12' fill='none' stroke='rgba(140,200,255,.4)' stroke-width='1.5'/%3E%3Cline x1='2' y1='14' x2='26' y2='14' stroke='rgba(140,200,255,.4)' stroke-width='1.5'/%3E%3Ccircle cx='14' cy='14' r='3.5' fill='rgba(150,210,255,.25)' stroke='rgba(160,220,255,.55)' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M2 14 A12 12 0 0 1 26 14Z' fill='rgba(20,80,230,.7)'/%3E%3Cpath d='M2 14 A12 12 0 0 0 26 14Z' fill='rgba(150,210,255,.5)'/%3E%3Ccircle cx='14' cy='14' r='12' fill='none' stroke='rgba(140,200,255,.9)' stroke-width='1.5'/%3E%3Cline x1='2' y1='14' x2='26' y2='14' stroke='rgba(140,200,255,.9)' stroke-width='1.5'/%3E%3Ccircle cx='14' cy='14' r='3.5' fill='rgba(150,210,255,.6)' stroke='rgba(160,220,255,.9)' stroke-width='1.5'/%3E%3C/svg%3E");
 }
 
 /* ── Card body ── */
