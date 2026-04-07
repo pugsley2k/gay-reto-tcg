@@ -68,9 +68,15 @@ const PC_URL_SUFFIXES: Record<string, string> = {
   'Promo':                      'promo',
 };
 
-// Holo types that are special reverse-holo variants with no dedicated PC listing.
-// We try the normal card URL first; if 404 we fall back to reverse-holo.
+// Holo types that have a normal card listing on PC — fetch the normal (no suffix) version.
 const SPECIAL_REVERSE_HOLOS = new Set(['Pokeball Holo', 'Master Ball Holo', 'Cosmos Holo']);
+
+// Some sets are stored with short/alternate names but PC uses a different slug.
+// Add entries here whenever a set slug doesn't match the stored name.
+const SET_SLUG_OVERRIDES: Record<string, string> = {
+  '151':    'scarlet-&-violet-151',
+  'sv151':  'scarlet-&-violet-151',
+};
 
 const USD_TO_GBP = 0.79;
 const STOP_WORDS = new Set(['pokemon', 'card', 'cards', 'the', 'of', 'a', 'and', '']);
@@ -123,7 +129,8 @@ function buildSearchQuery(
 function buildDirectUrls(
   name: string, number: string, holoType: string, setName: string,
 ): string[] {
-  const setSlug  = slugify(setName);
+  // Use override slug if available (e.g. "151" → "scarlet-&-violet-151")
+  const setSlug  = SET_SLUG_OVERRIDES[setName] ?? slugify(setName);
   const nameSlug = slugify(name);
   const suffix   = PC_URL_SUFFIXES[holoType];
   const cardNum  = number.split('/')[0]; // "10/189" → "10"
@@ -131,12 +138,10 @@ function buildDirectUrls(
   const urls: string[] = [];
 
   if (SPECIAL_REVERSE_HOLOS.has(holoType)) {
-    // Try normal card first (preferred — cleaner image without built-in shimmer)
+    // Pokeball/MasterBall/Cosmos Holo — always fetch the normal (no-suffix) card.
+    // The normal version always exists on PC; we apply the holo effect via CSS overlay.
     if (cardNum) urls.push(`${base}/${nameSlug}-${cardNum}`);
     urls.push(`${base}/${nameSlug}`);
-    // Fallback to reverse-holo (e.g. 151 set where only reverse-holo exists on PC)
-    if (cardNum) urls.push(`${base}/${nameSlug}-reverse-holo-${cardNum}`);
-    urls.push(`${base}/${nameSlug}-reverse-holo`);
   } else {
     // Most specific first: name-suffix-number
     if (suffix && cardNum) urls.push(`${base}/${nameSlug}-${suffix}-${cardNum}`);
