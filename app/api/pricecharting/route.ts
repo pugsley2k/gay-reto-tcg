@@ -5,9 +5,7 @@ const HOLO_MODIFIERS: Record<string, string> = {
   'Reverse Holo':               'reverse',
   'Reverse Holofoil':           'reverse',   // TCGPlayer API name
   'reverseHolofoil':            'reverse',   // raw TCGPlayer key
-  'Pokeball Holo':              '',   // PC has no separate listing — fetch as normal
-  'Master Ball Holo':           '',   // PC has no separate listing — fetch as normal
-  'Cosmos Holo':                '',   // PC has no separate listing — fetch as normal
+  // Pokeball/MasterBall/Cosmos: special reverse holos — no modifier, search as normal card
   'Holo Rare':                  'holo',
   'Holofoil':                   'holo',      // TCGPlayer API name
   'holofoil':                   'holo',      // raw TCGPlayer key
@@ -41,9 +39,7 @@ const PC_URL_SUFFIXES: Record<string, string> = {
   'Reverse Holo':               'reverse-holo',
   'Reverse Holofoil':           'reverse-holo',   // TCGPlayer API name
   'reverseHolofoil':            'reverse-holo',   // raw TCGPlayer key
-  'Pokeball Holo':              '',   // PC has no separate listing — fetch as normal
-  'Master Ball Holo':           '',   // PC has no separate listing — fetch as normal
-  'Cosmos Holo':                '',   // PC has no separate listing — fetch as normal
+  // Pokeball/MasterBall/Cosmos handled specially in buildDirectUrls (normal first, reverse-holo fallback)
   'Holo Rare':                  'holofoil',
   'Holofoil':                   'holofoil',        // TCGPlayer API name
   'holofoil':                   'holofoil',        // raw TCGPlayer key
@@ -71,6 +67,10 @@ const PC_URL_SUFFIXES: Record<string, string> = {
   'Rare BREAK':                 'break',
   'Promo':                      'promo',
 };
+
+// Holo types that are special reverse-holo variants with no dedicated PC listing.
+// We try the normal card URL first; if 404 we fall back to reverse-holo.
+const SPECIAL_REVERSE_HOLOS = new Set(['Pokeball Holo', 'Master Ball Holo', 'Cosmos Holo']);
 
 const USD_TO_GBP = 0.79;
 const STOP_WORDS = new Set(['pokemon', 'card', 'cards', 'the', 'of', 'a', 'and', '']);
@@ -114,9 +114,10 @@ function buildSearchQuery(
  * PC URL format: /game/pokemon-{set-slug}/{name-slug}-{suffix}-{number}
  * e.g. /game/pokemon-paldea-evolved/snover-reverse-holo-10
  *
- * Notes:
- * - PC always uses 'pokemon-' prefix regardless of language
- * - Card number goes at the END of the slug (after the holo suffix)
+ * For SPECIAL_REVERSE_HOLOS (Pokeball Holo etc.): tries normal card first,
+ * then appends reverse-holo candidates as fallback (many sets only list these
+ * as reverse-holo on PC, e.g. the 151 set).
+ *
  * Returns candidates ordered from most-specific to least-specific.
  */
 function buildDirectUrls(
@@ -128,14 +129,25 @@ function buildDirectUrls(
   const cardNum  = number.split('/')[0]; // "10/189" → "10"
   const base     = `https://www.pricecharting.com/game/pokemon-${setSlug}`;
   const urls: string[] = [];
-  // Most specific first: name-suffix-number
-  if (suffix && cardNum) urls.push(`${base}/${nameSlug}-${suffix}-${cardNum}`);
-  // Without number (some cards omit it)
-  if (suffix)            urls.push(`${base}/${nameSlug}-${suffix}`);
-  // No suffix, with number
-  if (cardNum)           urls.push(`${base}/${nameSlug}-${cardNum}`);
-  // Bare name fallback
-  urls.push(`${base}/${nameSlug}`);
+
+  if (SPECIAL_REVERSE_HOLOS.has(holoType)) {
+    // Try normal card first (preferred — cleaner image without built-in shimmer)
+    if (cardNum) urls.push(`${base}/${nameSlug}-${cardNum}`);
+    urls.push(`${base}/${nameSlug}`);
+    // Fallback to reverse-holo (e.g. 151 set where only reverse-holo exists on PC)
+    if (cardNum) urls.push(`${base}/${nameSlug}-reverse-holo-${cardNum}`);
+    urls.push(`${base}/${nameSlug}-reverse-holo`);
+  } else {
+    // Most specific first: name-suffix-number
+    if (suffix && cardNum) urls.push(`${base}/${nameSlug}-${suffix}-${cardNum}`);
+    // Without number (some cards omit it)
+    if (suffix)            urls.push(`${base}/${nameSlug}-${suffix}`);
+    // No suffix, with number
+    if (cardNum)           urls.push(`${base}/${nameSlug}-${cardNum}`);
+    // Bare name fallback
+    urls.push(`${base}/${nameSlug}`);
+  }
+
   return urls;
 }
 
