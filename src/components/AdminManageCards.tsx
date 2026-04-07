@@ -323,20 +323,40 @@ export default function AdminManageCards() {
 
                       {/* Manual price entry — shown when PC lookup failed */}
                       {showManual && (
-                        <div style={s.manualRow}>
-                          <span style={{ fontSize: 10, color: '#5a5a8a' }}>Set price:</span>
-                          <input
-                            style={s.manualInput}
-                            placeholder="£0.00"
-                            value={manualPrice[card.id] ?? ''}
-                            onChange={e => setManualPrice(p => ({ ...p, [card.id]: e.target.value }))}
-                            onKeyDown={e => { if (e.key === 'Enter') saveManualPrice(card); }}
-                          />
-                          <button
-                            style={{ ...s.btnSave, opacity: saving[card.id] ? 0.6 : 1 }}
-                            disabled={saving[card.id]}
-                            onClick={() => saveManualPrice(card)}
-                          >{saving[card.id] ? '…' : 'Save'}</button>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                          {/* Quick-pick buttons */}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                            {[1,2,3,4,5,6,7,8].map(p => (
+                              <button
+                                key={p}
+                                style={{ background: '#1a2a40', border: '1px solid #2a4a70', borderRadius: 4, color: '#93c5fd', padding: '3px 7px', fontSize: 11, cursor: 'pointer' }}
+                                disabled={saving[card.id]}
+                                onClick={() => {
+                                  setManualPrice(prev => ({ ...prev, [card.id]: String(p) }));
+                                  patchCard(card.id, { price: p * 100 }).then(() => {
+                                    setFixStatus(prev => ({ ...prev, [card.id]: 'done' }));
+                                    setFixMsg(prev => ({ ...prev, [card.id]: `£${p}.00 saved` }));
+                                  });
+                                }}
+                              >£{p}</button>
+                            ))}
+                          </div>
+                          {/* Manual input */}
+                          <div style={s.manualRow}>
+                            <span style={{ fontSize: 10, color: '#5a5a8a' }}>Other:</span>
+                            <input
+                              style={s.manualInput}
+                              placeholder="£0.00"
+                              value={manualPrice[card.id] ?? ''}
+                              onChange={e => setManualPrice(p => ({ ...p, [card.id]: e.target.value }))}
+                              onKeyDown={e => { if (e.key === 'Enter') saveManualPrice(card); }}
+                            />
+                            <button
+                              style={{ ...s.btnSave, opacity: saving[card.id] ? 0.6 : 1 }}
+                              disabled={saving[card.id]}
+                              onClick={() => saveManualPrice(card)}
+                            >{saving[card.id] ? '…' : 'Save'}</button>
+                          </div>
                         </div>
                       )}
                     </div>
