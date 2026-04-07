@@ -5,9 +5,9 @@ const HOLO_MODIFIERS: Record<string, string> = {
   'Reverse Holo':               'reverse',
   'Reverse Holofoil':           'reverse',   // TCGPlayer API name
   'reverseHolofoil':            'reverse',   // raw TCGPlayer key
-  'Pokeball Holo':              'reverse',
-  'Master Ball Holo':           'reverse',
-  'Cosmos Holo':                'reverse',
+  'Pokeball Holo':              '',   // PC has no separate listing — fetch as normal
+  'Master Ball Holo':           '',   // PC has no separate listing — fetch as normal
+  'Cosmos Holo':                '',   // PC has no separate listing — fetch as normal
   'Holo Rare':                  'holo',
   'Holofoil':                   'holo',      // TCGPlayer API name
   'holofoil':                   'holo',      // raw TCGPlayer key
@@ -41,9 +41,9 @@ const PC_URL_SUFFIXES: Record<string, string> = {
   'Reverse Holo':               'reverse-holo',
   'Reverse Holofoil':           'reverse-holo',   // TCGPlayer API name
   'reverseHolofoil':            'reverse-holo',   // raw TCGPlayer key
-  'Pokeball Holo':              'reverse-holo',
-  'Master Ball Holo':           'reverse-holo',
-  'Cosmos Holo':                'reverse-holo',
+  'Pokeball Holo':              '',   // PC has no separate listing — fetch as normal
+  'Master Ball Holo':           '',   // PC has no separate listing — fetch as normal
+  'Cosmos Holo':                '',   // PC has no separate listing — fetch as normal
   'Holo Rare':                  'holofoil',
   'Holofoil':                   'holofoil',        // TCGPlayer API name
   'holofoil':                   'holofoil',        // raw TCGPlayer key
