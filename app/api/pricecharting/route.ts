@@ -74,8 +74,10 @@ const SPECIAL_REVERSE_HOLOS = new Set(['Pokeball Holo', 'Master Ball Holo', 'Cos
 // Some sets are stored with short/alternate names but PC uses a different slug.
 // Add entries here whenever a set slug doesn't match the stored name.
 const SET_SLUG_OVERRIDES: Record<string, string> = {
-  '151':    'scarlet-&-violet-151',
-  'sv151':  'scarlet-&-violet-151',
+  '151':              'scarlet-&-violet-151',
+  'sv151':            'scarlet-&-violet-151',
+  'pokemon card 151': 'scarlet-&-violet-151',   // in case TCG API returns full name
+  'scarlet & violet 151': 'scarlet-&-violet-151',
 };
 
 const USD_TO_GBP = 0.79;
@@ -103,13 +105,15 @@ function extractSetKeywords(setName: string): string[] {
 
 function buildSearchQuery(
   name: string, number: string, holoType: string,
-  language: string, setName: string,
+  language: string, setName: string, setSeries: string = '',
 ): string {
   const modifier = HOLO_MODIFIERS[holoType] ?? null;
   const langTag  = language === 'Japanese' ? 'japanese'
                  : language === 'Korean'   ? 'korean'
                  : null;
-  const setKws   = extractSetKeywords(setName);
+  // Combine set name + series keywords for better search accuracy
+  // e.g. setName="151" → ["151"], setSeries="Scarlet & Violet" → ["scarlet","violet"]
+  const setKws   = [...new Set([...extractSetKeywords(setName), ...extractSetKeywords(setSeries)])];
   return [name, modifier, number, 'pokemon', langTag, ...setKws]
     .filter(Boolean)
     .join(' ');
@@ -130,7 +134,7 @@ function buildDirectUrls(
   name: string, number: string, holoType: string, setName: string, language: string,
 ): string[] {
   // Use override slug if available (e.g. "151" → "scarlet-&-violet-151")
-  const setSlug   = SET_SLUG_OVERRIDES[setName] ?? slugify(setName);
+  const setSlug   = SET_SLUG_OVERRIDES[setName] ?? SET_SLUG_OVERRIDES[setName.toLowerCase()] ?? slugify(setName);
   const nameSlug  = slugify(name);
   const suffix    = PC_URL_SUFFIXES[holoType];
   const cardNum   = number.split('/')[0]; // "10/189" → "10"
@@ -196,6 +200,7 @@ export async function GET(req: NextRequest) {
   const holoType  = sp.get('holo_type')  ?? '';
   const language  = sp.get('language')   ?? 'English';
   const setName   = sp.get('set_name')   ?? '';
+  const setSeries = sp.get('set_series') ?? '';
 
   if (!name) return NextResponse.json({ error: 'name required' }, { status: 400 });
 
@@ -220,7 +225,7 @@ export async function GET(req: NextRequest) {
   }
 
   // ── Step 2: Fall back to search (handles edge cases / name variations) ──
-  const query     = buildSearchQuery(name, number, holoType, language, setName);
+  const query     = buildSearchQuery(name, number, holoType, language, setName, setSeries);
   const searchUrl = `https://www.pricecharting.com/search-products?q=${encodeURIComponent(query)}&type=prices`;
 
   try {
