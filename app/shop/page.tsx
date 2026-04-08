@@ -117,7 +117,7 @@ export default function ShopPage() {
       setTotalCards(count || 0);
     }
     setLoading(false);
-  }, [search, rarity, setName, currentPage]);
+  }, [search, rarity, setName, holoFilter, langFilter, sortBy, currentPage]);
 
   useEffect(() => {
     fetch("/api/sets")

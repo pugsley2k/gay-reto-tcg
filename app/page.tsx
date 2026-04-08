@@ -3,6 +3,8 @@ import Image from "next/image";
 import styles from "./styles/HomePage.module.css";
 import { createClient } from "@supabase/supabase-js";
 
+export const revalidate = 0; // never cache — always fetch fresh
+
 async function getNewestCards() {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
