@@ -127,14 +127,18 @@ function buildSearchQuery(
  * Returns candidates ordered from most-specific to least-specific.
  */
 function buildDirectUrls(
-  name: string, number: string, holoType: string, setName: string,
+  name: string, number: string, holoType: string, setName: string, language: string,
 ): string[] {
   // Use override slug if available (e.g. "151" → "scarlet-&-violet-151")
-  const setSlug  = SET_SLUG_OVERRIDES[setName] ?? slugify(setName);
-  const nameSlug = slugify(name);
-  const suffix   = PC_URL_SUFFIXES[holoType];
-  const cardNum  = number.split('/')[0]; // "10/189" → "10"
-  const base     = `https://www.pricecharting.com/game/pokemon-${setSlug}`;
+  const setSlug   = SET_SLUG_OVERRIDES[setName] ?? slugify(setName);
+  const nameSlug  = slugify(name);
+  const suffix    = PC_URL_SUFFIXES[holoType];
+  const cardNum   = number.split('/')[0]; // "10/189" → "10"
+  // PC uses language-prefixed set slugs for non-English cards
+  const langPrefix = language === 'Japanese' ? 'japanese-'
+                   : language === 'Korean'   ? 'korean-'
+                   : '';
+  const base      = `https://www.pricecharting.com/game/pokemon-${langPrefix}${setSlug}`;
   const urls: string[] = [];
 
   if (SPECIAL_REVERSE_HOLOS.has(holoType)) {
@@ -161,7 +165,7 @@ async function fetchHtml(url: string): Promise<{ html: string; finalUrl: string 
     headers: {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'en-GB,en;q=0.9',
+      'Accept-Language': 'en-US,en;q=0.9',
     },
     redirect: 'follow',
     signal: AbortSignal.timeout(8000),
@@ -197,7 +201,7 @@ export async function GET(req: NextRequest) {
 
   // ── Step 1: Try direct URL construction (most reliable, no HTML parsing) ──
 
-  const directUrls = buildDirectUrls(name, number, holoType, setName);
+  const directUrls = buildDirectUrls(name, number, holoType, setName, language);
   for (const directUrl of directUrls) {
     try {
       const { html, finalUrl } = await fetchHtml(directUrl);
