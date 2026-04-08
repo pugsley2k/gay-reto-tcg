@@ -325,6 +325,7 @@
   aspect-ratio: 63 / 88;
   overflow: hidden;
   flex-shrink: 0;
+  border-radius: 4.5%; /* clips white square corners from card scans */
 }
 
 .cardImage {
@@ -860,7 +861,7 @@
   .shopCard:hover {
     transform: translateY(-3px) scale(1.01);
   }
-  .cardImage {
-    height: 140px;
+  .cardImageWrap {
+    height: 160px; /* shrink the container, not just the image */
   }
 }
