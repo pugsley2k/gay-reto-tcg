@@ -231,6 +231,7 @@ export default function AdminUploadForm() {
       if (marketPrice !== null) setPrice(String(Math.round(marketPrice * 100)));
       setRarity(card.rarity ?? "");
       setHoloType(version);
+      if (currentItem?.language) setLanguage(currentItem.language);
 
       if (card.set) {
         setSetCode(card.set.series ? `${card.set.name} | ${card.set.series}` : card.set.name);
