@@ -254,6 +254,7 @@ export default function AdminUploadForm() {
       const isNonEnglish = currentItem?.language && currentItem.language !== 'English';
       const needsPC = isNonEnglish || SPECIAL_HOLOS.includes(version);
       if (needsPC) {
+        setMsg('🔍 Fetching PriceCharting data…');
         void (async () => {
           try {
             const params = new URLSearchParams({
@@ -267,7 +268,11 @@ export default function AdminUploadForm() {
             });
             const pcRes = await fetch(`/api/pricecharting?${params}`);
             const pcData = await pcRes.json();
-            if (!pcData.error && !pcData.not_found) {
+            if (pcData.error) {
+              setMsg(`⚠ PC error: ${pcData.error}`);
+            } else if (pcData.not_found) {
+              setMsg(`⚠ PC: not found (tried: ${pcData.url})`);
+            } else {
               // Update price if PriceCharting found one (pence, ready to store)
               if (pcData.price) setPrice(String(pcData.price));
               // Update image for JP/KR cards — cleaner scan from PC
@@ -279,8 +284,11 @@ export default function AdminUploadForm() {
                   setSel([{ url: URL.createObjectURL(imgFile), file: imgFile, source: 'api', apiCardName: card.name, holoType: version }]);
                 }
               }
+              setMsg(`✓ PC: ${pcData.url}`);
             }
-          } catch { /* silent — best effort */ }
+          } catch (err: any) {
+            setMsg(`⚠ PC fetch failed: ${err.message}`);
+          }
         })();
       }
     } catch (error: any) {

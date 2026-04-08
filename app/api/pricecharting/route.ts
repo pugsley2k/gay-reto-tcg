@@ -182,8 +182,8 @@ async function fetchHtml(url: string): Promise<{ html: string; finalUrl: string 
 
 function parseProductPage(html: string) {
   const imgMatch =
-    html.match(/https:\/\/storage\.googleapis\.com\/images\.pricecharting\.com\/[a-zA-Z0-9]+\/1600\.jpg/) ??
-    html.match(/https:\/\/storage\.googleapis\.com\/images\.pricecharting\.com\/[a-zA-Z0-9]+\/\d+\.jpg/);
+    html.match(/https:\/\/storage\.googleapis\.com\/images\.pricecharting\.com\/[a-zA-Z0-9_-]+\/1600\.jpg/) ??
+    html.match(/https:\/\/storage\.googleapis\.com\/images\.pricecharting\.com\/[a-zA-Z0-9_-]+\/\d+\.jpg/);
   const section  = html.match(/id="used_price"[^>]*>([\s\S]*?)<\/td>/)?.[1] ?? '';
   const usdMatch = section.match(/\$([\d,]+\.?\d*)/);
   const usdPrice = usdMatch ? parseFloat(usdMatch[1].replace(',', '')) : null;
