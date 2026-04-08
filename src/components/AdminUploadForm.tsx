@@ -250,10 +250,12 @@ export default function AdminUploadForm() {
       setMsg('');
 
       // ── Background PriceCharting fetch ──────────────────────────────────────
-      // For JP/KR cards: get a clean card image + accurate price
+      // For JP/KR cards: get a clean card image + accurate price from PC
+      // For Reverse Holo: get the actual reverse holo scan from PC (TCG API gives same image as Normal)
       // For special holos: get accurate sold price (TCGPlayer doesn't track these)
       const isNonEnglish = currentItem?.language && currentItem.language !== 'English';
-      const needsPC = isNonEnglish || SPECIAL_HOLOS.includes(version);
+      const isReverseHolo = version === 'Reverse Holo' || version === 'Reverse Holofoil' || version === 'reverseHolofoil';
+      const needsPC = isNonEnglish || isReverseHolo || SPECIAL_HOLOS.includes(version);
       if (needsPC) {
         setMsg('🔍 Fetching PriceCharting data…');
         void (async () => {
@@ -274,10 +276,11 @@ export default function AdminUploadForm() {
             } else if (pcData.not_found) {
               setMsg(`⚠ PC: not found (tried: ${pcData.url})`);
             } else {
-              // Update price if PriceCharting found one (pence, ready to store)
-              if (pcData.price) setPrice(String(pcData.price));
-              // Update image for JP/KR cards — cleaner scan from PC
-              if (isNonEnglish && pcData.image_url) {
+              // For JP/KR and special holos: use PC price (more accurate than TCGPlayer)
+              // For English Reverse Holo: keep TCGPlayer price (it tracks reverseHolofoil accurately)
+              if (pcData.price && !isReverseHolo) setPrice(String(pcData.price));
+              // Update image for JP/KR and Reverse Holo — PC has actual holographic card scans
+              if ((isNonEnglish || isReverseHolo) && pcData.image_url) {
                 const imgRes = await fetch(`/api/image-proxy?url=${encodeURIComponent(pcData.image_url)}`);
                 if (imgRes.ok) {
                   const imgBlob = await imgRes.blob();
