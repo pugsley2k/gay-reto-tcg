@@ -381,13 +381,16 @@
   pointer-events: none;
 }
 
-/* Tiled pokeball SVG pattern — semi-transparent fills, transparent background */
+/* Tiled pokeball SVG pattern — only on the lower stats area, not the artwork */
 .holoPattern {
   position: absolute;
   inset: 0;
   background-repeat: repeat;
   background-size: 28px 28px;
-  opacity: 0.2;
+  opacity: 0.38;
+  /* fade in from ~55% down so the pattern only covers the text/stats section */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 52%, rgba(0,0,0,0.6) 62%, black 70%);
+  mask-image:         linear-gradient(to bottom, transparent 52%, rgba(0,0,0,0.6) 62%, black 70%);
 }
 
 /* Shifting rainbow shimmer */
@@ -397,15 +400,15 @@
   background: linear-gradient(
     125deg,
     rgba(255,240,0,0)    0%,
-    rgba(255,240,0,0.2)  20%,
-    rgba(30,220,90,0.2)  40%,
-    rgba(30,140,255,0.2) 60%,
-    rgba(180,30,255,0.2) 80%,
+    rgba(255,240,0,0.35)  20%,
+    rgba(30,220,90,0.35)  40%,
+    rgba(30,140,255,0.35) 60%,
+    rgba(180,30,255,0.35) 80%,
     rgba(180,30,255,0)   100%
   );
   background-size: 300% 300%;
   animation: holoShift 3s ease-in-out infinite alternate;
-  opacity: 0.6;
+  opacity: 0.75;
 }
 
 @keyframes holoShift {
@@ -420,15 +423,15 @@
   background: linear-gradient(
     125deg,
     rgba(255,240,0,0)    0%,
-    rgba(255,240,0,0.18) 20%,
-    rgba(30,220,90,0.18) 40%,
-    rgba(30,140,255,0.18)60%,
-    rgba(180,30,255,0.18)80%,
+    rgba(255,240,0,0.3)  20%,
+    rgba(30,220,90,0.3)  40%,
+    rgba(30,140,255,0.3) 60%,
+    rgba(180,30,255,0.3) 80%,
     rgba(180,30,255,0)   100%
   );
   background-size: 300% 300%;
   animation: holoShift 3s ease-in-out infinite alternate;
-  opacity: 0.6;
+  opacity: 0.75;
 }
 
 /* Pokeball — white/silver, no red */
