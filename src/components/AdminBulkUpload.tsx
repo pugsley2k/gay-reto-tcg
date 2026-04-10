@@ -125,21 +125,45 @@ function parsePortfolioCSV(raw: string, gbpRate: number): MappedCard[] {
 }
 
 /* ── Image lookup via Pokémon TCG API ── */
+function cleanCardName(name: string): string {
+  return name
+    .replace(/\s*\(JP\)\s*/gi, '')
+    .replace(/\s*\(Basic\)\s*/gi, '')
+    .replace(/\s*\(Unlimited\)\s*/gi, '')
+    .replace(/\s*\(1st Edition\)\s*/gi, '')
+    .replace(/\s*·.*$/, '')   // strip "· Holo Rare" suffixes
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function tcgFetch(q: string): Promise<any[]> {
+  const url = `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(q)}&pageSize=10&select=id,name,number,images,set`;
+  const res = await fetch(url);
+  if (!res.ok) return [];
+  const json = await res.json();
+  return json.data ?? [];
+}
+
 async function fetchImage(card: MappedCard): Promise<string | null> {
   try {
-    // Try with number first, fall back to name only
-    const nameQ    = `name:"${encodeURIComponent(card.name)}"`;
-    const numberQ  = card.number ? ` number:${card.number}` : '';
-    const url = `https://api.pokemontcg.io/v2/cards?q=${nameQ}${numberQ}&pageSize=5&select=id,name,number,images,set`;
-    const res = await fetch(url, { headers: { 'X-Api-Key': '' } }); // works without key at lower rate limit
-    if (!res.ok) return null;
-    const json = await res.json();
-    const cards: any[] = json.data ?? [];
+    const name   = cleanCardName(card.name);
+    const number = card.number?.split('/')[0]?.replace(/^0+/, '') ?? ''; // "021" → "21"
+
+    // 1st attempt: name + number
+    let cards = number ? await tcgFetch(`name:"${name}" number:${number}`) : [];
+
+    // 2nd attempt: name only
+    if (!cards.length) cards = await tcgFetch(`name:"${name}"`);
+
     if (!cards.length) return null;
 
     // Prefer card whose set name loosely matches
     const setLower = card.set.toLowerCase();
-    const match = cards.find(c => c.set?.name?.toLowerCase().includes(setLower) || setLower.includes(c.set?.name?.toLowerCase())) ?? cards[0];
+    const match = cards.find(c =>
+      c.set?.name?.toLowerCase().includes(setLower) ||
+      setLower.includes(c.set?.name?.toLowerCase() ?? '')
+    ) ?? cards[0];
+
     return match?.images?.large ?? match?.images?.small ?? null;
   } catch {
     return null;
