@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -7,157 +7,429 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-const EXPECTED_COLS = ['name','number','set','price','holo_type','language','rarity','image_url'];
-
-interface ParsedRow {
-  name: string; number: string; set: string; price: number;
-  holo_type: string; language: string; rarity: string; image_url: string;
-  _error?: string;
+/* ── CSV parser (handles quoted fields with commas inside) ── */
+function parseCSVRow(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+      else { inQuotes = !inQuotes; }
+    } else if (ch === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  result.push(current.trim());
+  return result;
 }
 
-function parseCSV(raw: string): ParsedRow[] {
-  const lines = raw.trim().split('\n').filter(l => l.trim());
-  if (!lines.length) return [];
-  // detect if first row is a header
-  const first = lines[0].toLowerCase().replace(/\s/g, '');
-  const hasHeader = EXPECTED_COLS.some(c => first.includes(c));
+/* ── Variance → holo_type mapping ── */
+function mapVariance(variance: string): string {
+  const v = variance.toLowerCase().trim();
+  if (v === 'holofoil')         return 'Holo Rare';
+  if (v === 'reverse holofoil') return 'Reverse Holo';
+  if (v === 'foil')             return 'Holo Rare';
+  if (v === 'normal')           return 'Normal';
+  return variance || 'Normal';
+}
+
+/* ── Types ── */
+interface PortfolioRow {
+  portfolioName: string;
+  category: string;
+  set: string;
+  productName: string;
+  cardNumber: string;
+  rarity: string;
+  variance: string;
+  grade: string;
+  condition: string;
+  avgCostPaid: number;
+  quantity: number;
+  marketPrice: number;
+  priceOverride: number;
+  watchlist: string;
+  dateAdded: string;
+  notes: string;
+}
+
+interface MappedCard {
+  name: string;
+  number: string;
+  set: string;
+  rarity: string;
+  holo_type: string;
+  price: number;      // in pence
+  available: boolean;
+  image_url: string | null;
+  language: string;
+  _error?: string;
+  _imageStatus?: 'pending' | 'found' | 'not_found' | 'skipped';
+}
+
+function parsePortfolioCSV(raw: string, gbpRate: number): MappedCard[] {
+  const lines = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim().split('\n').filter(l => l.trim());
+  if (lines.length < 2) return [];
+
+  // Detect header row
+  const firstRow = parseCSVRow(lines[0]);
+  const hasHeader = firstRow.some(c => /product name|card number|category|portfolio/i.test(c));
   const dataLines = hasHeader ? lines.slice(1) : lines;
 
-  return dataLines.map((line, i) => {
-    const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-    const [name='', number='', set='', priceRaw='', holo_type='Normal', language='English', rarity='', image_url=''] = cols;
-    const price = Math.round(parseFloat(priceRaw.replace('£','').replace('$','')) * 100);
-    const _error = !name ? 'Missing name'
-                 : isNaN(price) || price < 0 ? `Invalid price "${priceRaw}"`
-                 : undefined;
-    return { name, number, set, price: isNaN(price) ? 0 : price, holo_type, language, rarity, image_url, _error };
+  return dataLines.map((line): MappedCard => {
+    const cols = parseCSVRow(line);
+    // Expected columns (0-based):
+    // 0:Portfolio Name, 1:Category, 2:Set, 3:Product Name, 4:Card Number,
+    // 5:Rarity, 6:Variance, 7:Grade, 8:Card Condition, 9:Average Cost Paid,
+    // 10:Quantity, 11:Market Price, 12:Price Override, 13:Watchlist, 14:Date Added, 15:Notes
+
+    const category    = cols[1]  ?? '';
+    const set         = cols[2]  ?? '';
+    const productName = cols[3]  ?? '';
+    const cardNumber  = cols[4]  ?? '';
+    const rarity      = cols[5]  ?? '';
+    const variance    = cols[6]  ?? '';
+    const quantityRaw = cols[10] ?? '0';
+    const marketRaw   = cols[11] ?? '0';
+    const overrideRaw = cols[12] ?? '0';
+
+    const quantity     = parseInt(quantityRaw, 10) || 0;
+    const marketUSD    = parseFloat(marketRaw.replace(/[$,]/g, ''))  || 0;
+    const overrideUSD  = parseFloat(overrideRaw.replace(/[$,]/g, '')) || 0;
+    const priceUSD     = overrideUSD > 0 ? overrideUSD : marketUSD;
+    const priceGBPp    = Math.round(priceUSD * gbpRate * 100); // convert USD → GBP pence
+
+    const error = !productName ? 'Missing product name'
+                : category.toLowerCase() !== 'pokemon' ? `Skipped: category is "${category}"`
+                : undefined;
+
+    return {
+      name:      productName,
+      number:    cardNumber,
+      set,
+      rarity,
+      holo_type: mapVariance(variance),
+      price:     priceGBPp,
+      available: quantity > 0,
+      image_url: null,
+      language:  'English',
+      _error:    error,
+      _imageStatus: 'pending',
+    };
   });
 }
 
-const s: React.CSSProperties & Record<string, any> = {};
+/* ── Image lookup via Pokémon TCG API ── */
+async function fetchImage(card: MappedCard): Promise<string | null> {
+  try {
+    // Try with number first, fall back to name only
+    const nameQ    = `name:"${encodeURIComponent(card.name)}"`;
+    const numberQ  = card.number ? ` number:${card.number}` : '';
+    const url = `https://api.pokemontcg.io/v2/cards?q=${nameQ}${numberQ}&pageSize=5&select=id,name,number,images,set`;
+    const res = await fetch(url, { headers: { 'X-Api-Key': '' } }); // works without key at lower rate limit
+    if (!res.ok) return null;
+    const json = await res.json();
+    const cards: any[] = json.data ?? [];
+    if (!cards.length) return null;
 
+    // Prefer card whose set name loosely matches
+    const setLower = card.set.toLowerCase();
+    const match = cards.find(c => c.set?.name?.toLowerCase().includes(setLower) || setLower.includes(c.set?.name?.toLowerCase())) ?? cards[0];
+    return match?.images?.large ?? match?.images?.small ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/* ── Styles ── */
+const inputStyle: React.CSSProperties = {
+  background: '#0f0f22', border: '1px solid #2d2d50', borderRadius: 6,
+  color: '#d0d0f0', padding: '10px', fontSize: 12, width: '100%',
+  fontFamily: 'Space Mono, monospace',
+};
+const btnStyle = (color = 'linear-gradient(90deg,#7c6af0,#b84fff)'): React.CSSProperties => ({
+  background: color, border: 'none', borderRadius: 5,
+  color: '#fff', padding: '8px 18px', fontSize: 12,
+  cursor: 'pointer', fontFamily: 'Space Mono, monospace', whiteSpace: 'nowrap',
+});
+const thStyle: React.CSSProperties = {
+  textAlign: 'left', fontSize: 10, color: '#5a5a8a', padding: '6px 8px',
+  borderBottom: '1px solid #1e1e3a', letterSpacing: '0.1em', textTransform: 'uppercase',
+};
+const tdStyle: React.CSSProperties = {
+  padding: '5px 8px', borderBottom: '1px solid #111128', fontSize: 11, verticalAlign: 'top',
+};
+
+/* ── Component ── */
 export default function AdminBulkUpload() {
-  const [csv, setCsv]           = useState('');
-  const [rows, setRows]         = useState<ParsedRow[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [result, setResult]     = useState<string>('');
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [rawCSV, setRawCSV]         = useState('');
+  const [gbpRate, setGbpRate]       = useState(0.79);   // USD → GBP default
+  const [rows, setRows]             = useState<MappedCard[]>([]);
+  const [parsed, setParsed]         = useState(false);
+  const [fetchImages, setFetchImages] = useState(false);
+  const [progress, setProgress]     = useState<{ done: number; total: number } | null>(null);
+  const [result, setResult]         = useState<{ msg: string; ok: boolean } | null>(null);
+  const abortRef = useRef(false);
+
+  const validRows   = rows.filter(r => !r._error);
+  const skippedRows = rows.filter(r =>  r._error);
+  const pokemonOnly = skippedRows.filter(r => r._error && !r._error.startsWith('Skipped'));
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      setRawCSV(ev.target?.result as string ?? '');
+      setRows([]);
+      setParsed(false);
+      setResult(null);
+    };
+    reader.readAsText(file);
+  }
 
   function handleParse() {
-    setResult('');
-    setRows(parseCSV(csv));
+    setResult(null);
+    const parsed = parsePortfolioCSV(rawCSV, gbpRate);
+    setRows(parsed);
+    setParsed(true);
   }
 
-  async function handleUpload() {
-    const valid = rows.filter(r => !r._error);
-    if (!valid.length) return;
-    setUploading(true);
-    setResult('');
-    const inserts = valid.map(r => ({
-      name: r.name, number: r.number || null, set: r.set || null,
-      price: r.price, holo_type: r.holo_type || 'Normal',
-      language: r.language || 'English', rarity: r.rarity || null,
-      image_url: r.image_url || null, available: true,
-    }));
-    const { error, data } = await supabase.from('Card').insert(inserts).select('id');
-    setUploading(false);
-    if (error) { setResult(`❌ Error: ${error.message}`); return; }
-    setResult(`✓ Inserted ${data?.length ?? valid.length} cards successfully!`);
-    setCsv('');
-    setRows([]);
+  async function handleImport() {
+    if (!validRows.length) return;
+    abortRef.current = false;
+    setProgress({ done: 0, total: validRows.length });
+    setResult(null);
+
+    let toInsert = [...validRows];
+
+    /* Optional image lookup — in batches of 5 with small delay */
+    if (fetchImages) {
+      const updatedRows = [...validRows];
+      for (let i = 0; i < updatedRows.length; i += 5) {
+        if (abortRef.current) break;
+        const batch = updatedRows.slice(i, i + 5);
+        await Promise.all(batch.map(async (card, bi) => {
+          const url = await fetchImage(card);
+          updatedRows[i + bi] = { ...card, image_url: url, _imageStatus: url ? 'found' : 'not_found' };
+        }));
+        setProgress({ done: Math.min(i + 5, updatedRows.length), total: updatedRows.length });
+        await new Promise(r => setTimeout(r, 300)); // rate-limit padding
+      }
+      toInsert = updatedRows;
+    }
+
+    /* Insert to Supabase in batches of 100 */
+    const BATCH = 100;
+    let inserted = 0;
+    let errors: string[] = [];
+
+    for (let i = 0; i < toInsert.length; i += BATCH) {
+      if (abortRef.current) break;
+      const batch = toInsert.slice(i, i + BATCH).map(r => ({
+        name:      r.name,
+        number:    r.number    || null,
+        set:       r.set       || null,
+        rarity:    r.rarity    || null,
+        holo_type: r.holo_type || 'Normal',
+        price:     r.price,
+        available: r.available,
+        image_url: r.image_url || null,
+        language:  r.language  || 'English',
+      }));
+
+      const { data, error } = await supabase.from('Card').insert(batch).select('id');
+      if (error) {
+        errors.push(error.message);
+      } else {
+        inserted += data?.length ?? batch.length;
+      }
+      if (!fetchImages) {
+        setProgress({ done: Math.min(i + BATCH, toInsert.length), total: toInsert.length });
+      }
+    }
+
+    setProgress(null);
+    if (errors.length) {
+      setResult({ ok: false, msg: `Inserted ${inserted} cards. ${errors.length} batch error(s): ${errors[0]}` });
+    } else {
+      setResult({ ok: true, msg: `✓ Successfully imported ${inserted} cards!` });
+      setRows([]);
+      setRawCSV('');
+      setParsed(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
   }
 
-  const validCount   = rows.filter(r => !r._error).length;
-  const invalidCount = rows.filter(r =>  r._error).length;
-
-  const inputStyle: React.CSSProperties = {
-    background: '#0f0f22', border: '1px solid #2d2d50', borderRadius: 6,
-    color: '#d0d0f0', padding: '10px', fontSize: 12, width: '100%',
-    fontFamily: 'Space Mono, monospace', resize: 'vertical' as const,
-  };
-  const btnStyle: React.CSSProperties = {
-    background: 'linear-gradient(90deg,#7c6af0,#b84fff)', border: 'none',
-    borderRadius: 5, color: '#fff', padding: '8px 18px', fontSize: 12,
-    cursor: 'pointer', fontFamily: 'Space Mono, monospace',
-  };
-  const thStyle: React.CSSProperties = {
-    textAlign: 'left', fontSize: 10, color: '#5a5a8a', padding: '6px 8px',
-    borderBottom: '1px solid #1e1e3a', letterSpacing: '0.1em', textTransform: 'uppercase',
-  };
-  const tdStyle: React.CSSProperties = {
-    padding: '6px 8px', borderBottom: '1px solid #111128', fontSize: 11,
-    verticalAlign: 'top',
-  };
+  function handleCancel() {
+    abortRef.current = true;
+  }
 
   return (
     <div style={{ fontFamily: 'Space Mono, monospace', color: '#d0d0f0', paddingBottom: '2rem' }}>
-      <p style={{ fontSize: 11, color: '#5a5a8a', marginBottom: '0.5rem' }}>
-        Expected columns (comma-separated): <code style={{ color: '#a78bfa' }}>{EXPECTED_COLS.join(', ')}</code>
-      </p>
-      <p style={{ fontSize: 11, color: '#5a5a8a', marginBottom: '1rem' }}>
-        Price should be in pounds (e.g. <code style={{ color: '#ffd166' }}>1.50</code>). A header row is optional.
-      </p>
 
-      <textarea
-        style={{ ...inputStyle, minHeight: 180 }}
-        placeholder={`Charizard,4/102,Base Set,45.00,Holo Rare,English,Rare Holo,https://…\nPikachu,58/102,Base Set,3.50,Normal,English,Common,`}
-        value={csv}
-        onChange={e => { setCsv(e.target.value); setRows([]); }}
-      />
-
-      <div style={{ display: 'flex', gap: 10, marginTop: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-        <button style={btnStyle} onClick={handleParse} disabled={!csv.trim()}>
-          Preview
-        </button>
-        {validCount > 0 && (
-          <button
-            style={{ ...btnStyle, background: uploading ? '#1a3a1a' : 'linear-gradient(90deg,#06d6a0,#118ab2)', opacity: uploading ? 0.7 : 1 }}
-            onClick={handleUpload}
-            disabled={uploading}
-          >
-            {uploading ? 'Uploading…' : `Upload ${validCount} card${validCount !== 1 ? 's' : ''}`}
-          </button>
-        )}
-        {invalidCount > 0 && (
-          <span style={{ fontSize: 11, color: '#f87171' }}>⚠ {invalidCount} row{invalidCount !== 1 ? 's' : ''} with errors (will be skipped)</span>
-        )}
-        {result && <span style={{ fontSize: 11, color: result.startsWith('✓') ? '#06d6a0' : '#f87171' }}>{result}</span>}
+      {/* Info block */}
+      <div style={{ background: '#0c0c1e', border: '1px solid #2d2d50', borderRadius: 8, padding: '12px 16px', marginBottom: '1.5rem', fontSize: 11 }}>
+        <div style={{ color: '#a78bfa', fontWeight: 700, marginBottom: 6 }}>Portfolio CSV Import</div>
+        <div style={{ color: '#8080b0', lineHeight: 1.7 }}>
+          Accepts the export format from your portfolio tracker. Expected columns:<br />
+          <code style={{ color: '#ffd166' }}>Portfolio Name, Category, Set, Product Name, Card Number, Rarity, Variance, Grade, Card Condition, Average Cost Paid, Quantity, Market Price, Price Override, Watchlist, Date Added, Notes</code><br />
+          <span style={{ color: '#5a5a8a' }}>Only "Pokemon" category rows are imported. Price Override used when &gt; 0, otherwise Market Price. USD → GBP conversion applied.</span>
+        </div>
       </div>
 
+      {/* File + rate row */}
+      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: '1rem' }}>
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <label style={{ display: 'block', fontSize: 10, color: '#5a5a8a', marginBottom: 4, letterSpacing: '0.1em', textTransform: 'uppercase' }}>CSV File</label>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".csv,text/csv"
+            onChange={handleFile}
+            style={{ ...inputStyle, cursor: 'pointer' }}
+          />
+        </div>
+        <div style={{ width: 150 }}>
+          <label style={{ display: 'block', fontSize: 10, color: '#5a5a8a', marginBottom: 4, letterSpacing: '0.1em', textTransform: 'uppercase' }}>USD → GBP Rate</label>
+          <input
+            type="number"
+            step="0.01"
+            min="0.1"
+            max="2"
+            value={gbpRate}
+            onChange={e => setGbpRate(parseFloat(e.target.value) || 0.79)}
+            style={{ ...inputStyle, width: '100%' }}
+          />
+        </div>
+        <button
+          style={btnStyle()}
+          onClick={handleParse}
+          disabled={!rawCSV.trim()}
+        >
+          Preview
+        </button>
+      </div>
+
+      {/* Parsed summary */}
+      {parsed && (
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: '1rem', fontSize: 11 }}>
+          <span style={{ color: '#06d6a0' }}>✓ {validRows.length} cards to import</span>
+          {pokemonOnly.length > 0 && <span style={{ color: '#f87171' }}>✗ {pokemonOnly.length} with errors</span>}
+          <span style={{ color: '#5a5a8a' }}>⊘ {skippedRows.length - pokemonOnly.length} non-Pokémon skipped</span>
+          <span style={{ color: '#ffd166' }}>
+            Total value: £{(validRows.reduce((s, r) => s + r.price, 0) / 100).toFixed(2)}
+          </span>
+        </div>
+      )}
+
+      {/* Import controls */}
+      {validRows.length > 0 && !progress && (
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#8080b0', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={fetchImages}
+              onChange={e => setFetchImages(e.target.checked)}
+              style={{ accentColor: '#b84fff' }}
+            />
+            Fetch images from Pokémon TCG API (slower, ~{Math.ceil(validRows.length / 5) * 0.3}s)
+          </label>
+          <button
+            style={btnStyle('linear-gradient(90deg,#06d6a0,#118ab2)')}
+            onClick={handleImport}
+          >
+            Import {validRows.length} cards
+          </button>
+        </div>
+      )}
+
+      {/* Progress bar */}
+      {progress && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 6, color: '#8080b0' }}>
+            <span>{fetchImages ? 'Fetching images & importing…' : 'Importing…'} {progress.done}/{progress.total}</span>
+            <button onClick={handleCancel} style={{ background: 'none', border: '1px solid #5a5a8a', borderRadius: 4, color: '#a0a0c0', fontSize: 10, cursor: 'pointer', padding: '2px 8px' }}>Cancel</button>
+          </div>
+          <div style={{ background: '#1a1a30', borderRadius: 4, height: 8, overflow: 'hidden' }}>
+            <div style={{
+              height: '100%',
+              width: `${(progress.done / progress.total) * 100}%`,
+              background: 'linear-gradient(90deg,#7c6af0,#b84fff)',
+              transition: 'width 0.3s ease',
+            }} />
+          </div>
+        </div>
+      )}
+
+      {/* Result message */}
+      {result && (
+        <div style={{
+          padding: '10px 14px', borderRadius: 6, marginBottom: '1rem', fontSize: 12,
+          background: result.ok ? 'rgba(6,214,160,0.1)' : 'rgba(248,113,113,0.1)',
+          border: `1px solid ${result.ok ? 'rgba(6,214,160,0.3)' : 'rgba(248,113,113,0.3)'}`,
+          color: result.ok ? '#06d6a0' : '#f87171',
+        }}>
+          {result.msg}
+        </div>
+      )}
+
+      {/* Preview table */}
       {rows.length > 0 && (
-        <div style={{ marginTop: '1.5rem', overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div style={{ overflowX: 'auto', marginTop: '0.5rem' }}>
+          <div style={{ fontSize: 10, color: '#5a5a8a', marginBottom: 8 }}>
+            Showing {rows.length} rows (✓ will import, ✗ skipped)
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
             <thead>
               <tr>
                 <th style={thStyle}></th>
                 <th style={thStyle}>Name</th>
                 <th style={thStyle}>Number</th>
                 <th style={thStyle}>Set</th>
-                <th style={thStyle}>Price</th>
-                <th style={thStyle}>Holo Type</th>
-                <th style={thStyle}>Language</th>
                 <th style={thStyle}>Rarity</th>
+                <th style={thStyle}>Holo Type</th>
+                <th style={thStyle}>Price (GBP)</th>
+                <th style={thStyle}>Available</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, i) => (
-                <tr key={i} style={{ opacity: row._error ? 0.5 : 1 }}>
+              {rows.slice(0, 200).map((row, i) => (
+                <tr key={i} style={{ opacity: row._error ? 0.4 : 1 }}>
                   <td style={tdStyle}>
                     {row._error
                       ? <span title={row._error} style={{ color: '#f87171', fontSize: 12 }}>✗</span>
                       : <span style={{ color: '#06d6a0', fontSize: 12 }}>✓</span>
                     }
                   </td>
-                  <td style={{ ...tdStyle, color: '#c0c0e0' }}>{row.name}</td>
+                  <td style={{ ...tdStyle, color: '#c0c0e0', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {row.name || <em style={{ color: '#5a5a8a' }}>—</em>}
+                  </td>
                   <td style={tdStyle}>{row.number || '—'}</td>
-                  <td style={tdStyle}>{row.set || '—'}</td>
-                  <td style={{ ...tdStyle, color: '#ffd166' }}>£{(row.price / 100).toFixed(2)}</td>
-                  <td style={{ ...tdStyle, color: '#a78bfa' }}>{row.holo_type}</td>
-                  <td style={tdStyle}>{row.language}</td>
+                  <td style={{ ...tdStyle, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.set || '—'}</td>
                   <td style={tdStyle}>{row.rarity || '—'}</td>
+                  <td style={{ ...tdStyle, color: '#a78bfa' }}>{row.holo_type}</td>
+                  <td style={{ ...tdStyle, color: row._error ? '#5a5a8a' : '#ffd166' }}>
+                    {row._error ? '—' : `£${(row.price / 100).toFixed(2)}`}
+                  </td>
+                  <td style={{ ...tdStyle, color: row.available ? '#06d6a0' : '#5a5a8a' }}>
+                    {row.available ? 'Yes' : 'No'}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {rows.length > 200 && (
+            <div style={{ fontSize: 10, color: '#5a5a8a', marginTop: 8, textAlign: 'center' }}>
+              Showing first 200 of {rows.length} rows. All {validRows.length} valid cards will be imported.
+            </div>
+          )}
         </div>
       )}
     </div>
