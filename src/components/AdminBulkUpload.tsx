@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -165,6 +165,49 @@ const tdStyle: React.CSSProperties = {
   padding: '5px 8px', borderBottom: '1px solid #111128', fontSize: 11, verticalAlign: 'top',
 };
 
+/* ── Backfill images for existing cards with null image_url ── */
+async function backfillImages(
+  onProgress: (done: number, total: number) => void,
+  abortRef: React.MutableRefObject<boolean>
+): Promise<{ updated: number; failed: number }> {
+  // Fetch all cards without images in pages of 1000
+  let allCards: { id: string; name: string; number: string | null; set: string | null }[] = [];
+  let page = 0;
+  const PAGE = 1000;
+  while (true) {
+    const { data } = await supabase
+      .from('Card')
+      .select('id, name, number, set')
+      .is('image_url', null)
+      .range(page * PAGE, (page + 1) * PAGE - 1);
+    if (!data || data.length === 0) break;
+    allCards = allCards.concat(data);
+    if (data.length < PAGE) break;
+    page++;
+  }
+
+  let updated = 0;
+  let failed  = 0;
+
+  for (let i = 0; i < allCards.length; i += 5) {
+    if (abortRef.current) break;
+    const batch = allCards.slice(i, i + 5);
+    await Promise.all(batch.map(async card => {
+      const url = await fetchImage({ name: card.name, number: card.number ?? '', set: card.set ?? '', rarity: '', holo_type: '', price: 0, available: true, image_url: null, language: 'English' });
+      if (url) {
+        const { error } = await supabase.from('Card').update({ image_url: url }).eq('id', card.id);
+        if (!error) updated++; else failed++;
+      } else {
+        failed++;
+      }
+    }));
+    onProgress(Math.min(i + 5, allCards.length), allCards.length);
+    await new Promise(r => setTimeout(r, 300));
+  }
+
+  return { updated, failed };
+}
+
 /* ── Component ── */
 export default function AdminBulkUpload() {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -176,6 +219,26 @@ export default function AdminBulkUpload() {
   const [progress, setProgress]     = useState<{ done: number; total: number } | null>(null);
   const [result, setResult]         = useState<{ msg: string; ok: boolean } | null>(null);
   const abortRef = useRef(false);
+
+  // Backfill state
+  const [backfillProgress, setBackfillProgress] = useState<{ done: number; total: number } | null>(null);
+  const [backfillResult, setBackfillResult]     = useState<{ msg: string; ok: boolean } | null>(null);
+  const backfillAbort = useRef(false);
+
+  async function handleBackfill() {
+    backfillAbort.current = false;
+    setBackfillResult(null);
+    setBackfillProgress({ done: 0, total: 0 });
+    const { updated, failed } = await backfillImages(
+      (done, total) => setBackfillProgress({ done, total }),
+      backfillAbort
+    );
+    setBackfillProgress(null);
+    setBackfillResult({
+      ok: updated > 0,
+      msg: `Updated ${updated} card image${updated !== 1 ? 's' : ''}${failed > 0 ? `, ${failed} not found on TCG API` : ''}.`,
+    });
+  }
 
   const validRows   = rows.filter(r => !r._error);
   const skippedRows = rows.filter(r =>  r._error);
@@ -432,6 +495,54 @@ export default function AdminBulkUpload() {
           )}
         </div>
       )}
+
+      {/* ── Backfill missing images ── */}
+      <div style={{ marginTop: '2.5rem', borderTop: '1px solid #1e1e3a', paddingTop: '1.5rem' }}>
+        <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: 12, marginBottom: 6 }}>Fix Missing Images</div>
+        <div style={{ color: '#5a5a8a', fontSize: 11, marginBottom: 12 }}>
+          Finds all cards in the database with no image and looks them up on the Pokémon TCG API.
+        </div>
+
+        {!backfillProgress && (
+          <button style={btnStyle('linear-gradient(90deg,#ff8c42,#ff3e6c)')} onClick={handleBackfill}>
+            Backfill Missing Images
+          </button>
+        )}
+
+        {backfillProgress && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 6, color: '#8080b0' }}>
+              <span>
+                {backfillProgress.total === 0
+                  ? 'Counting cards…'
+                  : `Looking up images… ${backfillProgress.done}/${backfillProgress.total}`}
+              </span>
+              <button onClick={() => { backfillAbort.current = true; }} style={{ background: 'none', border: '1px solid #5a5a8a', borderRadius: 4, color: '#a0a0c0', fontSize: 10, cursor: 'pointer', padding: '2px 8px' }}>Cancel</button>
+            </div>
+            {backfillProgress.total > 0 && (
+              <div style={{ background: '#1a1a30', borderRadius: 4, height: 8, overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%',
+                  width: `${(backfillProgress.done / backfillProgress.total) * 100}%`,
+                  background: 'linear-gradient(90deg,#ff8c42,#ff3e6c)',
+                  transition: 'width 0.3s ease',
+                }} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {backfillResult && (
+          <div style={{
+            padding: '10px 14px', borderRadius: 6, marginTop: 12, fontSize: 12,
+            background: backfillResult.ok ? 'rgba(6,214,160,0.1)' : 'rgba(248,113,113,0.1)',
+            border: `1px solid ${backfillResult.ok ? 'rgba(6,214,160,0.3)' : 'rgba(248,113,113,0.3)'}`,
+            color: backfillResult.ok ? '#06d6a0' : '#f87171',
+          }}>
+            {backfillResult.msg}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
