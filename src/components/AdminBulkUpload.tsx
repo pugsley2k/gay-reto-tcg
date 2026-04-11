@@ -376,6 +376,100 @@ function DeleteAllCardsButton() {
   );
 }
 
+/* ── Apply fixed DB export CSV (updates records by ID) ── */
+function RestoreFromCSV() {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [rows, setRows]       = useState<any[]>([]);
+  const [running, setRunning] = useState(false);
+  const [result, setResult]   = useState<{ msg: string; ok: boolean } | null>(null);
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const text = ev.target?.result as string ?? '';
+      const lines = text.replace(/\r\n/g, '\n').trim().split('\n').filter(l => l.trim());
+      if (lines.length < 2) return;
+      // Header: id,name,price,createdAt,updatedAt,available,set,number,rarity,image_url,scan_url,language,holo_type,finish
+      const parsed = lines.slice(1).map(line => {
+        const c = parseCSVRow(line);
+        return {
+          id:        c[0],
+          name:      c[1],
+          price:     parseInt(c[2]) || 0,
+          available: c[5] === 'true',
+          set:       c[6] || null,
+          number:    c[7] || null,
+          rarity:    c[8] || null,
+          image_url: c[9] || null,
+          scan_url:  c[10] || null,
+          language:  c[11] || 'English',
+          holo_type: c[12] || null,
+        };
+      }).filter(r => r.id && r.id.length > 10); // must have a real UUID
+      setRows(parsed);
+      setResult(null);
+    };
+    reader.readAsText(file);
+  }
+
+  async function handleApply() {
+    if (!rows.length) return;
+    setRunning(true);
+    setResult(null);
+    const BATCH = 100;
+    let updated = 0;
+    let errors: string[] = [];
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const batch = rows.slice(i, i + BATCH);
+      const { error, count } = await supabase
+        .from('Card')
+        .upsert(batch, { onConflict: 'id', count: 'exact' });
+      if (error) errors.push(error.message);
+      else updated += count ?? batch.length;
+    }
+    setRunning(false);
+    if (errors.length) {
+      setResult({ ok: false, msg: `Updated ${updated} rows. Error: ${errors[0]}` });
+    } else {
+      setResult({ ok: true, msg: `✓ Applied ${updated} record updates from CSV.` });
+      setRows([]);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  }
+
+  const nullImages = rows.filter(r => !r.image_url).length;
+
+  return (
+    <div>
+      <input ref={fileRef} type="file" accept=".csv" onChange={handleFile}
+        style={{ ...inputStyle, cursor: 'pointer', marginBottom: 10 }} />
+      {rows.length > 0 && !running && (
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 11, color: '#8080b0', marginBottom: 8 }}>
+            {rows.length} records loaded — {nullImages} with image cleared (will be re-fetched by backfill)
+          </div>
+          <button style={btnStyle('linear-gradient(90deg,#06d6a0,#118ab2)')} onClick={handleApply}>
+            Apply {rows.length} updates to DB
+          </button>
+        </div>
+      )}
+      {running && <span style={{ fontSize: 11, color: '#8080b0' }}>Applying…</span>}
+      {result && (
+        <div style={{
+          padding: '10px 14px', borderRadius: 6, marginTop: 10, fontSize: 12,
+          background: result.ok ? 'rgba(6,214,160,0.1)' : 'rgba(248,113,113,0.1)',
+          border: `1px solid ${result.ok ? 'rgba(6,214,160,0.3)' : 'rgba(248,113,113,0.3)'}`,
+          color: result.ok ? '#06d6a0' : '#f87171',
+        }}>
+          {result.msg}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Fix language for existing JP/KR cards ── */
 function FixLanguageButton() {
   const [running, setRunning] = useState(false);
@@ -725,6 +819,16 @@ export default function AdminBulkUpload() {
           )}
         </div>
       )}
+
+      {/* ── Apply fixed DB export CSV ── */}
+      <div style={{ marginTop: '2.5rem', borderTop: '1px solid #1e1e3a', paddingTop: '1.5rem' }}>
+        <div style={{ color: '#06d6a0', fontWeight: 700, fontSize: 12, marginBottom: 6 }}>Apply Fixed DB Export</div>
+        <div style={{ color: '#5a5a8a', fontSize: 11, marginBottom: 12 }}>
+          Upload <code style={{ color: '#ffd166' }}>Card_rows_fixed.csv</code> — updates every record in the DB by ID.
+          Cards with cleared images will be re-fetched by the backfill below.
+        </div>
+        <RestoreFromCSV />
+      </div>
 
       {/* ── Danger zone: delete all cards for clean re-import ── */}
       <div style={{ marginTop: '2.5rem', borderTop: '1px solid #1e1e3a', paddingTop: '1.5rem' }}>
