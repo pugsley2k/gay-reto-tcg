@@ -243,27 +243,36 @@ const PC_HOLO_TYPES = new Set([
 ]);
 
 async function fetchImageForCard(card: {
-  name: string; number: string | null; set: string | null; holo_type: string | null;
+  name: string; number: string | null; set: string | null; holo_type: string | null; language?: string | null;
 }): Promise<string | null> {
   const holoType = card.holo_type ?? 'Normal';
   const name     = cleanCardName(card.name);
-  const number   = card.number ?? '';
-  const set      = card.set    ?? '';
+  const number   = card.number   ?? '';
+  const set      = card.set      ?? '';
+  const language = card.language ?? 'English';
 
   if (PC_HOLO_TYPES.has(holoType)) {
-    // Use PriceCharting for actual holo scans
-    try {
-      const params = new URLSearchParams({
-        name, number, holo_type: holoType, set_name: set, language: 'English', set_series: '',
-      });
-      const res  = await fetch(`/api/pricecharting?${params}`);
-      const data = await res.json();
-      if (data.image_url) return data.image_url;
-    } catch { /* fall through to TCG API */ }
+    // For "Hyper Rare" (mapped from JP "Secret Rare"), JP sets use it as a catch-all
+    // for all chase cards — try Illustration Rare, Special Illustration Rare, then Hyper Rare
+    const holoTypesToTry = holoType === 'Hyper Rare'
+      ? ['Illustration Rare', 'Special Illustration Rare', 'Hyper Rare']
+      : [holoType];
+
+    for (const ht of holoTypesToTry) {
+      try {
+        const params = new URLSearchParams({
+          name, number, holo_type: ht, set_name: set, language, set_series: '',
+        });
+        const res  = await fetch(`/api/pricecharting?${params}`);
+        const data = await res.json();
+        if (data.image_url) return data.image_url;
+      } catch { /* try next */ }
+    }
+    return null;
   }
 
   // TCG API for Normal / Common / Uncommon / Rare (no special scan needed)
-  return fetchImage({ name, number, set, rarity: '', holo_type: holoType, price: 0, available: true, image_url: null, language: 'English' });
+  return fetchImage({ name, number, set, rarity: '', holo_type: holoType, price: 0, available: true, image_url: null, language });
 }
 
 /* ── Backfill images for existing cards with null image_url ── */
@@ -272,13 +281,13 @@ async function backfillImages(
   abortRef: React.MutableRefObject<boolean>,
   limit?: number,
 ): Promise<{ updated: number; failed: number; cards: { name: string; url: string | null }[] }> {
-  let allCards: { id: string; name: string; number: string | null; set: string | null; holo_type: string | null }[] = [];
+  let allCards: { id: string; name: string; number: string | null; set: string | null; holo_type: string | null; language: string | null }[] = [];
   let page = 0;
   const PAGE = 1000;
   while (true) {
     const { data } = await supabase
       .from('Card')
-      .select('id, name, number, set, holo_type')
+      .select('id, name, number, set, holo_type, language')
       .is('image_url', null)
       .range(page * PAGE, (page + 1) * PAGE - 1);
     if (!data || data.length === 0) break;
