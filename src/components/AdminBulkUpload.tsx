@@ -60,17 +60,17 @@ function mapRarityAndVariance(rarity: string, variance: string): string {
   if (r === 'trainer gallery')            return 'Illustration Rare';
   if (r === 'amazing rare')               return 'Amazing';
 
-  // For Holo Rare / Rare — variance decides between Reverse Holo and Holo
-  if (r === 'holo rare' || r === 'rare holo') {
-    return v === 'reverse holofoil' ? 'Reverse Holo' : 'Holo Rare';
-  }
+  // Holo Rare is always Holo Rare — variance doesn't change that
+  if (r === 'holo rare' || r === 'rare holo') return 'Holo Rare';
+
+  // Plain Rare — holofoil variant = Holo Rare, reverse = Reverse Holo
   if (r === 'rare') {
     if (v === 'reverse holofoil') return 'Reverse Holo';
     if (v === 'holofoil' || v === 'foil') return 'Holo Rare';
     return 'Rare';
   }
 
-  // Common / Uncommon / anything else — fall back to variance
+  // Common / Uncommon — only these cards come as Reverse Holo
   if (v === 'reverse holofoil') return 'Reverse Holo';
   if (v === 'holofoil' || v === 'foil') return 'Holo Rare';
   return 'Normal';
