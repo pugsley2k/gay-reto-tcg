@@ -28,14 +28,52 @@ function parseCSVRow(line: string): string[] {
   return result;
 }
 
-/* ── Variance → holo_type mapping ── */
-function mapVariance(variance: string): string {
+/* ── Language detection from product name ── */
+function detectLanguage(productName: string): string {
+  if (/\(JP\)/i.test(productName)) return 'Japanese';
+  if (/\(KR\)/i.test(productName)) return 'Korean';
+  if (/\(CN\)/i.test(productName)) return 'Chinese';
+  if (/\(TW\)/i.test(productName)) return 'Chinese';
+  return 'English';
+}
+
+/* ── Rarity + Variance → holo_type mapping ── */
+function mapRarityAndVariance(rarity: string, variance: string): string {
+  const r = rarity.toLowerCase().trim();
   const v = variance.toLowerCase().trim();
-  if (v === 'holofoil')         return 'Holo Rare';
+
+  // Special rarities take precedence over variance
+  if (r === 'art rare')                   return 'Illustration Rare';
+  if (r === 'special art rare')           return 'Special Illustration Rare';
+  if (r === 'illustration rare')          return 'Illustration Rare';
+  if (r === 'special illustration rare')  return 'Special Illustration Rare';
+  if (r === 'ultra rare')                 return 'Ultra Rare';
+  if (r === 'double rare')                return 'Double Rare';
+  if (r === 'hyper rare')                 return 'Hyper Rare';
+  if (r === 'secret rare')                return 'Hyper Rare';   // JP "Secret Rare" = gold/rainbow = Hyper Rare
+  if (r === 'shiny rare')                 return 'Shiny Rare';
+  if (r === 'shiny ultra rare')           return 'Shiny Ultra Rare';
+  if (r === 'radiant rare')               return 'Radiant Rare';
+  if (r === 'ace spec rare' || r === 'ace spec') return 'ACE SPEC rare';
+  if (r === 'rare break')                 return 'Rare BREAK';
+  if (r === 'promo')                      return 'Promo';
+  if (r === 'trainer gallery')            return 'Illustration Rare';
+  if (r === 'amazing rare')               return 'Amazing';
+
+  // For Holo Rare / Rare — variance decides between Reverse Holo and Holo
+  if (r === 'holo rare' || r === 'rare holo') {
+    return v === 'reverse holofoil' ? 'Reverse Holo' : 'Holo Rare';
+  }
+  if (r === 'rare') {
+    if (v === 'reverse holofoil') return 'Reverse Holo';
+    if (v === 'holofoil' || v === 'foil') return 'Holo Rare';
+    return 'Rare';
+  }
+
+  // Common / Uncommon / anything else — fall back to variance
   if (v === 'reverse holofoil') return 'Reverse Holo';
-  if (v === 'foil')             return 'Holo Rare';
-  if (v === 'normal')           return 'Normal';
-  return variance || 'Normal';
+  if (v === 'holofoil' || v === 'foil') return 'Holo Rare';
+  return 'Normal';
 }
 
 /* ── Types ── */
@@ -113,11 +151,11 @@ function parsePortfolioCSV(raw: string, gbpRate: number): MappedCard[] {
       number:    cardNumber,
       set,
       rarity,
-      holo_type: mapVariance(variance),
+      holo_type: mapRarityAndVariance(rarity, variance),
       price:     priceGBPp,
       available: quantity > 0,
       image_url: null,
-      language:  'English',
+      language:  detectLanguage(productName),
       _error:    error,
       _imageStatus: 'pending',
     };
@@ -268,6 +306,66 @@ async function backfillImages(
   }
 
   return { updated, failed };
+}
+
+/* ── Fix language for existing JP/KR cards ── */
+function FixLanguageButton() {
+  const [running, setRunning] = useState(false);
+  const [result, setResult]   = useState<{ msg: string; ok: boolean } | null>(null);
+
+  async function handleFix() {
+    setRunning(true);
+    setResult(null);
+    let updated = 0;
+
+    // JP cards
+    const { data: jpCards } = await supabase
+      .from('Card')
+      .select('id, name')
+      .ilike('name', '%(JP)%')
+      .neq('language', 'Japanese');
+
+    if (jpCards?.length) {
+      const ids = jpCards.map(c => c.id);
+      await supabase.from('Card').update({ language: 'Japanese' }).in('id', ids);
+      updated += ids.length;
+    }
+
+    // KR cards
+    const { data: krCards } = await supabase
+      .from('Card')
+      .select('id, name')
+      .ilike('name', '%(KR)%')
+      .neq('language', 'Korean');
+
+    if (krCards?.length) {
+      const ids = krCards.map(c => c.id);
+      await supabase.from('Card').update({ language: 'Korean' }).in('id', ids);
+      updated += ids.length;
+    }
+
+    setRunning(false);
+    setResult({ ok: true, msg: `Updated language on ${updated} card${updated !== 1 ? 's' : ''}.` });
+  }
+
+  return (
+    <div>
+      {!running && (
+        <button style={btnStyle('linear-gradient(90deg,#ffd166,#ff8c42)')} onClick={handleFix}>
+          Fix JP/KR Language
+        </button>
+      )}
+      {running && <span style={{ fontSize: 11, color: '#8080b0' }}>Fixing…</span>}
+      {result && (
+        <div style={{
+          padding: '10px 14px', borderRadius: 6, marginTop: 12, fontSize: 12,
+          background: 'rgba(6,214,160,0.1)', border: '1px solid rgba(6,214,160,0.3)', color: '#06d6a0',
+        }}>
+          {result.msg}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /* ── Component ── */
@@ -557,6 +655,15 @@ export default function AdminBulkUpload() {
           )}
         </div>
       )}
+
+      {/* ── Fix language on existing JP cards ── */}
+      <div style={{ marginTop: '2.5rem', borderTop: '1px solid #1e1e3a', paddingTop: '1.5rem' }}>
+        <div style={{ color: '#ffd166', fontWeight: 700, fontSize: 12, marginBottom: 6 }}>Fix Language on JP/KR Cards</div>
+        <div style={{ color: '#5a5a8a', fontSize: 11, marginBottom: 12 }}>
+          Finds all cards whose name contains "(JP)" or "(KR)" and sets their language field correctly.
+        </div>
+        <FixLanguageButton />
+      </div>
 
       {/* ── Backfill missing images ── */}
       <div style={{ marginTop: '2.5rem', borderTop: '1px solid #1e1e3a', paddingTop: '1.5rem' }}>
