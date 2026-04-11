@@ -269,8 +269,9 @@ async function fetchImageForCard(card: {
 /* ── Backfill images for existing cards with null image_url ── */
 async function backfillImages(
   onProgress: (done: number, total: number) => void,
-  abortRef: React.MutableRefObject<boolean>
-): Promise<{ updated: number; failed: number }> {
+  abortRef: React.MutableRefObject<boolean>,
+  limit?: number,
+): Promise<{ updated: number; failed: number; cards: { name: string; url: string | null }[] }> {
   let allCards: { id: string; name: string; number: string | null; set: string | null; holo_type: string | null }[] = [];
   let page = 0;
   const PAGE = 1000;
@@ -286,8 +287,11 @@ async function backfillImages(
     page++;
   }
 
+  if (limit) allCards = allCards.slice(0, limit);
+
   let updated = 0;
   let failed  = 0;
+  const cards: { name: string; url: string | null }[] = [];
 
   // Process in batches of 3 (PC scraping is slower — be gentle)
   const BATCH = 3;
@@ -296,6 +300,7 @@ async function backfillImages(
     const batch = allCards.slice(i, i + BATCH);
     await Promise.all(batch.map(async card => {
       const url = await fetchImageForCard(card);
+      cards.push({ name: card.name, url });
       if (url) {
         const { error } = await supabase.from('Card').update({ image_url: url }).eq('id', card.id);
         if (!error) updated++; else failed++;
@@ -304,10 +309,10 @@ async function backfillImages(
       }
     }));
     onProgress(Math.min(i + BATCH, allCards.length), allCards.length);
-    await new Promise(r => setTimeout(r, 500)); // extra padding for PC requests
+    await new Promise(r => setTimeout(r, 500));
   }
 
-  return { updated, failed };
+  return { updated, failed, cards };
 }
 
 /* ── Fix language for existing JP/KR cards ── */
@@ -384,21 +389,23 @@ export default function AdminBulkUpload() {
 
   // Backfill state
   const [backfillProgress, setBackfillProgress] = useState<{ done: number; total: number } | null>(null);
-  const [backfillResult, setBackfillResult]     = useState<{ msg: string; ok: boolean } | null>(null);
+  const [backfillResult, setBackfillResult]     = useState<{ msg: string; ok: boolean; testCards?: { name: string; url: string | null }[] } | null>(null);
   const backfillAbort = useRef(false);
 
-  async function handleBackfill() {
+  async function handleBackfill(limit?: number) {
     backfillAbort.current = false;
     setBackfillResult(null);
     setBackfillProgress({ done: 0, total: 0 });
-    const { updated, failed } = await backfillImages(
+    const { updated, failed, cards } = await backfillImages(
       (done, total) => setBackfillProgress({ done, total }),
-      backfillAbort
+      backfillAbort,
+      limit,
     );
     setBackfillProgress(null);
     setBackfillResult({
-      ok: updated > 0,
-      msg: `Updated ${updated} card image${updated !== 1 ? 's' : ''}${failed > 0 ? `, ${failed} not found on TCG API` : ''}.`,
+      ok: updated > 0 || (limit !== undefined && cards.length > 0),
+      msg: `Updated ${updated} card image${updated !== 1 ? 's' : ''}${failed > 0 ? `, ${failed} not found` : ''}.`,
+      testCards: limit !== undefined ? cards : undefined,
     });
   }
 
@@ -675,9 +682,14 @@ export default function AdminBulkUpload() {
         </div>
 
         {!backfillProgress && (
-          <button style={btnStyle('linear-gradient(90deg,#ff8c42,#ff3e6c)')} onClick={handleBackfill}>
-            Backfill Missing Images
-          </button>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button style={btnStyle('linear-gradient(90deg,#06d6a0,#118ab2)')} onClick={() => handleBackfill(1)}>
+              Test 1 Card
+            </button>
+            <button style={btnStyle('linear-gradient(90deg,#ff8c42,#ff3e6c)')} onClick={() => handleBackfill()}>
+              Backfill All Missing Images
+            </button>
+          </div>
         )}
 
         {backfillProgress && (
@@ -704,13 +716,31 @@ export default function AdminBulkUpload() {
         )}
 
         {backfillResult && (
-          <div style={{
-            padding: '10px 14px', borderRadius: 6, marginTop: 12, fontSize: 12,
-            background: backfillResult.ok ? 'rgba(6,214,160,0.1)' : 'rgba(248,113,113,0.1)',
-            border: `1px solid ${backfillResult.ok ? 'rgba(6,214,160,0.3)' : 'rgba(248,113,113,0.3)'}`,
-            color: backfillResult.ok ? '#06d6a0' : '#f87171',
-          }}>
-            {backfillResult.msg}
+          <div style={{ marginTop: 12 }}>
+            <div style={{
+              padding: '10px 14px', borderRadius: 6, fontSize: 12,
+              background: backfillResult.ok ? 'rgba(6,214,160,0.1)' : 'rgba(248,113,113,0.1)',
+              border: `1px solid ${backfillResult.ok ? 'rgba(6,214,160,0.3)' : 'rgba(248,113,113,0.3)'}`,
+              color: backfillResult.ok ? '#06d6a0' : '#f87171',
+            }}>
+              {backfillResult.msg}
+            </div>
+            {backfillResult.testCards && backfillResult.testCards.map((c, i) => (
+              <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginTop: 12, background: '#0c0c1e', border: '1px solid #2d2d50', borderRadius: 8, padding: 12 }}>
+                {c.url
+                  ? <img src={c.url} alt={c.name} style={{ width: 80, borderRadius: 4, flexShrink: 0 }} />
+                  : <div style={{ width: 80, height: 110, background: '#1a1a30', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#5a5a8a', flexShrink: 0 }}>No image</div>
+                }
+                <div>
+                  <div style={{ fontSize: 11, color: '#c0c0e0', marginBottom: 4 }}>{c.name}</div>
+                  {c.url
+                    ? <div style={{ fontSize: 10, color: '#06d6a0' }}>✓ Image found</div>
+                    : <div style={{ fontSize: 10, color: '#f87171' }}>✗ Not found — check name/set/holo_type</div>
+                  }
+                  {c.url && <div style={{ fontSize: 9, color: '#5a5a8a', wordBreak: 'break-all', marginTop: 4 }}>{c.url}</div>}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
