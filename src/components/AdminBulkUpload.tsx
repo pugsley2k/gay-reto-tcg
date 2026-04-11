@@ -146,7 +146,8 @@ async function tcgFetch(q: string): Promise<any[]> {
 
 async function fetchImage(card: MappedCard): Promise<string | null> {
   try {
-    const name   = cleanCardName(card.name);
+    // name may already be cleaned when called from fetchImageForCard
+    const name   = card.name.includes('(') ? cleanCardName(card.name) : card.name;
     const number = card.number?.split('/')[0]?.replace(/^0+/, '') ?? ''; // "021" → "21"
 
     // 1st attempt: name + number
@@ -189,19 +190,54 @@ const tdStyle: React.CSSProperties = {
   padding: '5px 8px', borderBottom: '1px solid #111128', fontSize: 11, verticalAlign: 'top',
 };
 
+/* ── Holo types that need PriceCharting scans instead of TCG API ── */
+const PC_HOLO_TYPES = new Set([
+  'Reverse Holo', 'Reverse Holofoil', 'reverseHolofoil',
+  'Holo Rare', 'Holofoil', 'holofoil', 'Rare Holo',
+  'Pokeball Holo', 'Master Ball Holo', 'Cosmos Holo',
+  'Ultra Rare', 'Full Art', 'Alt Art',
+  'Illustration Rare', 'Special Illustration Rare',
+  'Hyper Rare', 'Mega Hyper Rare', 'Mega Attack Rare',
+  'Shiny Rare', 'Shiny Ultra Rare', 'Radiant Rare',
+  'Double Rare', 'ACE SPEC rare', 'Rare BREAK', 'Promo',
+]);
+
+async function fetchImageForCard(card: {
+  name: string; number: string | null; set: string | null; holo_type: string | null;
+}): Promise<string | null> {
+  const holoType = card.holo_type ?? 'Normal';
+  const name     = cleanCardName(card.name);
+  const number   = card.number ?? '';
+  const set      = card.set    ?? '';
+
+  if (PC_HOLO_TYPES.has(holoType)) {
+    // Use PriceCharting for actual holo scans
+    try {
+      const params = new URLSearchParams({
+        name, number, holo_type: holoType, set_name: set, language: 'English', set_series: '',
+      });
+      const res  = await fetch(`/api/pricecharting?${params}`);
+      const data = await res.json();
+      if (data.image_url) return data.image_url;
+    } catch { /* fall through to TCG API */ }
+  }
+
+  // TCG API for Normal / Common / Uncommon / Rare (no special scan needed)
+  return fetchImage({ name, number, set, rarity: '', holo_type: holoType, price: 0, available: true, image_url: null, language: 'English' });
+}
+
 /* ── Backfill images for existing cards with null image_url ── */
 async function backfillImages(
   onProgress: (done: number, total: number) => void,
   abortRef: React.MutableRefObject<boolean>
 ): Promise<{ updated: number; failed: number }> {
-  // Fetch all cards without images in pages of 1000
-  let allCards: { id: string; name: string; number: string | null; set: string | null }[] = [];
+  let allCards: { id: string; name: string; number: string | null; set: string | null; holo_type: string | null }[] = [];
   let page = 0;
   const PAGE = 1000;
   while (true) {
     const { data } = await supabase
       .from('Card')
-      .select('id, name, number, set')
+      .select('id, name, number, set, holo_type')
       .is('image_url', null)
       .range(page * PAGE, (page + 1) * PAGE - 1);
     if (!data || data.length === 0) break;
@@ -213,11 +249,13 @@ async function backfillImages(
   let updated = 0;
   let failed  = 0;
 
-  for (let i = 0; i < allCards.length; i += 5) {
+  // Process in batches of 3 (PC scraping is slower — be gentle)
+  const BATCH = 3;
+  for (let i = 0; i < allCards.length; i += BATCH) {
     if (abortRef.current) break;
-    const batch = allCards.slice(i, i + 5);
+    const batch = allCards.slice(i, i + BATCH);
     await Promise.all(batch.map(async card => {
-      const url = await fetchImage({ name: card.name, number: card.number ?? '', set: card.set ?? '', rarity: '', holo_type: '', price: 0, available: true, image_url: null, language: 'English' });
+      const url = await fetchImageForCard(card);
       if (url) {
         const { error } = await supabase.from('Card').update({ image_url: url }).eq('id', card.id);
         if (!error) updated++; else failed++;
@@ -225,8 +263,8 @@ async function backfillImages(
         failed++;
       }
     }));
-    onProgress(Math.min(i + 5, allCards.length), allCards.length);
-    await new Promise(r => setTimeout(r, 300));
+    onProgress(Math.min(i + BATCH, allCards.length), allCards.length);
+    await new Promise(r => setTimeout(r, 500)); // extra padding for PC requests
   }
 
   return { updated, failed };
