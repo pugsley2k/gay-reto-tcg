@@ -315,6 +315,58 @@ async function backfillImages(
   return { updated, failed, cards };
 }
 
+/* ── Delete all cards from DB (for clean re-import) ── */
+function DeleteAllCardsButton() {
+  const [confirm, setConfirm]   = useState(false);
+  const [running, setRunning]   = useState(false);
+  const [result, setResult]     = useState<{ msg: string; ok: boolean } | null>(null);
+
+  async function handleDelete() {
+    setRunning(true);
+    setResult(null);
+    // Supabase requires a filter — delete all rows by matching id > 0
+    const { error, count } = await supabase
+      .from('Card')
+      .delete({ count: 'exact' })
+      .gte('id', 0);
+    setRunning(false);
+    setConfirm(false);
+    if (error) {
+      setResult({ ok: false, msg: `Error: ${error.message}` });
+    } else {
+      setResult({ ok: true, msg: `Deleted ${count ?? 'all'} cards. You can now re-import your CSV.` });
+    }
+  }
+
+  return (
+    <div>
+      {!confirm && !running && (
+        <button style={btnStyle('linear-gradient(90deg,#7f1d1d,#dc2626)')} onClick={() => setConfirm(true)}>
+          🗑 Delete All Cards
+        </button>
+      )}
+      {confirm && !running && (
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 11, color: '#f87171' }}>Are you sure? This cannot be undone.</span>
+          <button style={btnStyle('linear-gradient(90deg,#7f1d1d,#dc2626)')} onClick={handleDelete}>Yes, delete all</button>
+          <button style={btnStyle()} onClick={() => setConfirm(false)}>Cancel</button>
+        </div>
+      )}
+      {running && <span style={{ fontSize: 11, color: '#8080b0' }}>Deleting…</span>}
+      {result && (
+        <div style={{
+          padding: '10px 14px', borderRadius: 6, marginTop: 12, fontSize: 12,
+          background: result.ok ? 'rgba(6,214,160,0.1)' : 'rgba(248,113,113,0.1)',
+          border: `1px solid ${result.ok ? 'rgba(6,214,160,0.3)' : 'rgba(248,113,113,0.3)'}`,
+          color: result.ok ? '#06d6a0' : '#f87171',
+        }}>
+          {result.msg}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Fix language for existing JP/KR cards ── */
 function FixLanguageButton() {
   const [running, setRunning] = useState(false);
@@ -664,6 +716,15 @@ export default function AdminBulkUpload() {
           )}
         </div>
       )}
+
+      {/* ── Danger zone: delete all cards for clean re-import ── */}
+      <div style={{ marginTop: '2.5rem', borderTop: '1px solid #1e1e3a', paddingTop: '1.5rem' }}>
+        <div style={{ color: '#f87171', fontWeight: 700, fontSize: 12, marginBottom: 6 }}>⚠ Reset & Re-import</div>
+        <div style={{ color: '#5a5a8a', fontSize: 11, marginBottom: 12 }}>
+          Deletes every card from the database so you can do a clean re-import with the corrected rarity, language, and image logic.
+        </div>
+        <DeleteAllCardsButton />
+      </div>
 
       {/* ── Fix language on existing JP cards ── */}
       <div style={{ marginTop: '2.5rem', borderTop: '1px solid #1e1e3a', paddingTop: '1.5rem' }}>
