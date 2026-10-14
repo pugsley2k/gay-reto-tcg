@@ -3,6 +3,8 @@ import { useCart } from "@/components/CartProvider";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import SiteFooter from '@/components/SiteFooter';
+import Link from 'next/link';
+import { shippingOptions, CONTACT_EMAIL, type ShippingMethod } from '@/lib/shipping';
 import { useState } from "react";
 import styles from "../styles/CartPage.module.css";
 
@@ -13,9 +15,12 @@ export default function CartPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
+  const [shippingMethod, setShippingMethod] = useState<ShippingMethod>('tracked-48');
 
   const totalPrice = cart.reduce((total, item) => total + item.price * item.quantity, 0);
   const isBelowMinimumSpend = totalPrice < MINIMUM_SPEND_PENCE;
+  const options = shippingOptions(totalPrice, cart.length);
+  const shipping = options.find(option => option.id === shippingMethod) || options[0];
 
   async function handleCheckout() {
     if (isBelowMinimumSpend) {
@@ -43,7 +48,7 @@ export default function CartPage() {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lineItems }),
+        body: JSON.stringify({ lineItems, shippingMethod: shipping?.id }),
       });
 
       const result = await res.json();
@@ -133,9 +138,21 @@ export default function CartPage() {
           <p className={styles.summaryLabel}>Subtotal:</p>
           <p className={styles.summaryValue}>£{(totalPrice / 100).toFixed(2)}</p>
         </div>
+        <fieldset className={styles.deliveryOptions}>
+          <legend>UK delivery</legend>
+          {options.map(option => <label key={option.id} className={styles.deliveryOption}>
+            <input type="radio" name="shipping" value={option.id} checked={shipping?.id === option.id} onChange={() => setShippingMethod(option.id)} />
+            <span><strong>{option.label}</strong><small>{option.deliveryAim}</small></span>
+            <b>£{(option.price / 100).toFixed(2)}</b>
+          </label>)}
+          {totalPrice > 7500 && shipping && <p>Special Delivery is required for orders over £75.</p>}
+          {!shipping && <p>Please <a href={`mailto:${CONTACT_EMAIL}`}>email us</a> to arrange delivery for this order.</p>}
+        </fieldset>
+        <p className={styles.deliveryNote}>Dispatched within 3–5 working days. Postage and packing are included in the delivery charge. Choose a UK address in PayPal.</p>
+        <div className={styles.summaryRow}><p>Delivery:</p><p>{shipping ? `£${(shipping.price / 100).toFixed(2)}` : 'Contact us'}</p></div>
         <div className={`${styles.summaryRow} ${styles.summaryTotalRow}`}>
           <p className={styles.summaryTotalLabel}>Total:</p>
-          <p className={styles.summaryTotalValue}>£{(totalPrice / 100).toFixed(2)}</p>
+          <p className={styles.summaryTotalValue}>{shipping ? `£${((totalPrice + shipping.price) / 100).toFixed(2)}` : '—'}</p>
         </div>
         {isBelowMinimumSpend && (
           <div className={styles.minimumSpendMessage}>
@@ -145,10 +162,11 @@ export default function CartPage() {
         <button
           onClick={handleCheckout}
           className={styles.checkoutButton}
-          disabled={isBelowMinimumSpend || isLoading}
+          disabled={isBelowMinimumSpend || isLoading || !shipping}
         >
           {isLoading ? "Processing..." : "Checkout with PayPal"}
         </button>
+        <p className={styles.deliveryNote}><Link href="/delivery">Delivery details</Link> · <Link href="/returns">Returns</Link> · <Link href="/contact">Contact</Link></p>
       </div></div>
       <SiteFooter />
     </main>

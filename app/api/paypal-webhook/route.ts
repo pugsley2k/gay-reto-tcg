@@ -115,7 +115,7 @@ try {
 
       // ✅ Optional: mark order as complete
       await supabase
-        .from("Orders")
+        .from("orders")
         .update({ status: "completed" })
         .eq("id", orderId);
     }

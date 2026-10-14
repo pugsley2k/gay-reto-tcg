@@ -8,6 +8,7 @@ import { EXAMPLE_CARD_ID } from '@/lib/example-listing';
 import { ToastContainer, toast, Flip } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import SiteFooter from '@/components/SiteFooter';
+import type { FilterOption } from '@/lib/shop-filters';
 
 /* ── Set name abbreviations applied to card title display ── */
 const SET_ABBREVIATIONS: [RegExp, string][] = [
@@ -59,15 +60,7 @@ const RARITY_ORDER: Record<string, number> = {
   "Holo Rare": 3, "Secret Rare": 4, "Promo": 5,
 };
 
-const HOLO_TYPE_OPTIONS = [
-  'Normal','Common','Uncommon','Rare',
-  'Reverse Holo','Pokeball Holo','Master Ball Holo','Cosmos Holo',
-  'Holo Rare','Rare Holo','Rare Holo EX','Rare Holo GX',
-  'Double Rare','Ultra Rare','Full Art','Alt Art',
-  'Illustration Rare','Special Illustration Rare',
-  'Hyper Rare','Shiny Rare','Shiny Ultra Rare','Radiant Rare',
-  'ACE SPEC rare','Promo',
-];
+
 
 export default function ShopPage() {
   const [cards, setCards] = useState<any[]>([]);
@@ -81,14 +74,20 @@ export default function ShopPage() {
   const [langFilter, setLangFilter] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [loading, setLoading] = useState(true);
-  const [setOptions, setSetOptions] = useState<{ value: string; label: string }[]>([]);
+  const [setOptions, setSetOptions] = useState<FilterOption[]>([]);
+  const [rarityOptions, setRarityOptions] = useState<FilterOption[]>([]);
+  const [finishOptions, setFinishOptions] = useState<FilterOption[]>([]);
+  const [languageOptions, setLanguageOptions] = useState<FilterOption[]>([]);
+  const [filterError, setFilterError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCards, setTotalCards] = useState(0);
   const CARDS_PER_PAGE = 20;
 
   const { addToCart } = useCart();
+  const latestRequest = useRef(0);
 
   const fetchCards = useCallback(async () => {
+    const request = ++latestRequest.current;
     setError(null);
     setLoading(true);
     const from = (currentPage - 1) * CARDS_PER_PAGE;
@@ -100,10 +99,10 @@ export default function ShopPage() {
       .eq("available", true);
 
     if (search)     query = query.ilike("name", `%${search}%`);
-    if (setName)    query = query.eq("set", setName);
-    if (rarity)     query = query.ilike("rarity", `%${rarity}%`);
-    if (holoFilter) query = query.eq("holo_type", holoFilter);
-    if (langFilter) query = query.eq("language", langFilter);
+    if (setName)    query = query.in("set", setOptions.find(option => option.label === setName)?.values || [setName]);
+    if (rarity)     query = query.in("rarity", rarityOptions.find(option => option.label === rarity)?.values || [rarity]);
+    if (holoFilter) query = query.in("holo_type", finishOptions.find(option => option.label === holoFilter)?.values || [holoFilter]);
+    if (langFilter) query = query.in("language", languageOptions.find(option => option.label === langFilter)?.values || [langFilter]);
 
     const orderCol  = sortBy === "price-asc" || sortBy === "price-desc" ? "price"
                     : sortBy === "name-asc"  || sortBy === "name-desc"  ? "name"
@@ -114,6 +113,7 @@ export default function ShopPage() {
       .range(from, to)
       .order(orderCol, { ascending });
 
+    if (request !== latestRequest.current) return;
     if (error) {
       setError("Failed to load cards.");
     } else {
@@ -121,13 +121,13 @@ export default function ShopPage() {
       setTotalCards(count || 0);
     }
     setLoading(false);
-  }, [search, rarity, setName, holoFilter, langFilter, sortBy, currentPage]);
+  }, [search, rarity, setName, holoFilter, langFilter, sortBy, currentPage, setOptions, rarityOptions, finishOptions, languageOptions]);
 
   useEffect(() => {
-    fetch("/api/sets")
-      .then(res => res.json())
-      .then(data => setSetOptions((data.sets || []).map((s: any) => ({ value: s.value, label: s.label }))))
-      .catch(() => {});
+    fetch("/api/shop-filters")
+      .then(async res => { if (!res.ok) throw new Error(); return res.json(); })
+      .then(data => { setSetOptions(data.sets || []); setRarityOptions(data.rarities || []); setFinishOptions(data.finishes || []); setLanguageOptions(data.languages || []); })
+      .catch(() => setFilterError('Some filters are unavailable. You can still search by card name.'));
   }, []);
 
   useEffect(() => { if (searchReady) fetchCards(); }, [fetchCards, searchReady]);
@@ -178,7 +178,7 @@ export default function ShopPage() {
 
   useEffect(() => {
     if (!recentIds.length) { setRecentCards([]); return; }
-    supabase.from('Card').select('id,name,image_url,price,holo_type').in('id', recentIds)
+    supabase.from('Card').select('id,name,image_url,price,holo_type,set,language,rarity,condition,edition').eq('available', true).in('id', recentIds)
       .then(({ data }) => {
         if (!data) return;
         // preserve view order
@@ -235,9 +235,9 @@ export default function ShopPage() {
         <div className={styles.filterSection}>
           <div className={styles.filterGrid}>
             <div className={styles.filterItem}>
-              <label className={styles.filterLabel}>Search</label>
-              <input
-                type="text"
+              <label className={styles.filterLabel} htmlFor="card-search">Search</label>
+              <input id="card-search"
+                type="search"
                 className={`form-control ${styles.filterInput}`}
                 placeholder="Card name..."
                 aria-label="Search cards"
@@ -250,24 +250,29 @@ export default function ShopPage() {
               <select id="card-set" className={`form-select ${styles.filterInput}`} value={setName} onChange={e => setSetName(e.target.value)}>
                 <option value="">All Sets</option>
                 {setOptions.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  <option key={opt.label} value={opt.label}>{opt.label}</option>
                 ))}
               </select>
             </div>
             <div className={styles.filterItem}>
-              <label className={styles.filterLabel} htmlFor="card-finish">Holo Type</label>
+              <label className={styles.filterLabel} htmlFor="card-rarity">Rarity</label>
+              <select id="card-rarity" className={`form-select ${styles.filterInput}`} value={rarity} onChange={e => setRarity(e.target.value)}>
+                <option value="">All rarities</option>
+                {rarityOptions.map(option => <option key={option.label} value={option.label}>{option.label}</option>)}
+              </select>
+            </div>
+            <div className={styles.filterItem}>
+              <label className={styles.filterLabel} htmlFor="card-finish">Finish</label>
               <select id="card-finish" className={`form-select ${styles.filterInput}`} value={holoFilter} onChange={e => setHoloFilter(e.target.value)}>
-                <option value="">All Types</option>
-                {HOLO_TYPE_OPTIONS.map(h => <option key={h} value={h}>{h}</option>)}
+                <option value="">All finishes</option>
+                {finishOptions.map(option => <option key={option.label} value={option.label}>{option.label}</option>)}
               </select>
             </div>
             <div className={styles.filterItem}>
               <label className={styles.filterLabel} htmlFor="card-language">Language</label>
               <select id="card-language" className={`form-select ${styles.filterInput}`} value={langFilter} onChange={e => setLangFilter(e.target.value)}>
                 <option value="">All Languages</option>
-                <option value="English">🇬🇧 English</option>
-                <option value="Japanese">🇯🇵 Japanese</option>
-                <option value="Korean">🇰🇷 Korean</option>
+                {languageOptions.map(option => <option key={option.label} value={option.label}>{option.label}</option>)}
               </select>
             </div>
             <div className={styles.filterItem}>
@@ -291,8 +296,10 @@ export default function ShopPage() {
           </div>
         </div>
 
+        {filterError && <p role="status" className={styles.filterNotice}>{filterError}</p>}
+        <p className={styles.resultCount} role="status" aria-live="polite">{loading ? 'Finding cards…' : `${totalCards} ${totalCards === 1 ? 'card' : 'cards'}${hasFilters ? ' matching your filters' : ' available'}`}</p>
         {/* ── Error ── */}
-        {error && <div className="alert alert-danger">{error}</div>}
+        {error && <div role="alert" className="alert alert-danger">{error} <button type="button" onClick={() => fetchCards()}>Try again</button></div>}
 
         {/* ── Loading ── */}
         {loading && (

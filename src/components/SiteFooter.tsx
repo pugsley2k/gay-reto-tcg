@@ -7,6 +7,6 @@ export default function SiteFooter() {
     <Link href="/" className={styles.logo} aria-label="Gay Retro TCG home">
       <img src="/gay-retro-flat.webp" alt="" width="180" height="61" loading="lazy" />
     </Link>
-    <Link href="/admin/scan" className={styles.seller}>Seller studio ↗</Link>
+    <nav className={styles.links} aria-label="Customer information"><Link href="/delivery">Delivery</Link><Link href="/returns">Returns</Link><Link href="/contact">Contact</Link><Link href="/admin/scan">Seller studio ↗</Link></nav>
   </footer>;
 }

@@ -30,7 +30,7 @@ function SuccessContent() {
         const res = await fetch(`/api/paypal-capture?token=${token}`);
         const data = await res.json();
         if (!res.ok) {
-          setError("Payment capture failed. Please contact support.");
+          setError(data.error || "Payment could not be completed. Please email gayretrotcg@gmail.com.");
         } else {
           clearCart();
         }
@@ -74,12 +74,13 @@ function SuccessContent() {
         <div className={styles.successIcon} aria-hidden="true">★</div>
         <h1 className={styles.successTitle}>PAYMENT SUCCESSFUL!</h1>
         <p className={styles.bodyText}>
-          Thank you for your order. Your confirmation will be sent to your email shortly.
+          Thank you for your order. We dispatch within 3–5 working days. Keep your PayPal receipt as proof of purchase.
         </p>
         {payerId && (
           <p className={styles.metaText}>Payer ID: <code className={styles.code}>{payerId}</code></p>
         )}
         <Link href="/shop" className={styles.ctaBtn}>Continue Shopping</Link>
+        <p className={styles.bodyText}>Questions? <a href="mailto:gayretrotcg@gmail.com">gayretrotcg@gmail.com</a></p>
       </div>
       <div className={styles.rainbowBar} aria-hidden="true" />
     </div>

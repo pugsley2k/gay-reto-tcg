@@ -22,7 +22,7 @@ export default async function HomePage() {
       <CollectorDeck />
     </section>
     <ListingBanner cards={cards} failed={failed} />
-    <section className={styles.arrivals}>
+    <section id="latest-cards" className={styles.arrivals}>
       <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>THE COLLECTION</p><h2>Latest <span>cards</span></h2></div><p>Recently added to the shop.</p><Link href="/shop" className={styles.textLink}>All cards <span aria-hidden="true">↗</span></Link></div>
       {cards.length ? <div className={styles.grid}>{cards.slice(0, 4).map((card,index) => <Link key={card.id} href={`/shop?search=${encodeURIComponent(card.name)}`} className={styles.product}>
         <div className={styles.cardImage}><span className={styles.cardIndex}>GR / 00{index+1}</span><span className={styles.cardArtwork}><Image src={card.image_url} alt={card.name} fill sizes="(max-width: 640px) 45vw, 260px" /></span></div>

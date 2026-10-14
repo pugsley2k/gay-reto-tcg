@@ -3,6 +3,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from "@supabase/supabase-js";
 import { v4 as uuidv4 } from 'uuid';
 import { validateCheckout, priceCheckout } from '../../src/lib/checkout';
+import { requireShipping, type ShippingQuote } from '../../src/lib/shipping';
 
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID!;
 const PAYPAL_SECRET = process.env.PAYPAL_SECRET!;
@@ -26,6 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   let totalAmount: number;
+  let shipping: ShippingQuote;
   let cardSummary: { id: string; name: string; quantity: number }[];
   try {
     const ids = validateCheckout(lineItems);
@@ -34,6 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const priced = priceCheckout(ids, data ?? []);
     totalAmount = priced.total;
     cardSummary = priced.summary;
+    shipping = requireShipping(totalAmount, ids.length, req.body.shippingMethod);
   } catch (error) {
     return res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid cart.' });
   }
@@ -53,6 +56,7 @@ console.log("🧾 Inserting order:", {
     id: orderId,
     items: cardSummary,
     status: "pending",
+    shipping: { ...shipping, country: 'GB', subtotal: totalAmount, total: totalAmount + shipping.price },
   });
 
   if (insertError) {
@@ -75,11 +79,17 @@ console.log("🧾 Inserting order:", {
         purchase_units: [{
           amount: {
             currency_code: "GBP",
-            value: (totalAmount / 100).toFixed(2),
+            value: ((totalAmount + shipping.price) / 100).toFixed(2),
+            breakdown: {
+              item_total: { currency_code: 'GBP', value: (totalAmount / 100).toFixed(2) },
+              shipping: { currency_code: 'GBP', value: (shipping.price / 100).toFixed(2) },
+            },
           },
+          description: shipping.label,
           custom_id: orderId, // 💡 Short ID used to link to DB
         }],
         application_context: {
+          shipping_preference: 'GET_FROM_FILE',
           return_url: `${req.headers.origin}/success`,
           cancel_url: `${req.headers.origin}/cart`,
         },

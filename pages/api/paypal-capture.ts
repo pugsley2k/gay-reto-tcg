@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { isUKShippingOrder } from '../../src/lib/shipping';
 
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID!;
 const PAYPAL_SECRET = process.env.PAYPAL_SECRET!;
@@ -12,6 +13,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const auth = await getPayPalAccessToken();
+    const orderRes = await fetch(`${BASE_URL}/v2/checkout/orders/${encodeURIComponent(token)}`, {
+      headers: { Authorization: `Bearer ${auth}` },
+    });
+    if (!orderRes.ok) return res.status(502).json({ error: 'Could not verify the delivery address. Please contact gayretrotcg@gmail.com.' });
+    const order = await orderRes.json();
+    if (!isUKShippingOrder(order)) return res.status(400).json({ error: 'We currently deliver to UK addresses only. Payment has not been captured. Return to your cart and choose a UK delivery address in PayPal.' });
 
     const captureRes = await fetch(`${BASE_URL}/v2/checkout/orders/${token}/capture`, {
       method: 'POST',

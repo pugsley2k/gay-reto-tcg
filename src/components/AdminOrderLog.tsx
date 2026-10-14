@@ -14,6 +14,7 @@ interface Order {
   total_pence: number | null;
   items: OrderItem[];
   created_at: string;
+  shipping?: { label: string; price: number; total: number; compensation: number } | null;
 }
 
 const s: Record<string, React.CSSProperties> = {
@@ -52,7 +53,7 @@ export default function AdminOrderLog() {
 
   const totalRevenue = orders
     .filter(o => o.status === 'completed')
-    .reduce((sum, o) => sum + (o.total_pence ?? 0), 0);
+    .reduce((sum, o) => sum + (o.shipping?.total ?? o.total_pence ?? 0), 0);
 
   return (
     <div style={s.wrap}>
@@ -84,6 +85,7 @@ export default function AdminOrderLog() {
               <th style={s.th}>Date</th>
               <th style={s.th}>Items</th>
               <th style={s.th}>Total</th>
+              <th style={s.th}>Delivery</th>
               <th style={s.th}>Status</th>
             </tr>
           </thead>
@@ -114,9 +116,10 @@ export default function AdminOrderLog() {
                 </td>
                 <td style={s.td}>
                   <span style={{ color: '#ffd166', fontWeight: 700 }}>
-                    {order.total_pence != null ? `£${(order.total_pence / 100).toFixed(2)}` : '—'}
+                    {order.shipping?.total != null ? `£${(order.shipping.total / 100).toFixed(2)}` : order.total_pence != null ? `£${(order.total_pence / 100).toFixed(2)}` : '—'}
                   </span>
                 </td>
+                <td style={s.td}>{order.shipping ? <><strong>{order.shipping.label}</strong><br />£{(order.shipping.price / 100).toFixed(2)} postage &amp; packing<br />Compensation band: £{(order.shipping.compensation / 100).toFixed(0)}</> : '—'}</td>
                 <td style={s.td}>
                   <span style={badgeStyle(order.status)}>{order.status}</span>
                 </td>
