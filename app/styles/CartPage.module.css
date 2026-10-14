@@ -386,3 +386,6 @@
     width: 100%;
   }
 }
+.pageContainer{font-family:Arial,Helvetica,sans-serif;color:#2d3225;background:#f3f0e8;max-width:none;padding-inline:max(6%,calc((100vw - 860px)/2))}
+.pageTitle,.emptyCartTitle{font:700 clamp(28px,5vw,44px)/1.2 Arial;letter-spacing:-.04em;color:#2d3225;text-shadow:none}
+.emptyCartText{font:16px/1.7 Arial;color:#647052}.emptyCartContainer{background:#e4e7d3;border:0;box-shadow:none}.goToShopButton,.checkoutButton{font:600 14px Arial;background:#303927;color:#fff;border:0;box-shadow:none;min-height:48px}

@@ -11,13 +11,14 @@ export default function CartPage() {
   const { cart, removeFromCart, updateQuantity } = useCart(); // removed clearCart
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState('');
 
   const totalPrice = cart.reduce((total, item) => total + item.price * item.quantity, 0);
   const isBelowMinimumSpend = totalPrice < MINIMUM_SPEND_PENCE;
 
   async function handleCheckout() {
     if (isBelowMinimumSpend) {
-      alert(`Minimum spend is £${(MINIMUM_SPEND_PENCE / 100).toFixed(2)}.`);
+      setCheckoutError(`Minimum spend is £${(MINIMUM_SPEND_PENCE / 100).toFixed(2)}.`);
       return;
     }
 
@@ -35,6 +36,7 @@ export default function CartPage() {
     }));
 
     try {
+      setCheckoutError('');
       setIsLoading(true);
 
       const res = await fetch("/api/checkout", {
@@ -43,25 +45,27 @@ export default function CartPage() {
         body: JSON.stringify({ lineItems }),
       });
 
-      const { url } = await res.json();
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Checkout failed. Please try again.');
+      const { url } = result;
 
       if (url) {
         window.location.href = url;
         // cart clearing handled post-checkout
       } else {
-        alert("Failed to create PayPal order.");
+        setCheckoutError('Could not start checkout. Please try again.');
         setIsLoading(false);
       }
     } catch (error) {
       console.error("Checkout error:", error);
-      alert("An error occurred during checkout.");
+      setCheckoutError(error instanceof Error ? error.message : 'Checkout failed. Please try again.');
       setIsLoading(false);
     }
   }
 
   if (cart.length === 0) {
     return (
-      <div className={styles.pageContainer}>
+      <div id="main-content" className={styles.pageContainer}>
         <div className={styles.emptyCartContainer}>
           <h1 className={styles.emptyCartTitle}>Your Cart is Empty</h1>
           <p className={styles.emptyCartText}>Looks like you haven't added anything to your cart yet.</p>
@@ -77,7 +81,8 @@ export default function CartPage() {
   }
 
   return (
-    <div className={styles.pageContainer}>
+    <div id="main-content" className={styles.pageContainer}>
+      {checkoutError && <p role="alert" style={{ padding: '16px', color: '#ffb7c6' }}>{checkoutError}</p>}
       {isLoading && (
         <div className={styles.loadingOverlay}>
           <div className={styles.spinner}></div>

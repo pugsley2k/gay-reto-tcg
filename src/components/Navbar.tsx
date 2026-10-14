@@ -63,13 +63,11 @@ export default function Navbar() {
           {user?.publicMetadata?.role === 'admin' && (
             <li className={styles.navItem}>
               <Link href="/admin" className={`${styles.navLink} ${pathname === "/admin" ? styles.navLinkActive : ''}`}>
-                Admin
+                Seller studio
               </Link>
             </li>
           )}
-          <li className={styles.navItem}>
-            {user ? <UserButton /> : <Link href="/sign-in" className={styles.navLink}>Sign In</Link>}
-          </li>
+          {user && <li className={styles.navItem}><UserButton /></li>}
         </ul>
 
         {/* Mobile right side: cart badge + hamburger */}
@@ -111,12 +109,10 @@ export default function Navbar() {
             {user?.publicMetadata?.role === 'admin' && (
               <Link href="/admin" className={`${styles.mobileLink} ${pathname === "/admin" ? styles.mobileLinkActive : ''}`}
                 onClick={() => setMenuOpen(false)}>
-                Admin
+              Seller studio
               </Link>
             )}
-            <div className={styles.mobileAuthRow}>
-              {user ? <UserButton /> : <Link href="/sign-in" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>Sign In</Link>}
-            </div>
+            {user && <div className={styles.mobileAuthRow}><UserButton /></div>}
           </div>
         </div>
       )}

@@ -1,146 +1,44 @@
-import Link from "next/link";
-import Image from "next/image";
-import styles from "./styles/HomePage.module.css";
-import { createClient } from "@supabase/supabase-js";
-
-export const revalidate = 0; // never cache — always fetch fresh
-
-async function getNewestCards() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-  const { data } = await supabase
-    .from("Card")
-    .select("id, name, image_url, price, holo_type")
-    .eq("available", true)
-    .not("image_url", "is", null)
-    .order("createdAt", { ascending: false })
-    .limit(4);
-  return data ?? [];
+import Link from 'next/link';
+import Image from 'next/image';
+import { createClient } from '@supabase/supabase-js';
+import styles from './styles/HomePage.module.css';
+export const dynamic = 'force-dynamic';
+async function getArrivals() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return { cards: [], failed: true };
+  try {
+    const { data, error } = await createClient(url, key).from('Card').select('id,name,image_url,price,set,language').eq('available', true).not('image_url', 'is', null).order('createdAt', { ascending: false }).limit(4);
+    return { cards: data ?? [], failed: !!error };
+  } catch { return { cards: [], failed: true }; }
 }
-
 export default async function HomePage() {
-  const newestCards = await getNewestCards();
-
-  return (
-    <main className={styles.main}>
-      {/* Background decorative orbs */}
-      <div className={styles.orb1} aria-hidden="true" />
-      <div className={styles.orb2} aria-hidden="true" />
-      <div className={styles.orb3} aria-hidden="true" />
-
-      {/* Hero */}
-      <section className={styles.hero}>
-        <div className={styles.pixelRow} aria-hidden="true">
-          {["★", "◆", "▲", "●", "◆", "▲", "★"].map((s, i) => (
-            <span key={i} className={styles.pixelSymbol} style={{ animationDelay: `${i * 0.15}s` }}>{s}</span>
-          ))}
-        </div>
-
-        <div className={styles.heroTitleWrapper}>
-          <h1 className={styles.heroTitle}>GAY RETRO TCG</h1>
-        </div>
-
-        <p className={styles.heroTagline}>
-          Rare cards. Loud colours. Zero apologies.
-        </p>
-
-        <div className={styles.bannerWrap}>
-          <Image
-            src="/hero-banner.png"
-            alt="Gay Retro TCG — Mewtwo & Mew, Charizard, Pikachu & Zekrom GX"
-            width={700}
-            height={460}
-            className={styles.bannerImage}
-            priority
-          />
-        </div>
-
-        <p className={styles.heroSub}>
-          Hand-picked Pokémon cards for collectors who like their binders
-          as colourful as their personality.
-        </p>
-
-        <div className={styles.ctaRow}>
-          <Link href="/shop" className={styles.ctaPrimary}>
-            Browse the Shop
-          </Link>
-          <Link href="/cart" className={styles.ctaSecondary}>
-            View Cart
-          </Link>
-        </div>
-
-        <div className={styles.pixelRow} aria-hidden="true">
-          {["▼", "◇", "○", "▽", "◇", "○", "▼"].map((s, i) => (
-            <span key={i} className={styles.pixelSymbol} style={{ animationDelay: `${(i + 7) * 0.15}s` }}>{s}</span>
-          ))}
-        </div>
-      </section>
-
-      {/* Feature grid */}
-      <section className={styles.features}>
-        <div className={styles.featureCard}>
-          <span className={styles.featureIcon}>✦</span>
-          <h3 className={styles.featureTitle}>Authentic Cards</h3>
-          <p className={styles.featureText}>
-            Every card is verified and graded before listing. No fakes, no compromises.
-          </p>
-        </div>
-        <div className={styles.featureCard} style={{ animationDelay: "0.1s" }}>
-          <span className={styles.featureIcon}>◈</span>
-          <h3 className={styles.featureTitle}>All Rarities</h3>
-          <p className={styles.featureText}>
-            Commons to Secret Rares, Holos to Promos — find whatever completes your deck.
-          </p>
-        </div>
-        <div className={styles.featureCard} style={{ animationDelay: "0.2s" }}>
-          <span className={styles.featureIcon}>⬡</span>
-          <h3 className={styles.featureTitle}>Fast Dispatch</h3>
-          <p className={styles.featureText}>
-            Orders packed with care and shipped quickly. Your new favourites are on their way.
-          </p>
-        </div>
-      </section>
-
-      {/* Latest Arrivals */}
-      {newestCards.length > 0 && (
-        <section className={styles.latestSection}>
-          <h2 className={styles.latestTitle}>✦ Latest Arrivals</h2>
-          <div className={styles.latestGrid}>
-            {newestCards.map(card => (
-              <Link key={card.id} href="/shop" className={styles.latestCard}>
-                <div className={styles.latestImgWrap}>
-                  <Image
-                    src={card.image_url}
-                    alt={card.name}
-                    fill
-                    style={{ objectFit: 'cover' }}
-                    sizes="160px"
-                  />
-                </div>
-                <p className={styles.latestCardName}>{card.name?.split(' ')[0]}</p>
-                <p className={styles.latestCardPrice}>
-                  {typeof card.price === 'number' ? `£${(card.price / 100).toFixed(2)}` : ''}
-                </p>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* CTA strip */}
-      <section className={styles.ctaStrip}>
-        <p className={styles.ctaStripText}>Ready to find your next favourite card?</p>
-        <Link href="/shop" className={styles.ctaPrimary}>
-          Shop Now →
-        </Link>
-      </section>
-
-      {/* Footer */}
-      <footer className={styles.footer}>
-        © {new Date().getFullYear()} GAY RETRO TCG. All Rights Reserved.
-      </footer>
-    </main>
-  );
+  const { cards, failed } = await getArrivals();
+  return <main id="main-content" className={styles.main}>
+    <section className={styles.hero}>
+      <div><p className={styles.eyebrow}>✳ Pokémon cards. A little more personality.</p>
+        <h1>Serious cards.<br /><em>Colourful</em><br />collectors.</h1>
+        <p className={styles.intro}>For the chase cards, the binder favourites, and the ones you just have to have. Welcome to Gay Retro TCG.</p>
+        <Link href="/shop" className={styles.button}>Find your next favourite ↗</Link>
+        <p className={styles.caption}>English · Japanese · Korean</p>
+      </div>
+      <div className={styles.heroArt}>
+        <span className={styles.artLabel}>THE COLLECTOR’S CLUB / EST. 2025</span>
+        <span className={styles.orbit} aria-hidden="true" />
+        <Image src="/hero-banner.png" alt="Mewtwo & Mew, Charizard, and Pikachu & Zekrom Pokémon cards" width={700} height={460} priority className={styles.banner} />
+        <div className={styles.artFoot}><span>Rare cards. Zero apologies.</span><span aria-hidden="true">✳</span></div>
+      </div>
+    </section>
+    <div className={styles.ribbon} aria-hidden="true"><span>GOOD CARDS.</span><span>GREAT COMPANY.</span><span>GAY RETRO.</span><span>GOOD CARDS.</span></div>
+    <section className={styles.arrivals}>
+      <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Fresh to the binder</p><h2>The latest finds.</h2></div><Link href="/shop">Explore the shop ↗</Link></div>
+      {cards.length ? <div className={styles.grid}>{cards.map(card => <Link key={card.id} href="/shop" className={styles.card}>
+        <div className={styles.cardImage}><Image src={card.image_url} alt={card.name} fill sizes="(max-width: 640px) 45vw, 260px" /></div>
+        <p className={styles.cardSet}>{card.set || 'Pokémon TCG'} · {card.language || 'English'}</p>
+        <div className={styles.cardTitle}><h3>{card.name}</h3><span>£{(card.price / 100).toFixed(2)}</span></div>
+      </Link>)}</div> : <div className={styles.empty}><span aria-hidden="true">✳</span><div><h3>{failed ? 'The binder is taking a moment.' : 'A new chapter for the collection.'}</h3><p>{failed ? 'We couldn’t load the latest cards. Try the shop or check back shortly.' : 'There are no cards listed right now. Check back for the next arrivals.'}</p></div><Link href="/shop">Visit the shop ↗</Link></div>}
+    </section>
+    <section className={styles.about}><p className={styles.eyebrow}>A place for your kind of collecting</p><h2>Your binder.<br />Your taste.<br /><em>Your people.</em></h2><div><p>Some of us chase the rarest pull. Some of us collect every Pikachu. Some just love a beautiful card.</p><p>However you collect, you’re welcome here. Pokémon cards with a love of colour, nostalgia and being yourself.</p><Link href="/shop" className={styles.button}>Make room in your binder ↗</Link></div></section>
+    <footer className={styles.footer}><span>GAY RETRO TCG</span><p>© {new Date().getFullYear()} Gay Retro TCG</p><Link href="/admin/scan">Seller studio ↗</Link></footer>
+  </main>;
 }

@@ -32,3 +32,4 @@
   position: relative;
   z-index: 1;
 }
+.page{background:#f3f0e8;min-height:100dvh}.page::before{display:none}

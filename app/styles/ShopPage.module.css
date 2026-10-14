@@ -868,3 +868,12 @@
     height: 160px; /* shrink the container, not just the image */
   }
 }
+/* A card-first shop, matching the refreshed storefront. */
+.pageContainer{background:#f3f0e8;color:#282c21;font-family:Arial,Helvetica,sans-serif}
+.shopHero{background:#e6e5b6;align-items:flex-start;text-align:left;padding:56px max(6%,calc((100vw - 1140px)/2)) 42px;gap:14px}
+.shopHero::before,.heroCornerTL,.heroCornerTR,.heroCornerBL,.heroCornerBR,.heroRainbowBar{display:none}
+.heroPre{font:600 11px Arial;letter-spacing:.12em;color:#62644d}.heroTitle{font:800 clamp(38px,6vw,72px)/1 Arial;letter-spacing:-.06em;color:#2d3022;text-shadow:none;animation:none}.heroMeta{font:13px Arial;color:#62644d}
+.filterSection{background:#e9e6dd;border:0;border-radius:5px;padding:24px;animation:none}.filterLabel{font:600 11px Arial;letter-spacing:.02em;color:#565c4c}.filterInput{font:14px Arial!important;background-color:#fffdf7!important;color:#292e20!important;border:1px solid #c9cbbd!important;min-height:46px}
+.shopCard{background:#ebe8df;border:0;box-shadow:none;border-radius:5px;animation:none}.shopCard::before{display:none}.shopCard:hover{transform:translateY(-3px);box-shadow:0 10px 30px #343b2010}.cardImageWrap{background:#e4e1d7}.cardTitle{font:600 15px/1.5 Arial;color:#2b3023;text-shadow:none}.cardPrice{font:700 20px Arial;color:#343e25}.cardMeta{font:12px/1.6 Arial;color:#626b52}.addToCartBtn{font:600 13px Arial;background:#303626;color:#fff;border:0;box-shadow:none;min-height:46px}.addToCartBtn:hover{background:#a63253;box-shadow:none;color:#fff}.emptyState,.loadingState{color:#5c6550;font:14px/1.7 Arial}.emptyIcon{color:#ad3657;text-shadow:none}.footer{color:#5d6652;font:11px Arial;border-color:#d1d4c3}.footer::before{display:none}
+.modalCard{background:#f3f0e8;color:#303627;border:1px solid #ccd0bf}.modalName{font:700 26px Arial;color:#303627;text-shadow:none}.modalMeta{color:#677054}.modalPrice{color:#a73152;text-shadow:none}.modalClose{color:#39452b}
+@media(max-width:640px){.filterGrid{grid-template-columns:1fr 1fr}.filterItem:first-child{grid-column:1/-1}.shopHero{padding-top:36px;padding-bottom:30px}}

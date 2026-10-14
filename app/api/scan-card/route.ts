@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isAdmin } from '@/lib/admin';
 
 const PROMPT = `You are a Pokémon card expert fluent in English, Japanese, and Korean. Carefully examine this card image.
 
@@ -13,12 +14,17 @@ Rules:
 - Do not include any text outside the JSON object`;
 
 export async function POST(req: NextRequest) {
+  if (!await isAdmin()) return NextResponse.json({ error: 'Admin access required.' }, { status: 403 });
+  if (!process.env.OPENAI_API_KEY) return NextResponse.json({ error: 'The scanner is not configured yet.' }, { status: 503 });
   try {
     const formData = await req.formData();
     const file = formData.get('image') as File | null;
 
-    if (!file) {
+    if (!(file instanceof File)) {
       return NextResponse.json({ error: 'No image provided' }, { status: 400 });
+    }
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size === 0 || file.size > 4 * 1024 * 1024) {
+      return NextResponse.json({ error: 'Use a JPG, PNG or WebP image under 4 MB.' }, { status: 400 });
     }
 
     const bytes = await file.arrayBuffer();
@@ -44,12 +50,11 @@ export async function POST(req: NextRequest) {
           },
         ],
       }),
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(25000),
     });
 
     if (!response.ok) {
-      const text = await response.text();
-      return NextResponse.json({ error: `OpenAI error: ${text}` }, { status: 500 });
+      return NextResponse.json({ error: 'The scanner could not read this photo. Try again or enter the card details manually.' }, { status: 502 });
     }
 
     const data = await response.json();

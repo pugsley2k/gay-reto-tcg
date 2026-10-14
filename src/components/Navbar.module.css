@@ -298,3 +298,12 @@
   .navList { display: none; }
   .mobileRight { display: flex; }
 }
+.navbar{background:#f3f0e8;backdrop-filter:none;border-bottom:1px solid #d5d2c6;height:76px;padding-inline:5%}
+.navbar::after{height:3px;animation:none;background-size:100%}
+.logoText{font:800 15px Arial,Helvetica,sans-serif;letter-spacing:-.035em;color:#292c22;text-shadow:none}
+.logoImg{width:40px;height:40px}.navLink{font:600 13px Arial,Helvetica,sans-serif;color:#53594a;letter-spacing:0;text-shadow:none}
+.navLink:hover,.navLinkActive{color:#9f2f4e;background:#e9e4da;box-shadow:none}.navLink::after{display:none}
+.mobileOverlay{background:#f3f0e8}.hamburger span{background:#343a2a}
+@media(max-width:640px){.navbar{height:66px;padding-inline:6%}.logoText{font-size:13px}.logoImg{width:30px;height:30px}}
+.navLinkActive{color:#9f2f4e!important;background:#e9e4da!important;box-shadow:none!important}
+.mobileMenu{background:#f3f0e8;border-color:#d1d4c3;top:66px}.mobileLink{font:600 14px Arial;color:#343a2b}.mobileLink:hover{color:#a32d50}.mobileOverlay{background:#252b2066}

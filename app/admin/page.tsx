@@ -2,6 +2,7 @@
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import AdminUploadForm from '@/components/AdminUploadForm'; // Assuming AdminUploadForm.tsx is in src/components/
+import Link from 'next/link';
 
 export default async function AdminPage() {
   const { userId } = await auth(); // Gets session information.
@@ -30,6 +31,7 @@ export default async function AdminPage() {
   // If the user is an authenticated admin, render the actual form component.
   return (
     <div style={{ minHeight: '80vh', background: '#06060f' }}>
+      <Link href="/admin/scan" style={{ display: 'block', padding: '24px', background: '#d5ddaa', color: '#25271f', textAlign: 'center', fontFamily: 'Arial', fontWeight: 700 }}>Open phone scanner → Photograph, review and list a card</Link>
       <AdminUploadForm />
     </div>
   );

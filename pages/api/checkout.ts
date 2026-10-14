@@ -2,6 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from "@supabase/supabase-js";
 import { v4 as uuidv4 } from 'uuid';
+import { validateCheckout, priceCheckout } from '../../src/lib/checkout';
 
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID!;
 const PAYPAL_SECRET = process.env.PAYPAL_SECRET!;
@@ -24,17 +25,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'Invalid or empty lineItems provided.' });
   }
 
-  const totalAmount = lineItems.reduce((sum, item) => sum + item.price_data.unit_amount * item.quantity, 0);
+  let totalAmount: number;
+  let cardSummary: { id: string; name: string; quantity: number }[];
+  try {
+    const ids = validateCheckout(lineItems);
+    const { data, error } = await supabase.from('Card').select('id,name,price,available').in('id', ids);
+    if (error) return res.status(503).json({ error: 'Could not check inventory. Please try again.' });
+    const priced = priceCheckout(ids, data ?? []);
+    totalAmount = priced.total;
+    cardSummary = priced.summary;
+  } catch (error) {
+    return res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid cart.' });
+  }
 
   // 🔥 Generate orderId
   const orderId = uuidv4();
 
   // 🧾 Create cart summary to store in DB
-  const cardSummary = lineItems.map(item => ({
-    id: item.cardId,
-    name: item.price_data.product_data.name,
-    quantity: item.quantity,
-  }));
 console.log("🧾 Inserting order:", {
   id: orderId,
   items: cardSummary,

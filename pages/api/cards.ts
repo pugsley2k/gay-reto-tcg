@@ -1,117 +1,52 @@
-// pages/api/cards.ts
 import { createClient } from '@supabase/supabase-js';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { getAuth, clerkClient } from '@clerk/nextjs/server';
+import { validateListing } from '../../src/lib/card-listing';
 
-// =================================================================================
-// ** ADDED: Debugging logs to check environment variables **
-// These logs will appear in your server terminal when the API route is called.
-// =================================================================================
-console.log('--- Checking Server-Side Environment Variables ---');
-console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? 'Loaded' : 'NOT LOADED');
-console.log('SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? 'Loaded' : 'NOT LOADED');
-console.log('------------------------------------------------');
-
-
-// ** UPDATED: Use server-side environment variables **
-// These variables do NOT have the NEXT_PUBLIC_ prefix and are only available on the server.
-// Make sure you have SUPABASE_URL and SUPABASE_ANON_KEY in your .env.local file.
-const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Supabase URL or anon key is missing.");
-}
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method === 'PATCH') {
-    try {
-      const { id, price, image_url, holo_type } = req.body ?? {};
-      if (!id) return res.status(400).json({ message: 'id is required' });
-      const updates: Record<string, unknown> = {};
-      if (price     !== undefined) updates.price     = price;
-      if (image_url !== undefined) updates.image_url = image_url;
-      if (holo_type !== undefined) updates.holo_type = holo_type;
-      const { error } = await supabase.from('Card').update(updates).eq('id', id);
-      if (error) return res.status(400).json({ message: error.message });
-      return res.status(200).json({ message: 'Card updated' });
-    } catch (err: any) {
-      return res.status(500).json({ message: err.message ?? 'Server error' });
-    }
-  }
-
-  if (req.method !== 'POST') {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!['POST', 'PATCH'].includes(req.method || '')) {
     res.setHeader('Allow', ['POST', 'PATCH']);
-    return res.status(405).end(`Method ${req.method} Not Allowed`);
+    return res.status(405).json({ message: 'Method not allowed.' });
   }
-
   try {
-    // ** UPDATED: Changed table name to 'Card' (case-sensitive) **
-    const { error: testError } = await supabase.from('Card').select('id').limit(1);
-
-    if (testError) {
-      console.error('Supabase connection test failed:', JSON.stringify(testError, null, 2));
-      return res.status(500).json({
-        message: "Supabase connection test failed. This is likely an issue with your credentials (URL or anon key) or network policies.",
-        details: testError.message,
-        source: testError,
-      });
+    const { userId } = getAuth(req);
+    if (!userId || (await (await clerkClient()).users.getUser(userId)).publicMetadata.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required.' });
     }
-
-    // The form data is in the request body
-    const cardData = req.body;
-
-    // Server-side validation
-    if (!cardData || typeof cardData !== 'object') {
-        return res.status(400).json({ message: "Invalid request body." });
+    const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) return res.status(503).json({ message: 'Secure inventory uploads are not configured yet. Add the server-only Supabase key.' });
+    const supabase = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+    if (req.method === 'PATCH') {
+      const { id, price, image_url, holo_type } = req.body ?? {};
+      if (typeof id !== 'string' && typeof id !== 'number') return res.status(400).json({ message: 'A card ID is required.' });
+      const updates: Record<string, unknown> = {};
+      if (price !== undefined) {
+        if (!Number.isSafeInteger(price) || price < 0 || price > 10000000) return res.status(400).json({ message: 'Invalid price.' });
+        updates.price = price;
+      }
+      if (image_url !== undefined) {
+        if (typeof image_url !== 'string' || !image_url.startsWith('https://') || image_url.length > 2048) return res.status(400).json({ message: 'Invalid image URL.' });
+        updates.image_url = image_url;
+      }
+      if (holo_type !== undefined) {
+        if (typeof holo_type !== 'string' || holo_type.length > 100) return res.status(400).json({ message: 'Invalid finish.' });
+        updates.holo_type = holo_type;
+      }
+      if (!Object.keys(updates).length) return res.status(400).json({ message: 'No changes provided.' });
+      const { data, error } = await supabase.from('Card').update(updates).eq('id', id).select('id').maybeSingle();
+      if (error) return res.status(503).json({ message: 'Could not update the card. Try again.' });
+      if (!data) return res.status(404).json({ message: 'Card not found.' });
+      return res.status(200).json({ message: 'Card updated.' });
     }
-    if (!cardData.name || !cardData.image_url) {
-        return res.status(400).json({ message: "Missing required fields: name and image_url are required." });
-    }
-    if (typeof cardData.price !== 'number' || cardData.price < 0) {
-        return res.status(400).json({ message: "Invalid price: Must be a non-negative number." });
-    }
-
-    console.log("Connection test passed. Attempting to insert data:", JSON.stringify(cardData, null, 2));
-
-    // ** UPDATED: Changed table name to 'Card' (case-sensitive) **
-    const { data, error: insertError } = await supabase
-      .from('Card')
-      .insert([
-        {
-          name: cardData.name,
-          number: cardData.number,
-          set: cardData.set,
-          rarity: cardData.rarity,
-          price: cardData.price,
-          available: cardData.available,
-          image_url: cardData.image_url,
-          scan_url: cardData.scan_url,
-          language: cardData.language,
-          holo_type: cardData.holo_type,
-        },
-      ])
-      .select()
-      .single();
-
-    if (insertError) {
-      console.error('Full Supabase insert error object:', JSON.stringify(insertError, null, 2));
-      return res.status(400).json({
-        message: `Supabase insert error: ${insertError.message}`,
-        details: insertError.details,
-        code: insertError.code,
-        source: insertError,
-      });
-    }
-
-    return res.status(201).json({ message: 'Card added successfully!', data });
-
-  } catch (err: any) {
-    console.error('API route error:', err);
-    return res.status(500).json({ message: 'An internal server error occurred.' });
+    let listing;
+    try { listing = validateListing(req.body); }
+    catch (error) { return res.status(400).json({ message: error instanceof Error ? error.message : 'Invalid card details.' }); }
+    const { data, error } = await supabase.from('Card').insert(listing).select('id').single();
+    if (error) return res.status(503).json({ message: 'Could not save this card. Your details are still here; please try again.' });
+    return res.status(201).json({ message: 'Card saved.', data });
+  } catch {
+    return res.status(500).json({ message: 'Could not complete this request. Please try again.' });
   }
 }

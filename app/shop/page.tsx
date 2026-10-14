@@ -171,7 +171,7 @@ export default function ShopPage() {
   const hasFilters = search || rarity || setName || holoFilter || langFilter;
 
   return (
-    <main className={styles.pageContainer}>
+    <main id="main-content" className={styles.pageContainer}>
 
       {/* ── Hero header (no image) ── */}
       <header className={styles.shopHero}>
@@ -211,6 +211,7 @@ export default function ShopPage() {
                 type="text"
                 className={`form-control ${styles.filterInput}`}
                 placeholder="Card name..."
+                aria-label="Search cards"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
@@ -275,12 +276,12 @@ export default function ShopPage() {
         )}
 
         {/* ── Empty state ── */}
-        {!loading && cards.length === 0 && (
+        {!loading && !error && cards.length === 0 && (
           <div className={styles.emptyState}>
             <p className={styles.emptyIcon}>◈</p>
-            <p>NO CARDS FOUND</p>
+            <p>{hasFilters ? 'No cards match your filters.' : 'There are no cards listed yet. Check back for the next arrivals.'}</p>
             {hasFilters && (
-              <button className={styles.clearBtn} onClick={() => { setSearch(""); setRarity(""); setSetName(""); }}>
+              <button className={styles.clearBtn} onClick={() => { setSearch(""); setRarity(""); setSetName(""); setHoloFilter(''); setLangFilter(''); }}>
                 Clear Filters
               </button>
             )}

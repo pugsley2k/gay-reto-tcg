@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { v2 as cloudinary } from 'cloudinary';
 import formidable, { File as FormidableFile } from 'formidable'; // Import File type
 import fs from 'fs';
+import { getAuth, clerkClient } from '@clerk/nextjs/server';
 
 // Configure Cloudinary - ENSURE THESE ARE CORRECT IN YOUR .env.local
 cloudinary.config({
@@ -18,6 +19,10 @@ export const config = {
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const { userId } = getAuth(req);
+  if (!userId || (await (await clerkClient()).users.getUser(userId)).publicMetadata.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required.' });
+  }
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method Not Allowed' });
@@ -28,7 +33,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: 'Server configuration error: Cloudinary credentials missing.' });
   }
 
-  const form = formidable({});
+  const form = formidable({ maxFileSize: 4 * 1024 * 1024, maxFiles: 1,
+    filter: part => ['image/jpeg', 'image/png', 'image/webp'].includes(part.mimetype || '') });
 
   try {
     const [fields, files] = await form.parse(req);

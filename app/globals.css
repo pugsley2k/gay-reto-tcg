@@ -296,3 +296,9 @@ main {
 .text-muted {
   color: var(--text-muted) !important;
 }
+/* Storefront refresh: quiet surfaces, readable navigation, pride in the details. */
+body{font-family:Arial,Helvetica,sans-serif;letter-spacing:normal;background-image:none;min-height:100dvh}
+body::after{display:none}
+:focus-visible{outline:3px solid #b53a5a;outline-offset:4px}
+.skip-link{position:fixed;top:-100px;left:16px;z-index:2000;background:#fff;color:#222;padding:14px}.skip-link:focus{top:12px}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
