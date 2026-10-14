@@ -1,5 +1,5 @@
 // Keep phone photos below hosted request limits while preserving the printed card number.
-export async function prepareCardPhoto(file: File): Promise<File> {
+export async function prepareCardPhoto(file: File, maxBytes = 4 * 1024 * 1024): Promise<File> {
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
     throw new Error('Choose a JPG, PNG or WebP photo. On iPhone, use a compatible camera format.');
   }
@@ -15,7 +15,7 @@ export async function prepareCardPhoto(file: File): Promise<File> {
     context.fillStyle = '#ffffff'; context.fillRect(0, 0, canvas.width, canvas.height);
     context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
     const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('Could not prepare this photo.')), 'image/jpeg', .9));
-    if (blob.size > 4 * 1024 * 1024) throw new Error('This photo is too large. Try a closer photo of the card.');
+    if (blob.size > maxBytes) throw new Error('This photo is too large. Try a closer photo of the card.');
     return new File([blob], 'card-photo.jpg', { type: 'image/jpeg' });
   } finally { bitmap.close(); }
 }

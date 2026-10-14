@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import CardCondition from './CardCondition';
+import ConditionSuggestion from './ConditionSuggestion';
 import { isCardCondition } from '@/lib/card-condition';
 import styles from './PhoneScanner.module.css';
 import { prepareCardPhoto } from '@/lib/card-photo';
@@ -27,10 +28,11 @@ export default function PhoneScanner() {
   const [enrichment, setEnrichment] = useState<Enrichment | null>(null);
   const [originalName, setOriginalName] = useState('');
   const [lookingUp, setLookingUp] = useState(false);
+  const [conditionBusy, setConditionBusy] = useState(false);
   const [uploadedPhoto, setUploadedPhoto] = useState<{ url: string; public_id: string } | null>(null);
   const camera = useRef<HTMLInputElement>(null);
   const gallery = useRef<HTMLInputElement>(null);
-  const busy = stage === 'scanning' || stage === 'saving' || lookingUp;
+  const busy = stage === 'scanning' || stage === 'saving' || lookingUp || conditionBusy;
   useEffect(() => {
     if (!file) { setPreview(''); return; }
     const url = URL.createObjectURL(file); setPreview(url);
@@ -118,6 +120,7 @@ export default function PhoneScanner() {
         <button className={styles.secondary} type="button" disabled={busy || !details.name || !details.number} onClick={() => void lookup()}>{lookingUp ? 'Looking up set and price…' : 'Look up set, rarity & price'}</button>
         {enrichment?.pricing && <p className={styles.note}><strong>Suggested £{enrichment.pricing.gbp}</strong> · {enrichment.pricing.source}<br />Market data: {enrichment.pricing.updated.slice(0,10)} · {enrichment.pricing.original} {enrichment.pricing.currency} converted to GBP using rates dated {enrichment.pricing.rate_date}.<br />Market guide for this variant, not a condition appraisal or a UK sold-price guarantee. Adjust for wear before listing.</p>}
         <div className={styles.fields}><label>Language<select value={details.language} onChange={e => field('language', e.target.value)}>{['English','Japanese','Korean'].map(v => <option key={v}>{v}</option>)}</select></label><label>Finish<select value={details.holo_type} onChange={e => field('holo_type', e.target.value)}><option value="">Confirm finish</option>{[...new Set([details.holo_type,'Normal','Reverse Holo','Holo Rare','Rare Holo EX','Rare Holo GX','Double Rare','Ultra Rare','Full Art','Alt Art','Illustration Rare','Special Illustration Rare','Hyper Rare','Shiny Rare','Shiny Ultra Rare','Radiant Rare','Pokeball Holo','Master Ball Holo','Cosmos Holo','Promo'])].filter(Boolean).map(v => <option key={v}>{v}</option>)}</select></label></div>
+        {file && <ConditionSuggestion key={preview} front={file} disabled={busy} onBusy={setConditionBusy} onInvalidate={() => field('condition', '')} onConfirm={value => field('condition', value)} />}
         <CardCondition value={details.condition} onChange={value => field('condition', value)} disabled={busy} />
         <label className={styles.check}><input type="checkbox" checked={published} onChange={e => setPublished(e.target.checked)} /> List in the shop immediately</label><p className={styles.note}>Leave unchecked to keep the card off the storefront. Check the physical condition before listing for sale.</p>
         <button disabled={busy} type="submit">{stage === 'saving' ? 'Saving your card…' : published ? 'Publish card ↗' : 'Save draft ↗'}</button>

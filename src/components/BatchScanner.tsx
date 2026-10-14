@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { prepareCardPhoto } from '@/lib/card-photo';
 import CardCondition from './CardCondition';
+import ConditionSuggestion from './ConditionSuggestion';
 import { isCardCondition } from '@/lib/card-condition';
 import styles from './BatchScanner.module.css';
 
@@ -25,6 +26,7 @@ export default function BatchScanner() {
  const [publishing,setPublishing]=useState(false);
  const [notice,setNotice]=useState('');
  const [lookupId,setLookupId]=useState('');
+ const [conditionBusy,setConditionBusy]=useState(false);
  const locked=useRef(false);
  const photos=useRef<HTMLInputElement>(null);
  const urls=useRef(new Set<string>());
@@ -82,9 +84,9 @@ export default function BatchScanner() {
  const pending=items.filter(i=>i.status!=='published');
  const included=pending.filter(i=>i.included);
  const ready=included.length>0&&included.every(i=>i.reviewed&&valid(i)&&!['queued','scanning'].includes(i.status));
- const busy=scanning||publishing||!!lookupId;
+ const busy=scanning||publishing||!!lookupId||conditionBusy;
  async function publish(available=true) {
-  if(locked.current||lookupId||!ready)return;
+  if(locked.current||lookupId||conditionBusy||!ready)return;
   const selected=current.current.filter(i=>i.included&&i.status!=='published');
   if(!selected.every(i=>i.reviewed&&valid(i)))return;
   locked.current=true;setPublishing(true);setNotice('');
@@ -126,6 +128,7 @@ export default function BatchScanner() {
     <label>Price (£)<input type="number" min="0.01" max="100000" step="0.01" inputMode="decimal" value={item.fields.price} onChange={e=>edit(item.id,'price',e.target.value)}/></label>
     {item.metadata?.pricing&&<p className={styles.note}>Suggested £{item.metadata.pricing.gbp} · {item.metadata.pricing.source} · {item.metadata.pricing.updated.slice(0,10)}. Adjust for condition.</p>}
     <div className={styles.toolbar}><button type="button" className={styles.secondary} onClick={()=>void lookup(item.id)}>Refresh set & price</button><button type="button" className={styles.secondary} onClick={()=>void runQueue([item.id])}>Rescan photo</button></div>
+    <ConditionSuggestion key={item.preview} front={item.file} disabled={busy} onBusy={setConditionBusy} onInvalidate={()=>edit(item.id,'condition','')} onConfirm={value=>edit(item.id,'condition',value)}/>
     <CardCondition value={item.fields.condition} onChange={value=>edit(item.id,'condition',value)} disabled={busy}/>
     <label className={styles.check}><input type="checkbox" checked={item.reviewed} disabled={!valid(item)} onChange={e=>update(item.id,{reviewed:e.target.checked,status:'review'})}/>I’ve checked the card, finish, condition and price</label>
     {!valid(item)&&<p className={styles.note}>Complete the name, number, set, rarity, finish, condition and a price of at least £0.01 before marking reviewed.</p>}
