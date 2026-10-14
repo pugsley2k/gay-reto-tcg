@@ -7,6 +7,7 @@ interface Product {
   price: number;
   imageUrl: string;
   condition?: string | null;
+  edition?: string | null;
 }
 
 interface CartItem extends Product {

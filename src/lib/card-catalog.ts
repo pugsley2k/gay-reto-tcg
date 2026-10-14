@@ -1,10 +1,10 @@
 export type CatalogCard = {
   id: string; name: string; localId: string; rarity?: string; image?: string;
   set: { name: string; cardCount: { official: number } };
-  variants?: { normal?: boolean; holo?: boolean; reverse?: boolean };
-  pricing?: { cardmarket?: { updated: string; unit: string; trend?: number; 'trend-holo'?: number; 'trend-reverse'?: number }; tcgplayer?: { unit: string; updated: string; normal?: { marketPrice?: number }; holofoil?: { marketPrice?: number }; reverseHolofoil?: { marketPrice?: number } } };
+  variants?: { normal?: boolean; holo?: boolean; reverse?: boolean; firstEdition?: boolean };
+  pricing?: { cardmarket?: { updated: string; unit: string; trend?: number; 'trend-holo'?: number; 'trend-reverse'?: number }; tcgplayer?: { unit: string; updated: string; normal?: { marketPrice?: number }; holofoil?: { marketPrice?: number }; reverseHolofoil?: { marketPrice?: number }; [variant: string]: unknown } };
 };
-export type ScanIdentity = { name: string; original_name?: string; number: string; total?: string; language: string; finish?: string | null };
+export type ScanIdentity = { name: string; original_name?: string; number: string; total?: string; language: string; finish?: string | null; edition?: string | null };
 export const normaliseName = (value: string) => value.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
 export const normaliseNumber = (value: string) => value.toUpperCase().replace(/^0+(?=\d)/, '');
 const familyName = (value: string) => value.replace(/\s*(?:ex|gx|vmax|vstar|v|break)\s*$/i, '').trim();
@@ -26,11 +26,16 @@ export function resolveFinish(card: CatalogCard, detected?: string | null) {
   if (detected === 'Holo Rare' && variants?.holo) return 'Holo Rare';
   return null;
 }
-export function marketQuote(card: CatalogCard, finish: string | null) {
+export function marketQuote(card: CatalogCard, finish: string | null, edition?: string | null) {
   if (!finish) return null;
   const tcg = card.pricing?.tcgplayer;
-  const variant = finish === 'Reverse Holo' ? tcg?.reverseHolofoil : finish === 'Normal' ? tcg?.normal : tcg?.holofoil;
+  const editionSensitive = !!card.variants?.firstEdition || edition === '1st Edition' || edition === 'Unlimited';
+  if (editionSensitive && edition !== '1st Edition' && edition !== 'Unlimited') return null;
+  const editionKey = edition === '1st Edition' ? (finish === 'Normal' ? '1st-edition' : finish === 'Holo Rare' ? '1st-edition-holofoil' : '') : (finish === 'Normal' ? 'unlimited' : finish === 'Holo Rare' ? 'unlimited-holofoil' : '');
+  const specific = editionKey ? tcg?.[editionKey] as { marketPrice?: number } | undefined : undefined;
+  const variant = editionSensitive ? specific : finish === 'Reverse Holo' ? tcg?.reverseHolofoil : finish === 'Normal' ? tcg?.normal : tcg?.holofoil;
   if (tcg?.unit === 'USD' && Number.isFinite(variant?.marketPrice) && variant!.marketPrice! > 0) return { amount: variant!.marketPrice!, currency: 'USD', source: 'TCGplayer market via TCGdex', updated: tcg.updated };
+  if (editionSensitive) return null; // General trends do not establish the edition.
   const cm = card.pricing?.cardmarket;
   // Cardmarket's general trend is not a reliable reverse-holo quote.
   const amount = finish === 'Reverse Holo' ? cm?.['trend-reverse'] : cm?.trend;
@@ -77,9 +82,10 @@ export async function enrichCard(scan: ScanIdentity, selectedId?: string) {
   const finish = resolveFinish(card, scan.finish);
   const rarity = card.rarity || '';
   const holo = /illustration|ultra|double|hyper|shiny|radiant/i.test(rarity) ? rarity.replace(/\b\w/g, c=>c.toUpperCase()) : finish;
-  const result = { matched: true, image_url: await availableImage(card, scan.language), name: scan.language === 'English' ? card.name : scan.name, catalog_id: card.id, set: card.set.name, rarity, holo_type: holo, pricing: null as null | { gbp: string; source: string; updated: string; original: number; currency: string; rate: number; rate_date: string }, notice: finish ? 'Catalogue match found. Check the artwork and condition before publishing.' : 'Set and rarity found. Confirm the finish before requesting a price.' };
-  const quote = marketQuote(card, finish);
-  if (!quote) { result.notice += ' No reliable price is available for this variant.'; return result; }
+  const result = { matched: true, image_url: card.variants?.firstEdition || scan.edition === '1st Edition' ? null : await availableImage(card, scan.language), edition: card.variants?.firstEdition && scan.edition === 'Not applicable' ? null : scan.edition || null, name: scan.language === 'English' ? card.name : scan.name, catalog_id: card.id, set: card.set.name, rarity, holo_type: holo, pricing: null as null | { gbp: string; source: string; updated: string; original: number; currency: string; rate: number; rate_date: string }, notice: finish ? 'Catalogue match found. Check the artwork and condition before publishing.' : 'Set and rarity found. Confirm the finish before requesting a price.' };
+  if (card.variants?.firstEdition || scan.edition === '1st Edition') result.notice += ' Confirm the edition. Edition-specific catalogue artwork is unavailable; your photo will be used.';
+  const quote = marketQuote(card, finish, result.edition);
+  if (!quote) { result.notice += ' No reliable price is available for this printing and edition.'; return result; }
   const age = Date.now() - Date.parse(quote.updated);
   if (!Number.isFinite(age) || age > 30 * 86400000 || age < -86400000) { result.notice += ' Pricing data is out of date; enter your own price.'; return result; }
   try {

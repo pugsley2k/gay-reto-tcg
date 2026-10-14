@@ -134,7 +134,7 @@ export default function ShopPage() {
 
   const handleAddToCart = (card: any) => {
     if (card.id === EXAMPLE_CARD_ID) return;
-    addToCart({ id: card.id, name: card.name, price: card.price, imageUrl: card.image_url, condition: card.condition });
+    addToCart({ id: card.id, name: card.name, price: card.price, imageUrl: card.image_url, condition: card.condition, edition: card.edition });
     toast.success(`${card.name} added to cart!`);
   };
 
@@ -344,6 +344,7 @@ export default function ShopPage() {
                         <span className={styles.langBadge}>{card.language === "Japanese" ? "🇯🇵 JP" : card.language}</span>
                       )}
                     </p>
+                    {card.edition && card.edition !== 'Not applicable' && <p className={styles.cardMeta}>{card.edition}</p>}
                     <p className={styles.cardMeta}>Condition: {card.condition || 'Not specified'}</p>
                     <button className={styles.addToCartBtn} disabled={card.id === EXAMPLE_CARD_ID} onClick={() => handleAddToCart(card)}>
                       {card.id === EXAMPLE_CARD_ID ? 'Example — not for sale' : 'Add to Cart'}
@@ -458,6 +459,7 @@ export default function ShopPage() {
                   </p>
                 )}
                 {modalCard.rarity && <p className={styles.modalMeta}>{modalCard.rarity}</p>}
+                {modalCard.edition && modalCard.edition !== 'Not applicable' && <p className={styles.modalMeta}>{modalCard.edition}</p>}
                 <p className={styles.modalMeta}>Condition: {modalCard.condition || 'Not specified'}</p>
                 <p className={styles.modalPrice}>
                   {typeof modalCard.price === 'number' ? `£${(modalCard.price / 100).toFixed(2)}` : 'N/A'}

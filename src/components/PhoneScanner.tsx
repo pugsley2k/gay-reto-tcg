@@ -4,13 +4,14 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import CardCondition from './CardCondition';
 import ConditionSuggestion from './ConditionSuggestion';
+import { CARD_EDITIONS, isCardEdition } from '@/lib/card-edition';
 import { isCardCondition } from '@/lib/card-condition';
 import styles from './PhoneScanner.module.css';
 import { prepareCardPhoto } from '@/lib/card-photo';
 
-type Details = { name: string; number: string; set: string; rarity: string; language: string; holo_type: string; price: string; condition: string };
-type Enrichment = { image_url?: string | null; name?: string; matched?: boolean; catalog_id?: string; set?: string; rarity?: string; holo_type?: string | null; notice?: string; candidates?: { id: string; name: string; set: string; number: string; rarity?: string }[]; pricing?: { gbp: string; source: string; updated: string; original: number; currency: string; rate_date: string } | null };
-const blank: Details = { name: '', number: '', set: '', rarity: '', language: 'English', holo_type: '', price: '', condition: '' };
+type Details = { name: string; number: string; set: string; rarity: string; language: string; holo_type: string; price: string; condition: string; edition: string };
+type Enrichment = { edition?: string | null; image_url?: string | null; name?: string; matched?: boolean; catalog_id?: string; set?: string; rarity?: string; holo_type?: string | null; notice?: string; candidates?: { id: string; name: string; set: string; number: string; rarity?: string }[]; pricing?: { gbp: string; source: string; updated: string; original: number; currency: string; rate_date: string } | null };
+const blank: Details = { name: '', number: '', set: '', rarity: '', language: 'English', holo_type: '', price: '', condition: '', edition: '' };
 async function readResponse(response: Response) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || data.message || 'The request failed. Please try again.');
@@ -40,13 +41,13 @@ export default function PhoneScanner() {
   }, [file]);
   function field(key: keyof Details, value: string) {
     const identityChanged = ['name','number','language'].includes(key);
-    setDetails(prev => ({ ...prev, ...(identityChanged ? { set: '', rarity: '', price: '', holo_type: '' } : {}), ...(['set','holo_type'].includes(key) ? { price: '' } : {}), [key]: value }));
+    setDetails(prev => ({ ...prev, ...(identityChanged ? { set: '', rarity: '', price: '', holo_type: '' } : {}), ...(['set','holo_type','edition'].includes(key) ? { price: '' } : {}), [key]: value }));
     if (identityChanged) { setOriginalName(''); setEnrichment(null); }
-    else if (['set','holo_type'].includes(key)) setEnrichment(prev => prev ? { ...prev, ...(key === 'set' ? { image_url: null } : {}), pricing: null, notice: 'Details changed. Look up the card again to refresh its suggested price.' } : null);
+    else if (['set','holo_type','edition'].includes(key)) setEnrichment(prev => prev ? { ...prev, ...(['set','edition'].includes(key) ? { image_url: null } : {}), pricing: null, notice: 'Details changed. Look up the card again to refresh its suggested price.' } : null);
   }
   function applyMetadata(data: Enrichment) {
     setEnrichment(data); setUsePhoto(false);
-    if (data.matched) setDetails(prev => ({ ...prev, name: data.name || prev.name, set: data.set || '', rarity: data.rarity || '', holo_type: data.holo_type || '', price: data.pricing?.gbp || '' }));
+    if (data.matched) setDetails(prev => ({ ...prev, edition: data.edition === undefined ? prev.edition : data.edition || '', name: data.name || prev.name, set: data.set || '', rarity: data.rarity || '', holo_type: data.holo_type || '', price: data.pricing?.gbp || '' }));
   }
   async function lookup(catalog_id?: string) {
     setLookingUp(true); setError('');
@@ -65,7 +66,7 @@ export default function PhoneScanner() {
       setFile(prepared);
       const body = new FormData(); body.append('image', prepared);
       const result = await readResponse(await fetch('/api/scan-card', { method: 'POST', body }));
-      setDetails({ ...blank, name: result.english_name || '', number: result.card_number || '', language: result.language || 'English' });
+      setDetails({ ...blank, name: result.english_name || '', number: result.card_number || '', language: result.language || 'English', edition: result.edition || '' });
       setOriginalName(result.original_name || '');
       applyMetadata(result.enrichment || {});
     } catch (err) { setError(err instanceof Error ? err.message : 'Scan failed. Enter the details below or try another photo.'); }
@@ -73,6 +74,7 @@ export default function PhoneScanner() {
   }
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); if (!file || busy) return;
+    if (!isCardEdition(details.edition)) { setError('Check and choose the card edition before saving.'); return; }
     if (!isCardCondition(details.condition)) { setError('Choose the card condition after checking the front and back.'); return; }
     const price = Math.round(Number(details.price) * 100);
     if (!details.name.trim() || !details.number.trim() || !details.price.trim() || !Number.isSafeInteger(price) || price < 1) {
@@ -120,6 +122,7 @@ export default function PhoneScanner() {
         <button className={styles.secondary} type="button" disabled={busy || !details.name || !details.number} onClick={() => void lookup()}>{lookingUp ? 'Looking up set and price…' : 'Look up set, rarity & price'}</button>
         {enrichment?.pricing && <p className={styles.note}><strong>Suggested £{enrichment.pricing.gbp}</strong> · {enrichment.pricing.source}<br />Market data: {enrichment.pricing.updated.slice(0,10)} · {enrichment.pricing.original} {enrichment.pricing.currency} converted to GBP using rates dated {enrichment.pricing.rate_date}.<br />Market guide for this variant, not a condition appraisal or a UK sold-price guarantee. Adjust for wear before listing.</p>}
         <div className={styles.fields}><label>Language<select value={details.language} onChange={e => field('language', e.target.value)}>{['English','Japanese','Korean'].map(v => <option key={v}>{v}</option>)}</select></label><label>Finish<select value={details.holo_type} onChange={e => field('holo_type', e.target.value)}><option value="">Confirm finish</option>{[...new Set([details.holo_type,'Normal','Reverse Holo','Holo Rare','Rare Holo EX','Rare Holo GX','Double Rare','Ultra Rare','Full Art','Alt Art','Illustration Rare','Special Illustration Rare','Hyper Rare','Shiny Rare','Shiny Ultra Rare','Radiant Rare','Pokeball Holo','Master Ball Holo','Cosmos Holo','Promo'])].filter(Boolean).map(v => <option key={v}>{v}</option>)}</select></label></div>
+        <label>Edition<select required value={details.edition} onChange={e=>field('edition',e.target.value)}><option value="">Check edition</option>{CARD_EDITIONS.map(v=><option key={v}>{v}</option>)}</select></label>
         {file && <ConditionSuggestion key={preview} front={file} disabled={busy} onBusy={setConditionBusy} onInvalidate={() => field('condition', '')} onConfirm={value => field('condition', value)} />}
         <CardCondition value={details.condition} onChange={value => field('condition', value)} disabled={busy} />
         <label className={styles.check}><input type="checkbox" checked={published} onChange={e => setPublished(e.target.checked)} /> List in the shop immediately</label><p className={styles.note}>Leave unchecked to keep the card off the storefront. Check the physical condition before listing for sale.</p>

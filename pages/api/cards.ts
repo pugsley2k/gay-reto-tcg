@@ -3,6 +3,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAuth, clerkClient } from '@clerk/nextjs/server';
 import { validateListing } from '../../src/lib/card-listing';
 import { validClientId, sameListing } from '../../src/lib/listing-retry';
+import { isCardEdition } from '../../src/lib/card-edition';
 import { isCardCondition } from '../../src/lib/card-condition';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -21,9 +22,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!url || !key) return res.status(503).json({ message: 'Secure inventory uploads are not configured yet. Add the server-only Supabase key.' });
     const supabase = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
     if (req.method === 'PATCH') {
-      const { id, price, image_url, holo_type, condition } = req.body ?? {};
+      const { id, price, image_url, holo_type, condition, edition } = req.body ?? {};
       if (typeof id !== 'string' && typeof id !== 'number') return res.status(400).json({ message: 'A card ID is required.' });
       const updates: Record<string, unknown> = {};
+      if (edition !== undefined) {
+        if (edition !== null && !isCardEdition(edition)) return res.status(400).json({message:'Choose a supported edition.'});
+        updates.edition = edition;
+      }
       if (condition !== undefined) {
         if (condition !== null && !isCardCondition(condition)) return res.status(400).json({ message: 'Choose a supported card condition.' });
         updates.condition = condition;

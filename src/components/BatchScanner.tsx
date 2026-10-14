@@ -4,20 +4,21 @@ import Link from 'next/link';
 import { prepareCardPhoto } from '@/lib/card-photo';
 import CardCondition from './CardCondition';
 import ConditionSuggestion from './ConditionSuggestion';
+import { CARD_EDITIONS, isCardEdition } from '@/lib/card-edition';
 import { isCardCondition } from '@/lib/card-condition';
 import styles from './BatchScanner.module.css';
 
-type Fields = { name: string; number: string; set: string; rarity: string; language: string; holo_type: string; price: string; condition: string };
-type Metadata = { image_url?: string | null; name?: string; matched?: boolean; set?: string; rarity?: string; holo_type?: string; notice?: string; candidates?: {id:string;name:string;set:string;number:string}[]; pricing?: {gbp:string;source:string;updated:string} };
+type Fields = { name: string; number: string; set: string; rarity: string; language: string; holo_type: string; price: string; condition: string; edition: string };
+type Metadata = { edition?: string | null; image_url?: string | null; name?: string; matched?: boolean; set?: string; rarity?: string; holo_type?: string; notice?: string; candidates?: {id:string;name:string;set:string;number:string}[]; pricing?: {gbp:string;source:string;updated:string} };
 type Item = { id: string; file: File; preview: string; status: 'queued'|'scanning'|'review'|'error'|'publishing'|'published'; fields: Fields; included: boolean; reviewed: boolean; savedAsDraft?: boolean; usePhoto?: boolean; error: string; original: string; total: string; metadata?: Metadata; uploaded?: {url:string;public_id:string} };
-const empty: Fields = {name:'',number:'',set:'',rarity:'',language:'English',holo_type:'',price:'',condition:''};
+const empty: Fields = {name:'',number:'',set:'',rarity:'',language:'English',holo_type:'',price:'',condition:'',edition:''};
 async function responseData(response: Response) {
  const data = await response.json().catch(()=>({}));
  if (!response.ok) throw new Error(data.error || data.message || 'Request failed. Try again.');
  return data;
 }
-function valid(item: Item) { const p=Number(item.fields.price); return isCardCondition(item.fields.condition) && !!item.preview && !!item.fields.name.trim() && !!item.fields.number.trim() && !!item.fields.set.trim() && !!item.fields.rarity.trim() && !!item.fields.holo_type && !!item.fields.price.trim() && Number.isFinite(p) && p>=.01 && p<=100000; }
-function mergeMetadata(fields: Fields, metadata: Metadata): Fields { return metadata.matched ? {...fields,name:metadata.name || fields.name,set:metadata.set || '',rarity:metadata.rarity || '',holo_type:metadata.holo_type || '',price:metadata.pricing?.gbp || ''} : fields; }
+function valid(item: Item) { const p=Number(item.fields.price); return isCardEdition(item.fields.edition) && isCardCondition(item.fields.condition) && !!item.preview && !!item.fields.name.trim() && !!item.fields.number.trim() && !!item.fields.set.trim() && !!item.fields.rarity.trim() && !!item.fields.holo_type && !!item.fields.price.trim() && Number.isFinite(p) && p>=.01 && p<=100000; }
+function mergeMetadata(fields: Fields, metadata: Metadata): Fields { return metadata.matched ? {...fields,edition:metadata.edition === undefined ? fields.edition : metadata.edition || '',name:metadata.name || fields.name,set:metadata.set || '',rarity:metadata.rarity || '',holo_type:metadata.holo_type || '',price:metadata.pricing?.gbp || ''} : fields; }
 
 export default function BatchScanner() {
  const [items,setItems]=useState<Item[]>([]);
@@ -49,7 +50,7 @@ export default function BatchScanner() {
    update(id,{file,preview,uploaded:undefined});
    const body=new FormData();body.append('image',file);
    const result=await responseData(await fetch('/api/scan-card',{method:'POST',body}));
-   const fields={...empty,name:result.english_name||'',number:result.card_number||'',language:result.language||'English'};
+   const fields={...empty,name:result.english_name||'',number:result.card_number||'',language:result.language||'English',edition:result.edition||''};
    update(id,{status:'review',fields:mergeMetadata(fields,result.enrichment||{}),metadata:result.enrichment,usePhoto:false,original:result.original_name||'',total:result.card_total||''});
   }catch(error){update(id,{status:'error',error:error instanceof Error?error.message:'Scan failed. Retry or enter details manually.'});}
  }
@@ -69,8 +70,8 @@ export default function BatchScanner() {
  function edit(id:string,key:keyof Fields,value:string) {
   const item=current.current.find(i=>i.id===id);if(!item)return;
   const identity=['name','number','language'].includes(key);
-  const fields={...item.fields,...(identity?{set:'',rarity:'',holo_type:'',price:''}:{}),...(['set','holo_type'].includes(key)?{price:''}:{}),[key]:value};
-  update(id,{fields,reviewed:false,...(identity?{original:'',total:'',metadata:undefined}:{}),...(['set','holo_type'].includes(key)?{metadata:undefined}:{}),error:''});
+  const fields={...item.fields,...(identity?{set:'',rarity:'',holo_type:'',price:''}:{}),...(['set','holo_type','edition'].includes(key)?{price:''}:{}),[key]:value};
+  update(id,{fields,reviewed:false,...(identity?{original:'',total:'',metadata:undefined}:{}),...(['set','holo_type','edition'].includes(key)?{metadata:undefined}:{}),error:''});
  }
  async function lookup(id:string,catalog_id?:string) {
   const item=current.current.find(i=>i.id===id);if(!item)return;
@@ -128,10 +129,11 @@ export default function BatchScanner() {
     <label>Price (£)<input type="number" min="0.01" max="100000" step="0.01" inputMode="decimal" value={item.fields.price} onChange={e=>edit(item.id,'price',e.target.value)}/></label>
     {item.metadata?.pricing&&<p className={styles.note}>Suggested £{item.metadata.pricing.gbp} · {item.metadata.pricing.source} · {item.metadata.pricing.updated.slice(0,10)}. Adjust for condition.</p>}
     <div className={styles.toolbar}><button type="button" className={styles.secondary} onClick={()=>void lookup(item.id)}>Refresh set & price</button><button type="button" className={styles.secondary} onClick={()=>void runQueue([item.id])}>Rescan photo</button></div>
+    <label>Edition<select value={item.fields.edition} onChange={e=>edit(item.id,'edition',e.target.value)}><option value="">Check edition</option>{CARD_EDITIONS.map(v=><option key={v}>{v}</option>)}</select></label>
     <ConditionSuggestion key={item.preview} front={item.file} disabled={busy} onBusy={setConditionBusy} onInvalidate={()=>edit(item.id,'condition','')} onConfirm={value=>edit(item.id,'condition',value)}/>
     <CardCondition value={item.fields.condition} onChange={value=>edit(item.id,'condition',value)} disabled={busy}/>
     <label className={styles.check}><input type="checkbox" checked={item.reviewed} disabled={!valid(item)} onChange={e=>update(item.id,{reviewed:e.target.checked,status:'review'})}/>I’ve checked the card, finish, condition and price</label>
-    {!valid(item)&&<p className={styles.note}>Complete the name, number, set, rarity, finish, condition and a price of at least £0.01 before marking reviewed.</p>}
+    {!valid(item)&&<p className={styles.note}>Complete the name, number, set, rarity, finish, edition, condition and a price of at least £0.01 before marking reviewed.</p>}
    </fieldset></div></details></>}
    {item.status==='publishing'&&<p role="status">Saving this card…</p>}
   </article>)}</div>

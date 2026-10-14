@@ -105,6 +105,7 @@ export default function CartPage() {
               />
               <div>
                 <h2 className={styles.itemName}>{item.name}</h2>
+                {item.edition && item.edition !== 'Not applicable' && <p className={styles.itemPrice}>{item.edition}</p>}
                 <p className={styles.itemPrice}>{item.condition || 'Condition not specified'}</p>
                 <p className={styles.itemPrice}> £{(item.price / 100).toFixed(2)}</p>
               </div>

@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
+import { CARD_EDITIONS } from '@/lib/card-edition';
 import { CARD_CONDITIONS } from '@/lib/card-condition';
 import { createClient } from "@supabase/supabase-js";
 
@@ -19,6 +20,7 @@ interface Card {
   image_url: string | null;
   available: boolean | null;
   condition: string | null;
+  edition: string | null;
 }
 
 const ALL_HOLO_TYPES = [
@@ -92,7 +94,7 @@ export default function AdminManageCards() {
     setLoading(true);
     const { data } = await supabase
       .from('Card')
-      .select('id, name, number, set, holo_type, language, price, image_url, available, condition')
+      .select('id, name, number, set, holo_type, language, price, image_url, available, condition, edition')
       .order('id', { ascending: false });
     setCards((data as Card[]) ?? []);
     setLoading(false);
@@ -107,7 +109,7 @@ export default function AdminManageCards() {
     return matchSearch && matchHolo;
   });
 
-  async function patchCard(id: number, updates: { price?: number; image_url?: string; condition?: string | null }) {
+  async function patchCard(id: number, updates: { price?: number; image_url?: string; condition?: string | null; edition?: string | null }) {
     const res = await fetch('/api/cards', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -286,6 +288,7 @@ export default function AdminManageCards() {
                   <td style={s.td}>
                     <div style={s.name} title={card.name}>{card.name}</div>
                     {card.number && <div style={s.statusTxt}># {card.number}</div>}
+                    <label style={{display:'block',fontSize:11,marginTop:8}}>Edition<select aria-label={`Edition for ${card.name}`} style={{...s.filterSel,display:'block',marginTop:5,maxWidth:180}} value={card.edition || ''} disabled={saving[card.id]} onChange={async e=>{setSaving(p=>({...p,[card.id]:true}));try{await patchCard(card.id,{edition:e.target.value || null});}catch(error){setFixMsg(p=>({...p,[card.id]:error instanceof Error?error.message:'Could not save edition.'}));}finally{setSaving(p=>({...p,[card.id]:false}));}}}><option value="">Not specified</option>{CARD_EDITIONS.map(v=><option key={v}>{v}</option>)}</select></label>
                     <label style={{display:'block',fontSize:11,marginTop:8}}>Condition<select aria-label={`Condition for ${card.name}`} style={{...s.filterSel,display:'block',marginTop:5,maxWidth:180}} value={card.condition || ''} disabled={saving[card.id]} onChange={async e=>{setSaving(p=>({...p,[card.id]:true}));try{await patchCard(card.id,{condition:e.target.value || null});}catch(error){setFixMsg(p=>({...p,[card.id]:error instanceof Error?error.message:'Could not save condition.'}));}finally{setSaving(p=>({...p,[card.id]:false}));}}}><option value="">Not specified</option>{CARD_CONDITIONS.map(c=><option key={c.value}>{c.value}</option>)}</select></label>
                   </td>
                   <td style={s.td}>

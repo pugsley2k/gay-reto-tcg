@@ -18,3 +18,10 @@ test('condition is preserved and unsupported or invented grades are rejected',()
  assert.equal(validateListing(card).condition,null);
  for(const condition of ['Mint 10','Good',123])assert.throws(()=>validateListing({...card,condition}));
 });
+
+
+test('edition is stored separately from rarity and finish',()=>{
+ for(const edition of ['1st Edition','Unlimited','Not applicable'])assert.equal(validateListing({...card,edition}).edition,edition);
+ assert.equal(validateListing(card).edition,null);
+ assert.throws(()=>validateListing({...card,edition:'Secret Rare'}));
+});

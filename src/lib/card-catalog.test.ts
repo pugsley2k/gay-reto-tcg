@@ -40,3 +40,14 @@ for(const status of [200,404])test('matched catalogue image availability: '+stat
  assert.equal(result.matched,true);
  assert.equal('image_url' in result?result.image_url:null,status===200?'https://assets.tcgdex.net/en/sv/sv01/245/high.webp':null);
 });
+
+
+test('vintage prices require the correct edition and never use a general market quote',()=>{
+ const vintage={...card,variants:{holo:true,firstEdition:true}};
+ assert.equal(marketQuote(vintage,'Holo Rare'),null);
+ assert.equal(marketQuote(vintage,'Holo Rare','1st Edition'),null);
+ assert.equal(marketQuote(vintage,'Holo Rare','Unlimited'),null);
+ const priced={...vintage,pricing:{tcgplayer:{unit:'USD',updated:'2026-10-14','1st-edition-holofoil':{marketPrice:999},'unlimited-holofoil':{marketPrice:200}}}};
+ assert.equal(marketQuote(priced,'Holo Rare','1st Edition')?.amount,999);
+ assert.equal(marketQuote(priced,'Holo Rare','Unlimited')?.amount,200);
+});

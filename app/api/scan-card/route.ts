@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdmin } from '@/lib/admin';
 import { enrichCard } from '@/lib/card-catalog';
+import { isCardEdition } from '@/lib/card-edition';
 export const maxDuration = 60;
 
 const PROMPT = `You are a Pokémon card expert fluent in English, Japanese, and Korean. Carefully examine this card image.
 
 Return ONLY a raw JSON object with no markdown, no code blocks, no explanation. Example format:
-{"name":null,"original_name":null,"card_number":null,"card_total":null,"language":null,"finish":null}
+{"name":null,"original_name":null,"card_number":null,"card_total":null,"language":null,"finish":null,"edition":null}
 
 Rules:
 - "name": ALWAYS the English Pokémon/card name, even if the card is in another language. Translate from Japanese or Korean if needed. Examples: ピカチュウ→Pikachu, 리자몽→Charizard, リザードンex→Charizard ex, 뮤츠→Mewtwo
@@ -15,6 +16,7 @@ Rules:
 - "language": exactly one of "English", "Japanese", or "Korean" based on the card's text/script. Japanese uses kanji/katakana/hiragana. Korean uses hangul (박, 피카츄 etc).
 - Read the attack and ability text to identify language. English attack/ability sentences mean English, even though Pokémon is a Japanese franchise. Never infer language from the character, artwork or example JSON. Do not translate English text into Japanese for original_name.
 - "finish": "Normal", "Reverse Holo", or "Holo Rare" only when visibly confident; otherwise null. Do not infer a shiny finish from lighting or the Pokémon name.
+- "edition": examine the actual printed edition stamp carefully, especially the LEFT side just BELOW the artwork on vintage English Pokémon cards. A black stylised 1 with EDITION around/below it means "1st Edition". Do not miss this stamp on Base Set Charizard. On Japanese cards check the printed 1st Edition mark near the bottom. Return "Unlimited" only when a vintage printing has a clearly visible unstamped edition area. Return "Not applicable" for modern cards that have no edition variants. Return null if the stamp area is cropped, unclear or unreadable. Never infer edition from rarity, card number, holo, the Pokémon name or the catalogue.
 - Do not include any text outside the JSON object`;
 
 export async function POST(req: NextRequest) {
@@ -73,11 +75,12 @@ export async function POST(req: NextRequest) {
 
     const parsed = JSON.parse(jsonMatch[0]);
 
+    const edition = isCardEdition(parsed.edition) ? parsed.edition : null;
     let enrichment;
-    try { enrichment = await enrichCard({ name: parsed.name || '', original_name: parsed.original_name, number: String(parsed.card_number || ''), total: parsed.card_total ? String(parsed.card_total) : undefined, language: parsed.language || '', finish: parsed.finish }); }
+    try { enrichment = await enrichCard({ name: parsed.name || '', original_name: parsed.original_name, number: String(parsed.card_number || ''), total: parsed.card_total ? String(parsed.card_total) : undefined, language: parsed.language || '', finish: parsed.finish, edition }); }
     catch { enrichment = { matched: false, notice: 'The catalogue is temporarily unavailable. Your scan is ready for manual review.' }; }
     return NextResponse.json({
-      enrichment,
+      enrichment, edition,
       english_name: parsed.name ?? null,
       original_name: parsed.original_name ?? parsed.name ?? null,
       japanese_name: parsed.language === 'Japanese' ? (parsed.original_name ?? null) : null,
