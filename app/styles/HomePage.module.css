@@ -14,3 +14,5 @@
 .cardImage{display:grid;place-items:center}.cardArtwork{display:block;position:relative;width:70%;aspect-ratio:63/88;border-radius:4.5%;overflow:hidden}.cardArtwork img{padding:0;object-fit:cover;border-radius:4.5%}
 
 .hero{display:block;max-width:1600px;min-height:0;padding:32px 4% 44px}@media(max-width:640px){.hero{padding:26px 0 32px}}
+
+.footerWord img{display:block;width:180px;height:auto}
