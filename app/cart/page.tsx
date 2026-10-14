@@ -8,7 +8,7 @@ import styles from "../styles/CartPage.module.css";
 const MINIMUM_SPEND_PENCE = 30;
 
 export default function CartPage() {
-  const { cart, removeFromCart, updateQuantity } = useCart(); // removed clearCart
+  const { cart, removeFromCart } = useCart();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
@@ -65,33 +65,33 @@ export default function CartPage() {
 
   if (cart.length === 0) {
     return (
-      <div id="main-content" className={styles.pageContainer}>
+      <main id="main-content" className={styles.pageContainer}>
         <div className={styles.emptyCartContainer}>
-          <h1 className={styles.emptyCartTitle}>Your Cart is Empty</h1>
-          <p className={styles.emptyCartText}>Looks like you haven't added anything to your cart yet.</p>
+          <h1 className={styles.emptyCartTitle}>Your cart is empty</h1>
+          <p className={styles.emptyCartText}>Browse the shop to add cards to your cart.</p>
           <button
             onClick={() => router.push("/shop")}
             className={styles.goToShopButton}
           >
-            Go to Shop
+            Browse cards
           </button>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div id="main-content" className={styles.pageContainer}>
+    <main id="main-content" className={styles.pageContainer}>
       {checkoutError && <p role="alert" style={{ padding: '16px', color: '#ffb7c6' }}>{checkoutError}</p>}
       {isLoading && (
-        <div className={styles.loadingOverlay}>
-          <div className={styles.spinner}></div>
+        <div className={styles.loadingOverlay} role="status" aria-live="polite">
+          <div className={styles.spinner} aria-hidden="true"></div>
           <p>Redirecting to PayPal...</p>
         </div>
       )}
 
-      <h1 className={styles.pageTitle}>Your Shopping Cart</h1>
-      <div className={styles.cartItemsList}>
+      <h1 className={styles.pageTitle}>Your cart</h1>
+      <div className={styles.cartLayout}><div className={styles.cartItemsList}>
         {cart.map(item => (
           <div key={item.id} className={styles.cartItem}>
             <div className={styles.itemDetails}>
@@ -105,24 +105,12 @@ export default function CartPage() {
               />
               <div>
                 <h2 className={styles.itemName}>{item.name}</h2>
-                <p className={styles.itemPrice}>Price: £{(item.price / 100).toFixed(2)}</p>
+                <p className={styles.itemPrice}>{item.condition || 'Condition not specified'}</p>
+                <p className={styles.itemPrice}> £{(item.price / 100).toFixed(2)}</p>
               </div>
             </div>
             <div className={styles.itemActions}>
-              <div className={styles.quantityControls}>
-                <button
-                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                  disabled={item.quantity <= 1}
-                  className={styles.quantityButton}
-                  aria-label={`Decrease quantity of ${item.name}`}
-                >-</button>
-                <span className={styles.quantityDisplay}>{item.quantity}</span>
-                <button
-                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                  className={styles.quantityButton}
-                  aria-label={`Increase quantity of ${item.name}`}
-                >+</button>
-              </div>
+              <span className={styles.quantityDisplay}>Qty {item.quantity}</span>
               <p className={styles.itemTotalPrice}>
                 £{((item.price * item.quantity) / 100).toFixed(2)}
               </p>
@@ -138,7 +126,7 @@ export default function CartPage() {
       </div>
 
       <div className={styles.cartSummary}>
-        <h2 className={styles.summaryTitle}>Cart Summary</h2>
+        <h2 className={styles.summaryTitle}>Order summary</h2>
         <div className={styles.summaryRow}>
           <p className={styles.summaryLabel}>Subtotal:</p>
           <p className={styles.summaryValue}>£{(totalPrice / 100).toFixed(2)}</p>
@@ -157,9 +145,9 @@ export default function CartPage() {
           className={styles.checkoutButton}
           disabled={isBelowMinimumSpend || isLoading}
         >
-          {isLoading ? "Processing..." : "Proceed to Checkout with PayPal"}
+          {isLoading ? "Processing..." : "Checkout with PayPal"}
         </button>
-      </div>
-    </div>
+      </div></div>
+    </main>
   );
 }

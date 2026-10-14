@@ -1,3 +1,4 @@
+import { isCardCondition } from './card-condition';
 export function validateListing(input: unknown) {
   if (!input || typeof input !== 'object') throw new Error('Invalid card details.');
   const value = input as Record<string, unknown>;
@@ -14,7 +15,9 @@ export function validateListing(input: unknown) {
   if (!Number.isSafeInteger(value.price) || (value.price as number) < 0 || (value.price as number) > 10000000) throw new Error('Price must be whole pence between £0 and £100,000.');
   if (typeof value.available !== 'boolean') throw new Error('Choose whether this card is available.');
   if (!['English','Japanese','Korean'].includes(String(value.language))) throw new Error('Choose a supported language.');
-  return { name, image_url: image, price: value.price as number, available: value.available,
+  const condition = text('condition', 40);
+  if (condition && !isCardCondition(condition)) throw new Error('Choose a supported card condition.');
+  return { condition: condition || null, name, image_url: image, price: value.price as number, available: value.available,
     number: text('number', 40), set: text('set', 160), rarity: text('rarity', 100),
     scan_url: text('scan_url', 2048), language: value.language as string, holo_type: text('holo_type', 100) };
 }

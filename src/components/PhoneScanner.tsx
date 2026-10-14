@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
+import CardCondition from './CardCondition';
+import { isCardCondition } from '@/lib/card-condition';
 import styles from './PhoneScanner.module.css';
 import { prepareCardPhoto } from '@/lib/card-photo';
 
-type Details = { name: string; number: string; set: string; rarity: string; language: string; holo_type: string; price: string };
+type Details = { name: string; number: string; set: string; rarity: string; language: string; holo_type: string; price: string; condition: string };
 type Enrichment = { image_url?: string | null; name?: string; matched?: boolean; catalog_id?: string; set?: string; rarity?: string; holo_type?: string | null; notice?: string; candidates?: { id: string; name: string; set: string; number: string; rarity?: string }[]; pricing?: { gbp: string; source: string; updated: string; original: number; currency: string; rate_date: string } | null };
-const blank: Details = { name: '', number: '', set: '', rarity: '', language: 'English', holo_type: '', price: '' };
+const blank: Details = { name: '', number: '', set: '', rarity: '', language: 'English', holo_type: '', price: '', condition: '' };
 async function readResponse(response: Response) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || data.message || 'The request failed. Please try again.');
@@ -69,6 +71,7 @@ export default function PhoneScanner() {
   }
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); if (!file || busy) return;
+    if (!isCardCondition(details.condition)) { setError('Choose the card condition after checking the front and back.'); return; }
     const price = Math.round(Number(details.price) * 100);
     if (!details.name.trim() || !details.number.trim() || !details.price.trim() || !Number.isSafeInteger(price) || price < 1) {
       setError('Add a name, card number and price of at least £0.01.'); return;
@@ -104,7 +107,7 @@ export default function PhoneScanner() {
         <p className={styles.note}>Photos are sent to OpenAI for identification. Saved card photos are uploaded to the store’s image host.</p>
       </section>
       {(stage === 'review' || stage === 'saving') && <form onSubmit={save} className={styles.form}>
-        <h2>Make it yours.</h2><p className={styles.note}>AI can misread names and numbers. Check the card, language and finish before publishing. Matched catalogue artwork becomes the listing image; your photo is kept as a reference.</p>
+        <h2>Review your card</h2><p className={styles.note}>AI can misread names and numbers. Check the card, language and finish before publishing. Matched catalogue artwork becomes the listing image; your photo is kept as a reference.</p>
         {enrichment?.notice && <p className={styles.note} role="status">{enrichment.notice}</p>}
         {enrichment?.candidates?.map(candidate => <button className={styles.secondary} type="button" key={candidate.id} disabled={busy} onClick={() => void lookup(candidate.id)}>{candidate.name} · {candidate.set} · #{candidate.number}</button>)}
         {enrichment?.matched && enrichment.image_url ? <div><p className={styles.note}>Catalogue artwork — check that it matches your card.</p><img src={enrichment.image_url} alt="Matched catalogue card artwork" width={150} height={206} style={{objectFit:"contain"}} onError={() => setEnrichment(prev => prev ? {...prev,image_url:null} : prev)} /><label className={styles.check}><input type="checkbox" checked={usePhoto} onChange={e => setUsePhoto(e.target.checked)} />Use my photo instead</label></div> : <p className={styles.note}>No catalogue image available. Your photo will be used.</p>}
@@ -115,6 +118,7 @@ export default function PhoneScanner() {
         <button className={styles.secondary} type="button" disabled={busy || !details.name || !details.number} onClick={() => void lookup()}>{lookingUp ? 'Looking up set and price…' : 'Look up set, rarity & price'}</button>
         {enrichment?.pricing && <p className={styles.note}><strong>Suggested £{enrichment.pricing.gbp}</strong> · {enrichment.pricing.source}<br />Market data: {enrichment.pricing.updated.slice(0,10)} · {enrichment.pricing.original} {enrichment.pricing.currency} converted to GBP using rates dated {enrichment.pricing.rate_date}.<br />Market guide for this variant, not a condition appraisal or a UK sold-price guarantee. Adjust for wear before listing.</p>}
         <div className={styles.fields}><label>Language<select value={details.language} onChange={e => field('language', e.target.value)}>{['English','Japanese','Korean'].map(v => <option key={v}>{v}</option>)}</select></label><label>Finish<select value={details.holo_type} onChange={e => field('holo_type', e.target.value)}><option value="">Confirm finish</option>{[...new Set([details.holo_type,'Normal','Reverse Holo','Holo Rare','Rare Holo EX','Rare Holo GX','Double Rare','Ultra Rare','Full Art','Alt Art','Illustration Rare','Special Illustration Rare','Hyper Rare','Shiny Rare','Shiny Ultra Rare','Radiant Rare','Pokeball Holo','Master Ball Holo','Cosmos Holo','Promo'])].filter(Boolean).map(v => <option key={v}>{v}</option>)}</select></label></div>
+        <CardCondition value={details.condition} onChange={value => field('condition', value)} disabled={busy} />
         <label className={styles.check}><input type="checkbox" checked={published} onChange={e => setPublished(e.target.checked)} /> List in the shop immediately</label><p className={styles.note}>Leave unchecked to keep the card off the storefront. Check the physical condition before listing for sale.</p>
         <button disabled={busy} type="submit">{stage === 'saving' ? 'Saving your card…' : published ? 'Publish card ↗' : 'Save draft ↗'}</button>
       </form>}

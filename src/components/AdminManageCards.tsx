@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
+import { CARD_CONDITIONS } from '@/lib/card-condition';
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -17,6 +18,7 @@ interface Card {
   price: number | null;
   image_url: string | null;
   available: boolean | null;
+  condition: string | null;
 }
 
 const ALL_HOLO_TYPES = [
@@ -90,7 +92,7 @@ export default function AdminManageCards() {
     setLoading(true);
     const { data } = await supabase
       .from('Card')
-      .select('id, name, number, set, holo_type, language, price, image_url, available')
+      .select('id, name, number, set, holo_type, language, price, image_url, available, condition')
       .order('id', { ascending: false });
     setCards((data as Card[]) ?? []);
     setLoading(false);
@@ -105,7 +107,7 @@ export default function AdminManageCards() {
     return matchSearch && matchHolo;
   });
 
-  async function patchCard(id: number, updates: { price?: number; image_url?: string }) {
+  async function patchCard(id: number, updates: { price?: number; image_url?: string; condition?: string | null }) {
     const res = await fetch('/api/cards', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -284,6 +286,7 @@ export default function AdminManageCards() {
                   <td style={s.td}>
                     <div style={s.name} title={card.name}>{card.name}</div>
                     {card.number && <div style={s.statusTxt}># {card.number}</div>}
+                    <label style={{display:'block',fontSize:11,marginTop:8}}>Condition<select aria-label={`Condition for ${card.name}`} style={{...s.filterSel,display:'block',marginTop:5,maxWidth:180}} value={card.condition || ''} disabled={saving[card.id]} onChange={async e=>{setSaving(p=>({...p,[card.id]:true}));try{await patchCard(card.id,{condition:e.target.value || null});}catch(error){setFixMsg(p=>({...p,[card.id]:error instanceof Error?error.message:'Could not save condition.'}));}finally{setSaving(p=>({...p,[card.id]:false}));}}}><option value="">Not specified</option>{CARD_CONDITIONS.map(c=><option key={c.value}>{c.value}</option>)}</select></label>
                   </td>
                   <td style={s.td}>
                     {holoEdit[card.id] ? (

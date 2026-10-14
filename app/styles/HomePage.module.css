@@ -10,3 +10,5 @@
 @media(prefers-reduced-motion:reduce){.tickerTrack{animation:none}.button,.cardImage img{transition:none}}
 @keyframes posterEnter{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:no-preference){.heroCopy>.eyebrow{animation:posterEnter 550ms cubic-bezier(.23,1,.32,1) both}.hero h1{animation:posterEnter 650ms 60ms cubic-bezier(.23,1,.32,1) both}.heroBottom{animation:posterEnter 650ms 140ms cubic-bezier(.23,1,.32,1) both}.heroNote{animation:posterEnter 650ms 200ms cubic-bezier(.23,1,.32,1) both}}
+
+.cardImage{display:grid;place-items:center}.cardArtwork{display:block;position:relative;width:70%;aspect-ratio:63/88;border-radius:4.5%;overflow:hidden}.cardArtwork img{padding:0;object-fit:cover;border-radius:4.5%}

@@ -11,3 +11,10 @@ test('invalid data and unsafe image URLs are rejected', () => {
     assert.throws(() => validateListing({ ...card, ...patch }));
   }
 });
+
+
+test('condition is preserved and unsupported or invented grades are rejected',()=>{
+ for(const condition of ['Near Mint','Lightly Played','Moderately Played','Heavily Played','Damaged'])assert.equal(validateListing({...card,condition}).condition,condition);
+ assert.equal(validateListing(card).condition,null);
+ for(const condition of ['Mint 10','Good',123])assert.throws(()=>validateListing({...card,condition}));
+});

@@ -29,7 +29,7 @@ export default async function HomePage() {
     <section className={styles.arrivals}>
       <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>THE COLLECTION</p><h2>Latest <span>cards</span></h2></div><p>Recently added to the shop.</p><Link href="/shop" className={styles.textLink}>All cards <span aria-hidden="true">↗</span></Link></div>
       {cards.length ? <div className={styles.grid}>{cards.slice(0, 4).map((card,index) => <Link key={card.id} href="/shop" className={styles.product}>
-        <div className={styles.cardImage}><span className={styles.cardIndex}>GR / 00{index+1}</span><Image src={card.image_url} alt={card.name} fill sizes="(max-width: 640px) 45vw, 260px" /></div>
+        <div className={styles.cardImage}><span className={styles.cardIndex}>GR / 00{index+1}</span><span className={styles.cardArtwork}><Image src={card.image_url} alt={card.name} fill sizes="(max-width: 640px) 45vw, 260px" /></span></div>
         <p className={styles.cardSet}>{card.set || 'Pokémon TCG'} / {card.language || 'English'}</p>
         <div className={styles.cardTitle}><h3>{card.name}</h3><span>£{(card.price / 100).toFixed(2)}</span></div>
       </Link>)}</div> : <div className={styles.empty}><div className={styles.emptyCard} aria-hidden="true"><span>GR</span><small>POKÉMON TCG</small></div><div><p className={styles.eyebrow}>THE COLLECTION</p><h3>{failed ? 'Unable to load cards' : 'No cards listed yet'}</h3><p>{failed ? 'We couldn’t load the collection. Try the shop again in a moment.' : 'No cards are listed right now. Check back for the next arrivals.'}</p><Link href="/shop" className={styles.textLink}>Browse the shop ↗</Link></div></div>}
