@@ -314,3 +314,5 @@
 .cartQuantityBadge{background:#eda7ce;color:#191b20;box-shadow:none;text-shadow:none;font:800 10px 'Manrope',sans-serif}.cartTotal{font:700 10px 'Manrope',sans-serif;text-shadow:none}
 
 .navbar{height:112px}.mobileMenu{top:112px}@media(max-width:640px){.navbar{height:86px}.mobileMenu{top:86px}}
+
+.navbar{height:86px}.mobileMenu{top:86px}@media(max-width:640px){.navbar{height:72px}.mobileMenu{top:72px}}
