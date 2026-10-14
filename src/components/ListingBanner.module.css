@@ -6,3 +6,5 @@
 @media(hover:hover){.banner:hover .track{animation-play-state:paused}.listing:hover{text-decoration:underline;text-underline-offset:5px}}@keyframes travel{to{transform:translateX(-50%)}}
 @media(max-width:640px){.listing{font-size:23px;gap:16px;padding-inline:22px}.listing strong{font-size:14px}.banner,.group{min-height:64px}.pause{min-width:56px;padding-right:18px}}
 @media(prefers-reduced-motion:reduce){.track{animation:none}.window{overflow-x:auto}.group:nth-child(2),.pause{display:none}}
+
+.thumbnail{display:block;flex-shrink:0;width:48px;height:67px;object-fit:contain;border-radius:3px;filter:drop-shadow(0 3px 3px #191b2026)}.listing{padding-block:10px}.banner,.group{min-height:88px}@media(max-width:640px){.thumbnail{width:40px;height:56px}.banner,.group{min-height:76px}}
