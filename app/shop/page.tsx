@@ -71,6 +71,8 @@ export default function ShopPage() {
   const [cards, setCards] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [searchReady, setSearchReady] = useState(false);
+  useEffect(() => { setSearch(new URLSearchParams(window.location.search).get("search") || ""); setSearchReady(true); }, []);
   const [rarity, setRarity] = useState("");
   const [setName, setSetName] = useState("");
   const [holoFilter, setHoloFilter] = useState("");
@@ -126,7 +128,7 @@ export default function ShopPage() {
       .catch(() => {});
   }, []);
 
-  useEffect(() => { fetchCards(); }, [fetchCards]);
+  useEffect(() => { if (searchReady) fetchCards(); }, [fetchCards, searchReady]);
   useEffect(() => { setCurrentPage(1); }, [search, rarity, setName, holoFilter, langFilter, sortBy]);
 
   const handleAddToCart = (card: any) => {

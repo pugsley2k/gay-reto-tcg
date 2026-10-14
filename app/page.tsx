@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@supabase/supabase-js';
 import CollectorDeck from '@/components/CollectorDeck';
+import ListingBanner from '@/components/ListingBanner';
 import styles from './styles/HomePage.module.css';
 export const dynamic = 'force-dynamic';
 async function getArrivals() {
@@ -9,7 +10,7 @@ async function getArrivals() {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return { cards: [], failed: true };
   try {
-    const { data, error } = await createClient(url, key).from('Card').select('id,name,image_url,price,set,language').eq('available', true).not('image_url', 'is', null).order('createdAt', { ascending: false }).limit(4);
+    const { data, error } = await createClient(url, key).from('Card').select('id,name,image_url,price,set,language').eq('available', true).not('image_url', 'is', null).order('createdAt', { ascending: false }).limit(12);
     return { cards: data ?? [], failed: !!error };
   } catch { return { cards: [], failed: true }; }
 }
@@ -24,9 +25,10 @@ export default async function HomePage() {
       </div>
       <CollectorDeck />
     </section>
+    <ListingBanner cards={cards} failed={failed} />
     <section className={styles.arrivals}>
       <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>THE COLLECTION</p><h2>Latest <span>cards</span></h2></div><p>Recently added to the shop.</p><Link href="/shop" className={styles.textLink}>All cards <span aria-hidden="true">↗</span></Link></div>
-      {cards.length ? <div className={styles.grid}>{cards.map((card,index) => <Link key={card.id} href="/shop" className={styles.product}>
+      {cards.length ? <div className={styles.grid}>{cards.slice(0, 4).map((card,index) => <Link key={card.id} href="/shop" className={styles.product}>
         <div className={styles.cardImage}><span className={styles.cardIndex}>GR / 00{index+1}</span><Image src={card.image_url} alt={card.name} fill sizes="(max-width: 640px) 45vw, 260px" /></div>
         <p className={styles.cardSet}>{card.set || 'Pokémon TCG'} / {card.language || 'English'}</p>
         <div className={styles.cardTitle}><h3>{card.name}</h3><span>£{(card.price / 100).toFixed(2)}</span></div>
