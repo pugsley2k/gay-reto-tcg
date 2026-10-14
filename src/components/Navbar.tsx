@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import styles from './Navbar.module.css';
+import BrandLogo from './BrandLogo';
 import { useCart } from '@/components/CartProvider';
 import { UserButton, useUser } from "@clerk/nextjs";
 
@@ -34,10 +35,7 @@ export default function Navbar() {
     <>
       <nav className={styles.navbar}>
         <Link href="/" className={styles.logoLink} aria-label="GAY RETRO TCG Home">
-          <div className={styles.logoContainer}>
-            <img src="/logo.png" alt="GR" className={styles.logoImg} />
-            <span className={styles.logoText}>GAY RETRO TCG</span>
-          </div>
+          <BrandLogo />
         </Link>
 
         {/* Desktop nav */}
