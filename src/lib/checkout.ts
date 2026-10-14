@@ -1,3 +1,4 @@
+import { EXAMPLE_CARD_ID } from './example-listing';
 export type StockCard = { id: string; name: string; price: number; available: boolean };
 export function validateCheckout(items: unknown) {
   if (!Array.isArray(items) || !items.length || items.length > 100) throw new Error('Choose between 1 and 100 cards.');
@@ -11,6 +12,7 @@ export function validateCheckout(items: unknown) {
   return ids;
 }
 export function priceCheckout(ids: string[], cards: StockCard[]) {
+  if (ids.includes(EXAMPLE_CARD_ID)) throw new Error('The example card is for display only and cannot be purchased.');
   const ordered = ids.map(id => cards.find(card => card.id === id));
   if (ordered.some(card => !card || !card.available || !Number.isSafeInteger(card.price) || card.price < 0)) {
     throw new Error('A card is no longer available. Refresh your cart and try again.');

@@ -1,6 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { validateCheckout, priceCheckout } from './checkout';
+import { EXAMPLE_CARD_ID } from './example-listing';
+
+test('example listings cannot be purchased alone or with real stock', () => {
+  const example = { id: EXAMPLE_CARD_ID, name: 'Example', price: 1250, available: true };
+  const real = { id: 'real', name: 'Pikachu', price: 500, available: true };
+  assert.throws(() => priceCheckout([example.id], [example]), /display only/);
+  assert.throws(() => priceCheckout([real.id, example.id], [real, example]), /display only/);
+  assert.equal(priceCheckout([real.id], [real]).total, 500);
+});
 
 test('checkout uses inventory prices regardless of browser price', () => {
   const ids = validateCheckout([{ cardId: 'a', quantity: 1, price_data: { unit_amount: 1 } }]);

@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import styles from "../styles/ShopPage.module.css";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { useCart } from "@/components/CartProvider";
+import { EXAMPLE_CARD_ID } from '@/lib/example-listing';
 import { ToastContainer, toast, Flip } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -132,6 +133,7 @@ export default function ShopPage() {
   useEffect(() => { setCurrentPage(1); }, [search, rarity, setName, holoFilter, langFilter, sortBy]);
 
   const handleAddToCart = (card: any) => {
+    if (card.id === EXAMPLE_CARD_ID) return;
     addToCart({ id: card.id, name: card.name, price: card.price, imageUrl: card.image_url });
     toast.success(`${card.name} added to cart!`);
   };
@@ -342,8 +344,8 @@ export default function ShopPage() {
                         <span className={styles.langBadge}>{card.language === "Japanese" ? "🇯🇵 JP" : card.language}</span>
                       )}
                     </p>
-                    <button className={styles.addToCartBtn} onClick={() => handleAddToCart(card)}>
-                      Add to Cart
+                    <button className={styles.addToCartBtn} disabled={card.id === EXAMPLE_CARD_ID} onClick={() => handleAddToCart(card)}>
+                      {card.id === EXAMPLE_CARD_ID ? 'Example — not for sale' : 'Add to Cart'}
                     </button>
                   </div>
                 </div>
@@ -458,8 +460,8 @@ export default function ShopPage() {
                 <p className={styles.modalPrice}>
                   {typeof modalCard.price === 'number' ? `£${(modalCard.price / 100).toFixed(2)}` : 'N/A'}
                 </p>
-                <button className={styles.addToCartBtn} style={{ width: '100%', marginTop: '0.5rem' }} onClick={() => { handleAddToCart(modalCard); setModalCard(null); }}>
-                  Add to Cart
+                <button className={styles.addToCartBtn} disabled={modalCard.id === EXAMPLE_CARD_ID} style={{ width: '100%', marginTop: '0.5rem' }} onClick={() => { handleAddToCart(modalCard); setModalCard(null); }}>
+                  {modalCard.id === EXAMPLE_CARD_ID ? 'Example — not for sale' : 'Add to Cart'}
                 </button>
               </div>
             </div>
