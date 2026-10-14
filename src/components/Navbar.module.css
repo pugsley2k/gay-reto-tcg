@@ -307,3 +307,6 @@
 @media(max-width:640px){.navbar{height:66px;padding-inline:6%}.logoText{font-size:13px}.logoImg{width:30px;height:30px}}
 .navLinkActive{color:#9f2f4e!important;background:#e9e4da!important;box-shadow:none!important}
 .mobileMenu{background:#f3f0e8;border-color:#d1d4c3;top:66px}.mobileLink{font:600 14px Arial;color:#343a2b}.mobileLink:hover{color:#a32d50}.mobileOverlay{background:#252b2066}
+/* Collector club navigation */
+.navbar{background:#191b20;border-color:#ffffff20;height:78px}.navbar::after{display:none}.logoText{font:800 17px 'Manrope',sans-serif;color:#f0eee7;letter-spacing:-.045em}.logoImg{border-radius:50%;width:36px;height:36px}.navLink{color:#c7c6bd;font:600 11px 'Manrope',sans-serif;text-transform:uppercase;letter-spacing:.04em}.navLinkActive{background:#ffffff0a!important;color:#e0f16e!important;box-shadow:none!important}.navLink:hover{background:#ffffff0a;color:#e0f16e}.hamburger span{background:#f0eee7}.mobileMenu{background:#191b20;border-color:#ffffff20}.mobileLink{color:#f0eee7}.mobileLinkActive{color:#e0f16e}.mobileOverlay{background:#090b0dbb}.cartTotal{color:#e0f16e}
+@media(max-width:640px){.navbar{height:66px}.logoText{font-size:14px}}

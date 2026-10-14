@@ -3,7 +3,7 @@
    Theme: Retro Arcade Pride
    ============================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Manrope:wght@400;500;600;700;800&family=Press+Start+2P&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 
 :root {
   --bg-base:       #06060f;
@@ -302,3 +302,5 @@ body::after{display:none}
 :focus-visible{outline:3px solid #b53a5a;outline-offset:4px}
 .skip-link{position:fixed;top:-100px;left:16px;z-index:2000;background:#fff;color:#222;padding:14px}.skip-link:focus{top:12px}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+body{background-color:#191b20!important}
+::-webkit-scrollbar{background:#191b20}::-webkit-scrollbar-track{background:#191b20}::-webkit-scrollbar-thumb{background:#858c68;border-color:#191b20}::-webkit-scrollbar-thumb:hover{background:#e0f16e}
