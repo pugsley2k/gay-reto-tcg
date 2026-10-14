@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdmin } from '@/lib/admin';
+import { enrichCard } from '@/lib/card-catalog';
+export const maxDuration = 60;
 
 const PROMPT = `You are a Pokémon card expert fluent in English, Japanese, and Korean. Carefully examine this card image.
 
 Return ONLY a raw JSON object with no markdown, no code blocks, no explanation. Example format:
-{"name":"Charizard ex","original_name":"リザードンex","card_number":"125","card_total":"197","language":"Japanese"}
+{"name":"Charizard ex","original_name":"リザードンex","card_number":"125","card_total":"197","language":"Japanese","finish":null}
 
 Rules:
 - "name": ALWAYS the English Pokémon/card name, even if the card is in another language. Translate from Japanese or Korean if needed. Examples: ピカチュウ→Pikachu, 리자몽→Charizard, リザードンex→Charizard ex, 뮤츠→Mewtwo
 - "original_name": the name exactly as printed on the card (may be Japanese kanji/katakana or Korean hangul). If English, same as "name".
 - "card_number" and "card_total": look very carefully at the BOTTOM of the card for a number like "035/108" or "25/165". Strip leading zeros from card_number. Read each digit individually — common mistakes: 3↔2, 0↔6, 1↔7. Return null if not confident.
 - "language": exactly one of "English", "Japanese", or "Korean" based on the card's text/script. Japanese uses kanji/katakana/hiragana. Korean uses hangul (박, 피카츄 etc).
+- "finish": "Normal", "Reverse Holo", or "Holo Rare" only when visibly confident; otherwise null. Do not infer a shiny finish from lighting or the Pokémon name.
 - Do not include any text outside the JSON object`;
 
 export async function POST(req: NextRequest) {
@@ -67,7 +70,11 @@ export async function POST(req: NextRequest) {
 
     const parsed = JSON.parse(jsonMatch[0]);
 
+    let enrichment;
+    try { enrichment = await enrichCard({ name: parsed.name || '', original_name: parsed.original_name, number: String(parsed.card_number || ''), total: parsed.card_total ? String(parsed.card_total) : undefined, language: parsed.language || '', finish: parsed.finish }); }
+    catch { enrichment = { matched: false, notice: 'The catalogue is temporarily unavailable. Your scan is ready for manual review.' }; }
     return NextResponse.json({
+      enrichment,
       english_name: parsed.name ?? null,
       original_name: parsed.original_name ?? parsed.name ?? null,
       japanese_name: parsed.language === 'Japanese' ? (parsed.original_name ?? null) : null,
