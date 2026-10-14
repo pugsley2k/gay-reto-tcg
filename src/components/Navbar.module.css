@@ -316,3 +316,5 @@
 .navbar{height:112px}.mobileMenu{top:112px}@media(max-width:640px){.navbar{height:86px}.mobileMenu{top:86px}}
 
 .navbar{height:86px}.mobileMenu{top:86px}@media(max-width:640px){.navbar{height:72px}.mobileMenu{top:72px}}
+
+.navLinkActive{background:var(--brand-accent)!important;color:var(--brand-on-accent)!important}.navLink:hover{background:var(--brand-accent);color:var(--brand-on-accent)}.mobileLinkActive,.cartTotal{color:var(--brand-accent-light)}.cartQuantityBadge{background:var(--brand-accent);color:var(--brand-on-accent)}

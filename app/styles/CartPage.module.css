@@ -7,3 +7,5 @@
 .cartSummary{top:138px}
 
 .cartSummary{top:112px}
+
+.itemTotalPrice,.removeButton,.minimumSpendMessage{color:var(--brand-accent-light)}.checkoutButton,.goToShopButton{background:var(--brand-accent);color:var(--brand-on-accent)}.spinner{border-top-color:var(--brand-accent-light)}.pageContainer :focus-visible{outline-color:var(--brand-accent-light)}@media(hover:hover){.checkoutButton:hover:not(:disabled),.goToShopButton:hover{background:var(--brand-accent-hover)}}

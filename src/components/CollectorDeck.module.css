@@ -8,3 +8,5 @@
 @media(prefers-reduced-motion:reduce){.card,.foil,.arrows button{transition:none}}.showcase[data-instant='true'] .card{transition:none}
 
 .showcase[data-automatic='true'] .card{transition-duration:700ms}@media(prefers-reduced-motion:reduce){.showcase[data-automatic='true'] .card{transition:none}}
+
+.card{box-shadow:0 16px 28px #0009,0 35px 65px #050607b3}.arrows button{border-color:#ce756480;color:var(--brand-on-accent)}.shopLink{background:var(--brand-accent);color:var(--brand-on-accent)}.controls :focus-visible,.card:focus-visible{outline-color:var(--brand-accent-light)}@media(hover:hover) and (pointer:fine){.arrows button:hover,.shopLink:hover{background:var(--brand-accent-hover);color:var(--brand-on-accent)}}

@@ -304,3 +304,5 @@ body::after{display:none}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 body{background-color:#191b20!important}
 ::-webkit-scrollbar{background:#191b20}::-webkit-scrollbar-track{background:#191b20}::-webkit-scrollbar-thumb{background:#858c68;border-color:#191b20}::-webkit-scrollbar-thumb:hover{background:#e0f16e}
+
+:root{--brand-accent:#841c0c;--brand-accent-hover:#a52c1b;--brand-accent-light:#e6a28e;--brand-on-accent:#f6eddd}:focus-visible{outline-color:var(--brand-accent-light)}::-webkit-scrollbar-thumb:hover{background:var(--brand-accent)}

@@ -10,3 +10,5 @@
 .thumbnail{display:block;flex-shrink:0;width:48px;height:67px;object-fit:contain;border-radius:3px;filter:drop-shadow(0 3px 3px #191b2026)}.listing{padding-block:10px}.banner,.group{min-height:88px}@media(max-width:640px){.thumbnail{width:40px;height:56px}.banner,.group{min-height:76px}}
 
 .thumbnail{border-radius:5px}
+
+.banner,.pause{background:var(--brand-accent);color:var(--brand-on-accent)}.pause{border-left-color:#f6eddd40}.listing:focus-visible,.pause:focus-visible,.empty:focus-visible{outline-color:var(--brand-on-accent)}.thumbnail{filter:drop-shadow(0 5px 4px #19090699) drop-shadow(0 1px 1px #19090666)}.listing{padding-block:18px}.banner,.group{min-height:104px}@media(max-width:640px){.listing{padding-block:16px}.banner,.group{min-height:92px}}
