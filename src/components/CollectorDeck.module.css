@@ -6,3 +6,5 @@
 @media(max-width:1000px){.card{width:280px}.arena{height:450px}.controls,.disclaimer{margin-inline:18px}}
 @media(max-width:640px){.label{padding-inline:6%}.arena{height:365px;margin:20px 0 0}.card{width:64vw;max-width:250px}.card[data-position='-1']{transform:translate(-122%,-46%) rotate(-10deg) scale(.82)}.card[data-position='1']{transform:translate(22%,-46%) rotate(10deg) scale(.82)}.card[data-position='-2']{transform:translate(-180%,-42%) rotate(-15deg) scale(.65)}.card[data-position='2']{transform:translate(80%,-42%) rotate(15deg) scale(.65)}.controls{margin-inline:6%;grid-template-columns:1fr auto;gap:20px;padding-top:20px}.caption p{font-size:15px}.shopLink{grid-column:1/-1;justify-self:stretch}.disclaimer{margin-inline:6%}.arrows button{width:44px;height:44px}}
 @media(prefers-reduced-motion:reduce){.card,.foil,.arrows button{transition:none}}.showcase[data-instant='true'] .card{transition:none}
+
+.showcase[data-automatic='true'] .card{transition-duration:700ms}@media(prefers-reduced-motion:reduce){.showcase[data-automatic='true'] .card{transition:none}}
