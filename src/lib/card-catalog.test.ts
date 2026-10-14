@@ -17,3 +17,8 @@ test('ambiguous finishes do not receive a guessed market price',()=>{
 test('single-variant cards use the matching market quote',()=>{
  assert.equal(resolveFinish(card),'Holo Rare');assert.equal(marketQuote(card,'Holo Rare')?.amount,68.5);
 });
+test('suffix OCR errors are corrected only with a matching printed total',()=>{
+ assert.equal(matchesCard(card,{name:'Gardevoir GX',number:'245',total:'198',language:'English'}),true);
+ assert.equal(matchesCard(card,{name:'Gardevoir GX',number:'245',language:'English'}),false);
+ assert.equal(matchesCard(card,{name:'Gardevoir GX',number:'245',total:'199',language:'English'}),false);
+});

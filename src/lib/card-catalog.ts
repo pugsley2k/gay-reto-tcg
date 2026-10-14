@@ -7,9 +7,14 @@ export type CatalogCard = {
 export type ScanIdentity = { name: string; original_name?: string; number: string; total?: string; language: string; finish?: string | null };
 export const normaliseName = (value: string) => value.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
 export const normaliseNumber = (value: string) => value.toUpperCase().replace(/^0+(?=\d)/, '');
+const familyName = (value: string) => value.replace(/\s*(?:ex|gx|vmax|vstar|v|break)\s*$/i, '').trim();
+function matchesName(name: string, scan: ScanIdentity) {
+  const printed = scan.language === 'English' ? scan.name : scan.original_name;
+  return !!printed && (normaliseName(name) === normaliseName(printed) || (!!scan.total && normaliseName(familyName(name)) === normaliseName(familyName(printed))));
+}
 export function matchesCard(card: CatalogCard, scan: ScanIdentity) {
   const name = scan.language === 'English' ? scan.name : scan.original_name;
-  return !!name && normaliseName(card.name) === normaliseName(name) && normaliseNumber(card.localId) === normaliseNumber(scan.number)
+  return !!name && matchesName(card.name, scan) && normaliseNumber(card.localId) === normaliseNumber(scan.number)
     && (!scan.total || Number(scan.total) === card.set.cardCount.official);
 }
 export function resolveFinish(card: CatalogCard, detected?: string | null) {
@@ -46,9 +51,9 @@ export async function enrichCard(scan: ScanIdentity, selectedId?: string) {
     const card = await catalogFetch(`${lang}/cards/${encodeURIComponent(selectedId)}`) as CatalogCard;
     candidates = matchesCard(card, { ...scan, total: undefined }) ? [card] : [];
   } else {
-    const query = new URLSearchParams({ name: scan.language === 'English' ? scan.name : scan.original_name || scan.name, localId: scan.number, 'pagination:page': '1', 'pagination:itemsPerPage': '30' });
+    const query = new URLSearchParams({ name: familyName(scan.language === 'English' ? scan.name : scan.original_name || scan.name), localId: scan.number, 'pagination:page': '1', 'pagination:itemsPerPage': '30' });
     const list = await catalogFetch(`${lang}/cards?${query}`) as {id:string;name:string;localId:string}[];
-    const exact = list.filter(c => normaliseNumber(c.localId) === normaliseNumber(scan.number) && normaliseName(c.name) === normaliseName(scan.language === 'English' ? scan.name : scan.original_name || scan.name));
+    const exact = list.filter(c => normaliseNumber(c.localId) === normaliseNumber(scan.number) && matchesName(c.name, scan));
     if (exact.length > 12) return { matched: false, notice: 'Too many printings match. Check the scanned name and number before looking up again.' };
     const results = await Promise.allSettled(exact.slice(0, 12).map(c => catalogFetch(`${lang}/cards/${encodeURIComponent(c.id)}`)));
     if (results.some(r => r.status === 'rejected')) return { matched: false, notice: 'Some catalogue results could not load. Retry the lookup before choosing a printing.' };
@@ -59,7 +64,7 @@ export async function enrichCard(scan: ScanIdentity, selectedId?: string) {
   const finish = resolveFinish(card, scan.finish);
   const rarity = card.rarity || '';
   const holo = /illustration|ultra|double|hyper|shiny|radiant/i.test(rarity) ? rarity.replace(/\b\w/g, c=>c.toUpperCase()) : finish;
-  const result = { matched: true, catalog_id: card.id, set: card.set.name, rarity, holo_type: holo, pricing: null as null | { gbp: string; source: string; updated: string; original: number; currency: string; rate: number; rate_date: string }, notice: finish ? 'Catalogue match found. Check the artwork and condition before publishing.' : 'Set and rarity found. Confirm the finish before requesting a price.' };
+  const result = { matched: true, name: scan.language === 'English' ? card.name : scan.name, catalog_id: card.id, set: card.set.name, rarity, holo_type: holo, pricing: null as null | { gbp: string; source: string; updated: string; original: number; currency: string; rate: number; rate_date: string }, notice: finish ? 'Catalogue match found. Check the artwork and condition before publishing.' : 'Set and rarity found. Confirm the finish before requesting a price.' };
   const quote = marketQuote(card, finish);
   if (!quote) { result.notice += ' No reliable price is available for this variant.'; return result; }
   const age = Date.now() - Date.parse(quote.updated);

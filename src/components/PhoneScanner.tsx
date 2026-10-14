@@ -6,7 +6,7 @@ import styles from './PhoneScanner.module.css';
 import { prepareCardPhoto } from '@/lib/card-photo';
 
 type Details = { name: string; number: string; set: string; rarity: string; language: string; holo_type: string; price: string };
-type Enrichment = { matched?: boolean; catalog_id?: string; set?: string; rarity?: string; holo_type?: string | null; notice?: string; candidates?: { id: string; name: string; set: string; number: string; rarity?: string }[]; pricing?: { gbp: string; source: string; updated: string; original: number; currency: string; rate_date: string } | null };
+type Enrichment = { name?: string; matched?: boolean; catalog_id?: string; set?: string; rarity?: string; holo_type?: string | null; notice?: string; candidates?: { id: string; name: string; set: string; number: string; rarity?: string }[]; pricing?: { gbp: string; source: string; updated: string; original: number; currency: string; rate_date: string } | null };
 const blank: Details = { name: '', number: '', set: '', rarity: '', language: 'English', holo_type: '', price: '' };
 async function readResponse(response: Response) {
   const data = await response.json().catch(() => ({}));
@@ -41,7 +41,7 @@ export default function PhoneScanner() {
   }
   function applyMetadata(data: Enrichment) {
     setEnrichment(data);
-    if (data.matched) setDetails(prev => ({ ...prev, set: data.set || '', rarity: data.rarity || '', holo_type: data.holo_type || '', price: data.pricing?.gbp || '' }));
+    if (data.matched) setDetails(prev => ({ ...prev, name: data.name || prev.name, set: data.set || '', rarity: data.rarity || '', holo_type: data.holo_type || '', price: data.pricing?.gbp || '' }));
   }
   async function lookup(catalog_id?: string) {
     setLookingUp(true); setError('');
