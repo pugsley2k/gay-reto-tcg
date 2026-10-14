@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAuth, clerkClient } from '@clerk/nextjs/server';
 import { validateListing } from '../../src/lib/card-listing';
+import { validClientId, sameListing } from '../../src/lib/listing-retry';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   res.setHeader('Cache-Control', 'no-store');
@@ -43,7 +44,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let listing;
     try { listing = validateListing(req.body); }
     catch (error) { return res.status(400).json({ message: error instanceof Error ? error.message : 'Invalid card details.' }); }
-    const { data, error } = await supabase.from('Card').insert(listing).select('id').single();
+    const clientId = req.body.client_id;
+    if (clientId !== undefined && !validClientId(clientId)) return res.status(400).json({ message: 'Invalid listing reference.' });
+    const { data, error } = await supabase.from('Card').insert(clientId ? { ...listing, id: clientId } : listing).select('id').single();
+    if (error?.code === '23505' && clientId) {
+      const { data: existing } = await supabase.from('Card').select('*').eq('id', clientId).single();
+      if (existing && sameListing(existing, listing)) return res.status(200).json({ message: 'Card already saved.', data: { id: clientId } });
+      return res.status(409).json({ message: 'This card was already saved with different details. Check Seller studio before retrying.' });
+    }
     if (error) return res.status(503).json({ message: 'Could not save this card. Your details are still here; please try again.' });
     return res.status(201).json({ message: 'Card saved.', data });
   } catch {

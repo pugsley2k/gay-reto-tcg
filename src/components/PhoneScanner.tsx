@@ -86,7 +86,7 @@ export default function PhoneScanner() {
     } catch (err) { setError(err instanceof Error ? err.message : 'Could not save this card.'); setStage('review'); }
   }
   function reset() { setFile(null); setUploadedPhoto(null); setDetails(blank); setEnrichment(null); setOriginalName(''); setStage('capture'); setError(''); setPublished(false); }
-  return <main id="main-content" className={styles.page}>
+  return <main className={styles.page}>
     <header className={styles.header}><Link href="/admin">← Seller studio</Link><span>GAY RETRO / SCANNER</span></header>
     <p className={styles.eyebrow}>From camera to collection</p><h1>Meet your next<br /><em>listing.</em></h1>
     <p className={styles.intro}>Take a clear photo of the front. We’ll look up its set, rarity and suggested price. You check the match and condition.</p>
