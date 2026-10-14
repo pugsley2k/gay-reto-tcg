@@ -15,6 +15,6 @@
 
 .hero{display:block;max-width:1600px;min-height:0;padding:32px 4% 44px}@media(max-width:640px){.hero{padding:26px 0 32px}}
 
-.footerWord img{display:block;width:180px;height:auto}
+.footer{padding-top:0}.cardSet{font-size:12px;line-height:1.6}.cardIndex{font-size:10px}.cardTitle h3,.cardTitle>span{font-size:14px}
 
 .main{--acid:var(--brand-accent);--pink:var(--brand-accent)}.button{color:var(--brand-on-accent)}.sectionHeading h2 span,.cardTitle>span,.empty .eyebrow{color:var(--brand-accent-light)}.emptyCard span{color:var(--brand-on-accent)}@media(hover:hover) and (pointer:fine){.button:hover{background:var(--brand-accent-hover)}.textLink:hover{color:var(--brand-accent-light)}}

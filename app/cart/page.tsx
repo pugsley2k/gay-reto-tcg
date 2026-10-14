@@ -2,6 +2,7 @@
 import { useCart } from "@/components/CartProvider";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import SiteFooter from '@/components/SiteFooter';
 import { useState } from "react";
 import styles from "../styles/CartPage.module.css";
 
@@ -76,6 +77,7 @@ export default function CartPage() {
             Browse cards
           </button>
         </div>
+        <SiteFooter />
       </main>
     );
   }
@@ -101,7 +103,6 @@ export default function CartPage() {
                 width={80}
                 height={110}
                 className={styles.itemImage}
-                style={{ imageRendering: "pixelated" }}
               />
               <div>
                 <h2 className={styles.itemName}>{item.name}</h2>
@@ -149,6 +150,7 @@ export default function CartPage() {
           {isLoading ? "Processing..." : "Checkout with PayPal"}
         </button>
       </div></div>
+      <SiteFooter />
     </main>
   );
 }

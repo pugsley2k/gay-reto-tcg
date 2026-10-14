@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import styles from "../styles/ShopPage.module.css";
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -7,6 +7,7 @@ import { useCart } from "@/components/CartProvider";
 import { EXAMPLE_CARD_ID } from '@/lib/example-listing';
 import { ToastContainer, toast, Flip } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import SiteFooter from '@/components/SiteFooter';
 
 /* ── Set name abbreviations applied to card title display ── */
 const SET_ABBREVIATIONS: [RegExp, string][] = [
@@ -139,6 +140,30 @@ export default function ShopPage() {
   };
 
   const [modalCard, setModalCard] = useState<any | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!modalCard) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const panel = modalRef.current;
+    const focusable = () => Array.from(panel?.querySelectorAll<HTMLElement>('button:not(:disabled), [href], [tabindex="0"]') || []);
+    focusable()[0]?.focus();
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') { event.preventDefault(); setModalCard(null); }
+      if (event.key !== 'Tab') return;
+      const items = focusable();
+      const first = items[0], last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = overflow;
+      document.removeEventListener('keydown', onKeyDown);
+      previous?.focus();
+    };
+  }, [modalCard]);
 
   // ── Recently viewed ──
   const [recentIds, setRecentIds]     = useState<string[]>([]);
@@ -221,8 +246,8 @@ export default function ShopPage() {
               />
             </div>
             <div className={styles.filterItem}>
-              <label className={styles.filterLabel}>Set</label>
-              <select className={`form-select ${styles.filterInput}`} value={setName} onChange={e => setSetName(e.target.value)}>
+              <label className={styles.filterLabel} htmlFor="card-set">Set</label>
+              <select id="card-set" className={`form-select ${styles.filterInput}`} value={setName} onChange={e => setSetName(e.target.value)}>
                 <option value="">All Sets</option>
                 {setOptions.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -230,15 +255,15 @@ export default function ShopPage() {
               </select>
             </div>
             <div className={styles.filterItem}>
-              <label className={styles.filterLabel}>Holo Type</label>
-              <select className={`form-select ${styles.filterInput}`} value={holoFilter} onChange={e => setHoloFilter(e.target.value)}>
+              <label className={styles.filterLabel} htmlFor="card-finish">Holo Type</label>
+              <select id="card-finish" className={`form-select ${styles.filterInput}`} value={holoFilter} onChange={e => setHoloFilter(e.target.value)}>
                 <option value="">All Types</option>
                 {HOLO_TYPE_OPTIONS.map(h => <option key={h} value={h}>{h}</option>)}
               </select>
             </div>
             <div className={styles.filterItem}>
-              <label className={styles.filterLabel}>Language</label>
-              <select className={`form-select ${styles.filterInput}`} value={langFilter} onChange={e => setLangFilter(e.target.value)}>
+              <label className={styles.filterLabel} htmlFor="card-language">Language</label>
+              <select id="card-language" className={`form-select ${styles.filterInput}`} value={langFilter} onChange={e => setLangFilter(e.target.value)}>
                 <option value="">All Languages</option>
                 <option value="English">🇬🇧 English</option>
                 <option value="Japanese">🇯🇵 Japanese</option>
@@ -246,8 +271,8 @@ export default function ShopPage() {
               </select>
             </div>
             <div className={styles.filterItem}>
-              <label className={styles.filterLabel}>Sort By</label>
-              <select className={`form-select ${styles.filterInput}`} value={sortBy} onChange={e => setSortBy(e.target.value)}>
+              <label className={styles.filterLabel} htmlFor="card-sort">Sort By</label>
+              <select id="card-sort" className={`form-select ${styles.filterInput}`} value={sortBy} onChange={e => setSortBy(e.target.value)}>
                 <option value="newest">Newest First</option>
                 <option value="price-asc">Price: Low → High</option>
                 <option value="price-desc">Price: High → Low</option>
@@ -298,7 +323,7 @@ export default function ShopPage() {
             {cards.map((card, i) => (
               <div className={`col ${styles.productColWrapper}`} key={card.id} style={{ animationDelay: `${Math.min(i, 9) * 0.05}s` }}>
                 <div className={styles.shopCard}>
-                  <div className={styles.cardImageWrap} onClick={() => trackViewed(card)} style={{ cursor: 'zoom-in' }}>
+                  <div role="button" tabIndex={0} aria-label={`View ${card.name} details`} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); trackViewed(card); } }} className={styles.cardImageWrap} onClick={() => trackViewed(card)} style={{ cursor: 'zoom-in' }}>
                     <div className={styles.cardImageInner}>
                       <img
                         src={card.image_url || "/placeholder.png"}
@@ -420,14 +445,12 @@ export default function ShopPage() {
         </div>
       )}
 
-      <footer className={styles.footer}>
-        © {new Date().getFullYear()} GAY RETRO TCG. All Rights Reserved.
-      </footer>
+      <div className={styles.footerContainer}><SiteFooter /></div>
 
       {/* ── Card detail modal ── */}
       {modalCard && (
         <div className={styles.modalBackdrop} onClick={() => setModalCard(null)}>
-          <div className={styles.modalCard} onClick={e => e.stopPropagation()}>
+          <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="card-detail-name" className={styles.modalCard} onClick={e => e.stopPropagation()}>
             <button className={styles.modalClose} onClick={() => setModalCard(null)} aria-label="Close">✕</button>
             <div className={styles.modalInner}>
               <div className={styles.modalImageWrap}>
@@ -448,7 +471,7 @@ export default function ShopPage() {
                 </div>
               </div>
               <div className={styles.modalInfo}>
-                <h2 className={styles.modalName}>{modalCard.name}</h2>
+                <h2 id="card-detail-name" className={styles.modalName}>{modalCard.name}</h2>
                 {modalCard.holo_type && modalCard.holo_type !== 'Normal' && (
                   <span className={styles.modalHoloBadge}>{modalCard.holo_type}</span>
                 )}
