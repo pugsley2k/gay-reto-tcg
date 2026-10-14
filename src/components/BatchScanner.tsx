@@ -13,7 +13,7 @@ async function responseData(response: Response) {
  if (!response.ok) throw new Error(data.error || data.message || 'Request failed. Try again.');
  return data;
 }
-function valid(item: Item) { const p=Number(item.fields.price); return !!item.fields.name.trim() && !!item.fields.number.trim() && !!item.fields.set.trim() && !!item.fields.rarity.trim() && !!item.fields.holo_type && !!item.fields.price.trim() && Number.isFinite(p) && p>=.01 && p<=100000; }
+function valid(item: Item) { const p=Number(item.fields.price); return !!item.preview && !!item.fields.name.trim() && !!item.fields.number.trim() && !!item.fields.set.trim() && !!item.fields.rarity.trim() && !!item.fields.holo_type && !!item.fields.price.trim() && Number.isFinite(p) && p>=.01 && p<=100000; }
 function mergeMetadata(fields: Fields, metadata: Metadata): Fields { return metadata.matched ? {...fields,name:metadata.name || fields.name,set:metadata.set || '',rarity:metadata.rarity || '',holo_type:metadata.holo_type || '',price:metadata.pricing?.gbp || ''} : fields; }
 
 export default function BatchScanner() {
@@ -126,8 +126,8 @@ export default function BatchScanner() {
     <label className={styles.check}><input type="checkbox" checked={item.reviewed} disabled={!valid(item)} onChange={e=>update(item.id,{reviewed:e.target.checked,status:'review'})}/>I’ve checked the card, finish, condition and price</label>
     {!valid(item)&&<p className={styles.note}>Complete the name, number, set, rarity, finish and a price of at least £0.01 before marking reviewed.</p>}
    </fieldset></div></details></>}
-   {item.status==='publishing'&&<p role="status">Publishing this card…</p>}
+   {item.status==='publishing'&&<p role="status">Saving this card…</p>}
   </article>)}</div>
-  {items.length>0&&<section className={styles.publish}><h2>Review first. Publish together.</h2><p>{included.length} included cards. Every included card must be checked. Exclude anything you want to leave out.</p><button disabled={busy||!ready} onClick={()=>void publish()}>{publishing?'Publishing reviewed cards…':`Publish ${included.length} reviewed card${included.length===1?'':'s'}`}</button><button className={styles.secondary} disabled={busy||!ready} onClick={()=>void publish(false)}>Save reviewed as drafts</button><Link href="/shop">View the shop ↗</Link></section>}
+  {items.length>0&&<section className={styles.publish}><h2>Review first. Publish together.</h2><p>{included.length} included cards. Every included card must be checked. Exclude anything you want to leave out.</p><button disabled={busy||!ready} onClick={()=>void publish()}>{publishing?'Saving reviewed cards…':`Publish ${included.length} reviewed card${included.length===1?'':'s'}`}</button><button className={styles.secondary} disabled={busy||!ready} onClick={()=>void publish(false)}>Save reviewed as drafts</button><Link href="/shop">View the shop ↗</Link></section>}
  </main>;
 }
