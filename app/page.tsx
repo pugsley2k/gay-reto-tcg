@@ -18,11 +18,6 @@ export default async function HomePage() {
   const { cards, failed } = await getArrivals();
   return <main id="main-content" className={styles.main}>
     <section className={styles.hero}>
-      <div className={styles.heroCopy}>
-        <p className={styles.eyebrow}><span className={styles.signal} /> INDEPENDENT POKÉMON CARD SHOP</p>
-        <h1>GAY<br /><span>RETRO</span><br />TCG</h1>
-        <div className={styles.heroBottom}><p>Pokémon singles in English, Japanese and Korean.</p><Link href="/shop" className={styles.button}>Browse cards <span aria-hidden="true">↗</span></Link></div>
-      </div>
       <CollectorDeck />
     </section>
     <ListingBanner cards={cards} failed={failed} />

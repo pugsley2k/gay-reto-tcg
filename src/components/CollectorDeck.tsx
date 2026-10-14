@@ -1,33 +1,39 @@
 'use client';
-import { useRef, useState, type PointerEvent } from 'react';
+import { useRef, useState, type KeyboardEvent } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import styles from './CollectorDeck.module.css';
 const cards = [
   { name: 'Gardevoir ex', set: 'Scarlet & Violet', image: '/showcase-gardevoir.png' },
+  { name: 'Espeon VMAX', set: 'Fusion Strike', image: 'https://assets.tcgdex.net/en/swsh/swsh8/270/high.webp' },
+  { name: 'Sylveon VMAX', set: 'Evolving Skies', image: 'https://assets.tcgdex.net/en/swsh/swsh7/212/high.webp' },
   { name: 'Mew V', set: 'Fusion Strike', image: '/showcase-mew.png' },
-  { name: 'Charizard V', set: 'Brilliant Stars', image: '/showcase-charizard.png' },
+  { name: 'Umbreon VMAX', set: 'Evolving Skies', image: 'https://assets.tcgdex.net/en/swsh/swsh7/215/high.webp' },
+  { name: 'Leafeon VMAX', set: 'Evolving Skies', image: 'https://assets.tcgdex.net/en/swsh/swsh7/205/high.webp' },
+  { name: 'Dragonite V', set: 'Evolving Skies', image: 'https://assets.tcgdex.net/en/swsh/swsh7/192/high.webp' },
 ];
 export default function CollectorDeck() {
   const [active, setActive] = useState(0);
-  const surface = useRef<HTMLDivElement>(null);
-  function tilt(e: PointerEvent<HTMLDivElement>) {
-    if (e.pointerType !== 'mouse' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const bounds = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - bounds.left) / bounds.width - .5;
-    const y = (e.clientY - bounds.top) / bounds.height - .5;
-    if (surface.current) surface.current.style.transform = `perspective(1100px) rotateX(${-y * 12}deg) rotateY(${x * 16}deg)`;
+  const [instant, setInstant] = useState(false);
+  const suppressClickUntil = useRef(0);
+  const touch = useRef<{x:number;y:number}|null>(null);
+  function move(step:number, keyboard=false) { setInstant(keyboard); setActive(i=>(i+step+cards.length)%cards.length); }
+  function keys(event:KeyboardEvent<HTMLElement>) {
+    if(event.key==='ArrowRight'||event.key==='ArrowLeft') { event.preventDefault(); move(event.key==='ArrowRight'?1:-1,true); }
   }
-  return <div className={styles.showcase}>
-    <div className={styles.label}><span>CARD SHOWCASE</span><span>{String(active + 1).padStart(2, '0')} / 03</span></div>
-    <div className={styles.arena} onPointerMove={tilt} onPointerLeave={() => { if (surface.current) surface.current.style.transform = ''; }}>
-      <div ref={surface} className={styles.surface}>
-        {cards.map((card, i) => { const position = (i - active + cards.length) % cards.length; return <div key={card.name} className={styles.card} data-position={position} aria-hidden={position !== 0}>
-          <Image src={card.image} alt={position === 0 ? `${card.name} collectible Pokémon card artwork` : ''} width={420} height={588} priority={i === 0} sizes="(max-width: 640px) 65vw, 320px" />
-          <span className={styles.foil} aria-hidden="true" />
-        </div>; })}
-      </div>
+  return <section className={styles.showcase} aria-label="Pokémon card artwork" aria-roledescription="carousel" onKeyDown={keys} data-instant={instant}>
+    <div className={styles.label}><h1>Pokémon card showcase</h1><span>{String(active+1).padStart(2,'0')} / {String(cards.length).padStart(2,'0')}</span></div>
+    <div className={styles.arena} onTouchStart={e=>{touch.current={x:e.touches[0].clientX,y:e.touches[0].clientY};}} onTouchEnd={e=>{if(!touch.current)return;const dx=e.changedTouches[0].clientX-touch.current.x,dy=e.changedTouches[0].clientY-touch.current.y;touch.current=null;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.5){suppressClickUntil.current=Date.now()+350;move(dx<0?1:-1);}}}>
+      {cards.map((card,i)=>{let offset=(i-active+cards.length)%cards.length;if(offset>cards.length/2)offset-=cards.length;const visible=Math.abs(offset)<=2;return <button type="button" key={card.name} className={styles.card} data-position={offset} aria-label={offset===0?card.name:'Show '+card.name} aria-current={offset===0?'true':undefined} aria-hidden={!visible} tabIndex={visible?0:-1} onClick={e=>{if(Date.now()<suppressClickUntil.current)return;setInstant(e.detail===0);setActive(i);}}>
+        <Image src={card.image} alt={card.name+' Pokémon card artwork'} width={600} height={840} priority={i===0} sizes="(max-width: 640px) 64vw, (max-width: 1000px) 280px, 340px" />
+        <span className={styles.foil} aria-hidden="true" />
+      </button>;})}
     </div>
-    <div className={styles.controls}><div aria-live="polite"><p>{cards[active].name} <small>/ {cards[active].set}</small></p></div><button onClick={() => setActive(i => (i + 1) % cards.length)} aria-label="Shuffle showcase cards"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M3 6h3c4 0 8 12 12 12h3m-4-4 4 4-4 4M3 18h3c1 0 2-1 3-3m6-6c1-2 2-3 3-3h3m-4-4 4 4-4 4" /></svg>Shuffle</button></div>
-    <p className={styles.disclaimer}>Showcase cards. See the shop for current availability.</p>
-  </div>;
+    <div className={styles.controls}>
+      <div className={styles.caption} aria-live="polite"><p>{cards[active].name}</p><small>{cards[active].set}</small></div>
+      <div className={styles.arrows}><button type="button" onClick={e=>move(-1,e.detail===0)} aria-label="Previous showcase card">←</button><button type="button" onClick={e=>move(1,e.detail===0)} aria-label="Next showcase card">→</button></div>
+      <Link href="/shop" className={styles.shopLink}>Browse cards <span aria-hidden="true">↗</span></Link>
+    </div>
+    <p className={styles.disclaimer}>Artwork showcase. See the shop for available cards.</p>
+  </section>;
 }
