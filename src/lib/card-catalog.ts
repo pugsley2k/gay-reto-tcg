@@ -1,5 +1,5 @@
 export type CatalogCard = {
-  id: string; name: string; localId: string; rarity?: string;
+  id: string; name: string; localId: string; rarity?: string; image?: string;
   set: { name: string; cardCount: { official: number } };
   variants?: { normal?: boolean; holo?: boolean; reverse?: boolean };
   pricing?: { cardmarket?: { updated: string; unit: string; trend?: number; 'trend-holo'?: number; 'trend-reverse'?: number }; tcgplayer?: { unit: string; updated: string; normal?: { marketPrice?: number }; holofoil?: { marketPrice?: number }; reverseHolofoil?: { marketPrice?: number } } };
@@ -43,6 +43,19 @@ async function catalogFetch(path: string) {
   return response.json();
 }
 const languages: Record<string,string> = { English: 'en', Japanese: 'ja', Korean: 'ko' };
+export function catalogImageUrl(card: CatalogCard, language: string) {
+  const lang = languages[language];
+  if (!lang || !card.image || !new RegExp(`^https://assets\\.tcgdex\\.net/${lang}/[A-Za-z0-9/_-]+$`).test(card.image)) return null;
+  return `${card.image.replace(/\/$/, '')}/high.webp`;
+}
+async function availableImage(card: CatalogCard, language: string) {
+  const url = catalogImageUrl(card, language);
+  if (!url) return null;
+  try {
+    const response = await fetch(url, { method: 'HEAD', redirect: 'error', next: { revalidate: 3600 }, signal: AbortSignal.timeout(3000) });
+    return response.ok && response.headers.get('content-type')?.startsWith('image/') ? url : null;
+  } catch { return null; }
+}
 export async function enrichCard(scan: ScanIdentity, selectedId?: string) {
   const lang = languages[scan.language];
   if (!lang || !scan.number || !scan.name) return { matched: false, notice: 'Check the card name and number to look up its set.' };
@@ -64,7 +77,7 @@ export async function enrichCard(scan: ScanIdentity, selectedId?: string) {
   const finish = resolveFinish(card, scan.finish);
   const rarity = card.rarity || '';
   const holo = /illustration|ultra|double|hyper|shiny|radiant/i.test(rarity) ? rarity.replace(/\b\w/g, c=>c.toUpperCase()) : finish;
-  const result = { matched: true, name: scan.language === 'English' ? card.name : scan.name, catalog_id: card.id, set: card.set.name, rarity, holo_type: holo, pricing: null as null | { gbp: string; source: string; updated: string; original: number; currency: string; rate: number; rate_date: string }, notice: finish ? 'Catalogue match found. Check the artwork and condition before publishing.' : 'Set and rarity found. Confirm the finish before requesting a price.' };
+  const result = { matched: true, image_url: await availableImage(card, scan.language), name: scan.language === 'English' ? card.name : scan.name, catalog_id: card.id, set: card.set.name, rarity, holo_type: holo, pricing: null as null | { gbp: string; source: string; updated: string; original: number; currency: string; rate: number; rate_date: string }, notice: finish ? 'Catalogue match found. Check the artwork and condition before publishing.' : 'Set and rarity found. Confirm the finish before requesting a price.' };
   const quote = marketQuote(card, finish);
   if (!quote) { result.notice += ' No reliable price is available for this variant.'; return result; }
   const age = Date.now() - Date.parse(quote.updated);

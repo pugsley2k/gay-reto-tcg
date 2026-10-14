@@ -6,7 +6,7 @@ import styles from './PhoneScanner.module.css';
 import { prepareCardPhoto } from '@/lib/card-photo';
 
 type Details = { name: string; number: string; set: string; rarity: string; language: string; holo_type: string; price: string };
-type Enrichment = { name?: string; matched?: boolean; catalog_id?: string; set?: string; rarity?: string; holo_type?: string | null; notice?: string; candidates?: { id: string; name: string; set: string; number: string; rarity?: string }[]; pricing?: { gbp: string; source: string; updated: string; original: number; currency: string; rate_date: string } | null };
+type Enrichment = { image_url?: string | null; name?: string; matched?: boolean; catalog_id?: string; set?: string; rarity?: string; holo_type?: string | null; notice?: string; candidates?: { id: string; name: string; set: string; number: string; rarity?: string }[]; pricing?: { gbp: string; source: string; updated: string; original: number; currency: string; rate_date: string } | null };
 const blank: Details = { name: '', number: '', set: '', rarity: '', language: 'English', holo_type: '', price: '' };
 async function readResponse(response: Response) {
   const data = await response.json().catch(() => ({}));
@@ -21,6 +21,7 @@ export default function PhoneScanner() {
   const [stage, setStage] = useState<'capture' | 'scanning' | 'review' | 'saving' | 'saved'>('capture');
   const [error, setError] = useState('');
   const [published, setPublished] = useState(false);
+  const [usePhoto, setUsePhoto] = useState(false);
   const [enrichment, setEnrichment] = useState<Enrichment | null>(null);
   const [originalName, setOriginalName] = useState('');
   const [lookingUp, setLookingUp] = useState(false);
@@ -37,10 +38,10 @@ export default function PhoneScanner() {
     const identityChanged = ['name','number','language'].includes(key);
     setDetails(prev => ({ ...prev, ...(identityChanged ? { set: '', rarity: '', price: '', holo_type: '' } : {}), ...(['set','holo_type'].includes(key) ? { price: '' } : {}), [key]: value }));
     if (identityChanged) { setOriginalName(''); setEnrichment(null); }
-    else if (['set','holo_type'].includes(key)) setEnrichment(prev => prev ? { ...prev, pricing: null, notice: 'Details changed. Look up the card again to refresh its suggested price.' } : null);
+    else if (['set','holo_type'].includes(key)) setEnrichment(prev => prev ? { ...prev, ...(key === 'set' ? { image_url: null } : {}), pricing: null, notice: 'Details changed. Look up the card again to refresh its suggested price.' } : null);
   }
   function applyMetadata(data: Enrichment) {
-    setEnrichment(data);
+    setEnrichment(data); setUsePhoto(false);
     if (data.matched) setDetails(prev => ({ ...prev, name: data.name || prev.name, set: data.set || '', rarity: data.rarity || '', holo_type: data.holo_type || '', price: data.pricing?.gbp || '' }));
   }
   async function lookup(catalog_id?: string) {
@@ -81,7 +82,7 @@ export default function PhoneScanner() {
         setUploadedPhoto(upload);
       }
       if (!upload?.url) throw new Error('The photo upload did not finish. Please try again.');
-      await readResponse(await fetch('/api/cards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...details, price, image_url: upload.url, scan_url: upload.public_id, available: published }) }));
+      await readResponse(await fetch('/api/cards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...details, price, image_url: !usePhoto && enrichment?.matched && enrichment.image_url ? enrichment.image_url : upload.url, scan_url: upload.public_id, available: published }) }));
       setStage('saved');
     } catch (err) { setError(err instanceof Error ? err.message : 'Could not save this card.'); setStage('review'); }
   }
@@ -103,9 +104,10 @@ export default function PhoneScanner() {
         <p className={styles.note}>Photos are sent to OpenAI for identification. Saved card photos are uploaded to the store’s image host.</p>
       </section>
       {(stage === 'review' || stage === 'saving') && <form onSubmit={save} className={styles.form}>
-        <h2>Make it yours.</h2><p className={styles.note}>AI can misread names and numbers. Check the card, language and finish before publishing. Your photo becomes the listing image.</p>
+        <h2>Make it yours.</h2><p className={styles.note}>AI can misread names and numbers. Check the card, language and finish before publishing. Matched catalogue artwork becomes the listing image; your photo is kept as a reference.</p>
         {enrichment?.notice && <p className={styles.note} role="status">{enrichment.notice}</p>}
         {enrichment?.candidates?.map(candidate => <button className={styles.secondary} type="button" key={candidate.id} disabled={busy} onClick={() => void lookup(candidate.id)}>{candidate.name} · {candidate.set} · #{candidate.number}</button>)}
+        {enrichment?.matched && enrichment.image_url ? <div><p className={styles.note}>Catalogue artwork — check that it matches your card.</p><img src={enrichment.image_url} alt="Matched catalogue card artwork" width={150} height={206} style={{objectFit:"contain"}} onError={() => setEnrichment(prev => prev ? {...prev,image_url:null} : prev)} /><label className={styles.check}><input type="checkbox" checked={usePhoto} onChange={e => setUsePhoto(e.target.checked)} />Use my photo instead</label></div> : <p className={styles.note}>No catalogue image available. Your photo will be used.</p>}
         <label>Card name<input required maxLength={200} value={details.name} onChange={e => field('name', e.target.value)} /></label>
         <div className={styles.fields}><label>Card number<input required maxLength={40} value={details.number} onChange={e => field('number', e.target.value)} /></label><label>Price (£)<input required type="number" inputMode="decimal" min="0.01" max="100000" step="0.01" value={details.price} onChange={e => field('price', e.target.value)} /></label></div>
         <label>Set<input maxLength={160} placeholder="Check the set printed on your card" value={details.set} onChange={e => field('set', e.target.value)} /></label>

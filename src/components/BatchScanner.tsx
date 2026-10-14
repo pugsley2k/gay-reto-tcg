@@ -5,8 +5,8 @@ import { prepareCardPhoto } from '@/lib/card-photo';
 import styles from './BatchScanner.module.css';
 
 type Fields = { name: string; number: string; set: string; rarity: string; language: string; holo_type: string; price: string };
-type Metadata = { name?: string; matched?: boolean; set?: string; rarity?: string; holo_type?: string; notice?: string; candidates?: {id:string;name:string;set:string;number:string}[]; pricing?: {gbp:string;source:string;updated:string} };
-type Item = { id: string; file: File; preview: string; status: 'queued'|'scanning'|'review'|'error'|'publishing'|'published'; fields: Fields; included: boolean; reviewed: boolean; savedAsDraft?: boolean; error: string; original: string; total: string; metadata?: Metadata; uploaded?: {url:string;public_id:string} };
+type Metadata = { image_url?: string | null; name?: string; matched?: boolean; set?: string; rarity?: string; holo_type?: string; notice?: string; candidates?: {id:string;name:string;set:string;number:string}[]; pricing?: {gbp:string;source:string;updated:string} };
+type Item = { id: string; file: File; preview: string; status: 'queued'|'scanning'|'review'|'error'|'publishing'|'published'; fields: Fields; included: boolean; reviewed: boolean; savedAsDraft?: boolean; usePhoto?: boolean; error: string; original: string; total: string; metadata?: Metadata; uploaded?: {url:string;public_id:string} };
 const empty: Fields = {name:'',number:'',set:'',rarity:'',language:'English',holo_type:'',price:''};
 async function responseData(response: Response) {
  const data = await response.json().catch(()=>({}));
@@ -46,7 +46,7 @@ export default function BatchScanner() {
    const body=new FormData();body.append('image',file);
    const result=await responseData(await fetch('/api/scan-card',{method:'POST',body}));
    const fields={...empty,name:result.english_name||'',number:result.card_number||'',language:result.language||'English'};
-   update(id,{status:'review',fields:mergeMetadata(fields,result.enrichment||{}),metadata:result.enrichment,original:result.original_name||'',total:result.card_total||''});
+   update(id,{status:'review',fields:mergeMetadata(fields,result.enrichment||{}),metadata:result.enrichment,usePhoto:false,original:result.original_name||'',total:result.card_total||''});
   }catch(error){update(id,{status:'error',error:error instanceof Error?error.message:'Scan failed. Retry or enter details manually.'});}
  }
  async function runQueue(ids:string[]) {
@@ -73,7 +73,7 @@ export default function BatchScanner() {
   setLookupId(id);update(id,{reviewed:false,error:''});
   try {
    const metadata=await responseData(await fetch('/api/card-details',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...item.fields,original_name:item.original||item.fields.name,total:item.total,finish:item.fields.holo_type,catalog_id})}));
-   update(id,{metadata,fields:mergeMetadata(item.fields,metadata),status:'review'});
+   update(id,{metadata,usePhoto:false,fields:mergeMetadata(item.fields,metadata),status:'review'});
   }catch(error){update(id,{error:error instanceof Error?error.message:'Lookup failed.'});}
   finally{setLookupId('');}
  }
@@ -94,7 +94,7 @@ export default function BatchScanner() {
      let upload=initial.uploaded;
      if(!upload){const body=new FormData();body.append('file',initial.file);upload=await responseData(await fetch('/api/upload',{method:'POST',body}));update(initial.id,{uploaded:upload});}
      if(!upload?.url)throw new Error('Photo upload did not complete. Retry this card.');
-     await responseData(await fetch('/api/cards',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...initial.fields,client_id:initial.id,price:Math.round(Number(initial.fields.price)*100),image_url:upload.url,scan_url:upload.public_id,available})}));
+     await responseData(await fetch('/api/cards',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...initial.fields,client_id:initial.id,price:Math.round(Number(initial.fields.price)*100),image_url:!initial.usePhoto&&initial.metadata?.matched&&initial.metadata.image_url?initial.metadata.image_url:upload.url,scan_url:upload.public_id,available})}));
      update(initial.id,{status:'published',savedAsDraft:!available});count++;
     }catch(error){update(initial.id,{status:'review',error:error instanceof Error?error.message:'Could not publish. Retry this card.'});}
    }
@@ -106,7 +106,7 @@ export default function BatchScanner() {
   <header className={styles.header}><Link href="/admin">← Seller studio</Link><span>GAY RETRO / BATCH SCANNER</span></header>
   <p className={styles.eyebrow}>A quicker way to fill the shop</p><h1>A whole binder.<br /><em>One batch.</em></h1>
   <p className={styles.intro}>Choose up to 20 photos, one card in each. We’ll scan the details, sets, rarities and prices. Review every included card before publishing.</p>
-  <p className={styles.note}>Keep this page open until you finish. This queue stays in this tab and is lost if you reload or close it. Photos go to OpenAI for recognition; card photos upload to the store when you publish.</p>
+  <p className={styles.note}>Keep this page open until you finish. This queue stays in this tab and is lost if you reload or close it. Photos go to OpenAI for recognition; your photos are kept as references when you save. Matched catalogue artwork is used for listings, with your photo as the fallback.</p>
   <input ref={photos} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden onChange={e=>{addFiles(Array.from(e.target.files||[]));e.target.value='';}} />
   <div className={styles.toolbar}><button disabled={busy||items.length>=20} onClick={()=>photos.current?.click()}>{items.length?'Add more photos':'Choose card photos'}</button>{items.length>0&&<button className={styles.secondary} disabled={busy} onClick={clear}>Clear batch</button>}</div>
   {notice&&<p role="status" className={styles.notice}>{notice}</p>}
@@ -116,6 +116,7 @@ export default function BatchScanner() {
    {item.error&&<p className={styles.error} role="alert">{item.error}</p>}
    {!['queued','scanning','published','publishing'].includes(item.status)&&<><label className={styles.check}><input type="checkbox" checked={item.included} disabled={busy} onChange={e=>update(item.id,{included:e.target.checked})}/>Include in this batch</label>
    <details><summary>Review card {index+1}{item.reviewed?' — checked':''}</summary><div className={styles.editor}><fieldset disabled={busy}><legend className={styles.srOnly}>Details for card {index+1}</legend>
+    {item.metadata?.matched&&item.metadata.image_url?<div><p className={styles.note}>Catalogue artwork — check that it matches your card.</p><img src={item.metadata.image_url} alt={`Catalogue artwork for card ${index+1}`} width={120} height={165} style={{objectFit:'contain'}} onError={()=>update(item.id,{metadata:{...item.metadata,image_url:null},reviewed:false})}/><label className={styles.check}><input type="checkbox" checked={!!item.usePhoto} onChange={e=>update(item.id,{usePhoto:e.target.checked,reviewed:false})}/>Use my photo instead</label></div>:<p className={styles.note}>No catalogue image available. Your photo will be used.</p>}
     {item.metadata?.notice&&<p className={styles.note}>{item.metadata.notice}</p>}
     {item.metadata?.candidates?.map(c=><button type="button" className={styles.secondary} key={c.id} onClick={()=>void lookup(item.id,c.id)}>{c.set} · {c.name} #{c.number}</button>)}
     {(['name','number','set','rarity'] as const).map(key=><label key={key}>{({name:'Card name',number:'Card number',set:'Set',rarity:'Rarity'})[key]}<input maxLength={key==='name'?200:key==='number'?40:key==='set'?160:100} value={item.fields[key]} onChange={e=>edit(item.id,key,e.target.value)}/></label>)}

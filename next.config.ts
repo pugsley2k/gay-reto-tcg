@@ -3,6 +3,7 @@ const nextConfig = {
   outputFileTracingRoot: process.cwd(),
   images: {
     remotePatterns: [
+      { protocol: 'https', hostname: 'assets.tcgdex.net', port: '', pathname: '/**' },
       {
         protocol: 'https',
         hostname: 'storage.googleapis.com',
