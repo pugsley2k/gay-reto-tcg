@@ -11,3 +11,5 @@
 
 .navigation{scrollbar-color:#7f7d72 #23262c}.navigation::-webkit-scrollbar{height:4px}.navigation::-webkit-scrollbar-track{background:#23262c}.navigation::-webkit-scrollbar-thumb{background:#7f7d72;border-radius:2px}
 .primary{background:#faeac4;color:#191b20;border:0;padding:10px 16px;border-radius:4px}
+
+.headerActions{display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end}.labLink{display:inline-flex;align-items:center;gap:20px;padding:13px 20px;border:1px solid #ffffff36;border-radius:4px;color:#faeac4;min-height:48px;text-decoration:none;font-weight:700}@media(max-width:700px){.headerActions{display:grid;gap:10px}.headerActions .scanLink{margin-top:24px}.labLink{justify-content:space-between}}
