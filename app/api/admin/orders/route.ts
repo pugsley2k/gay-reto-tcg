@@ -23,10 +23,8 @@ export async function POST(req: NextRequest) {
       const tracking = typeof body.tracking === 'string' ? body.tracking.trim().toUpperCase() : '';
       if (!validTracking(tracking)) return NextResponse.json({ error: 'Enter a Royal Mail tracking reference (8–30 letters/numbers).' }, { status: 400 });
       if (order.tracking_number && order.tracking_number !== tracking) return NextResponse.json({ error: 'Tracking has already been recorded. Email the customer if it needs correcting.' }, { status: 409 });
-      const { data: updated, error: saved } = await db.from('orders').update({ tracking_number: tracking, dispatched_at: order.dispatched_at || new Date().toISOString() }).eq('id', order.id).or(`tracking_number.is.null,tracking_number.eq.${tracking}`).select('id').maybeSingle();
-      if (saved || !updated) return NextResponse.json({ error: 'Could not save tracking. Refresh and try again.' }, { status: 409 });
-      const { error: queued } = await db.from('order_emails').upsert({ id: `${order.id}-tracking-${tracking}`, order_id: order.id, kind: 'tracking', recipient: order.customer_email, message: orderEmail({ ...order, tracking }, 'tracking') }, { onConflict: 'id', ignoreDuplicates: true });
-      if (queued) throw new Error('Tracking saved, but the email could not be queued. Retry the same tracking reference.');
+      const { error: queued } = await db.rpc('dispatch_order', { p_id: order.id, p_tracking: tracking, p_message: orderEmail({ ...order, tracking }, 'tracking') });
+      if (queued) throw new Error('Tracking and its email could not be saved. Refresh and retry.');
     } else if (body.action !== 'retry') return NextResponse.json({ error: 'Unknown action.' }, { status: 400 });
     const result = await flushEmails(order.id);
     return NextResponse.json({ message: result.failed ? 'Saved. Email is pending; you can retry it here.' : 'Email accepted by the sending service.' });
