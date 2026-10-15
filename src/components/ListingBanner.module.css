@@ -11,4 +11,4 @@
 
 .thumbnail{border-radius:5px}
 
-.banner,.pause{background:var(--brand-accent);color:var(--brand-on-accent)}.pause{border-left-color:#191b2040}.listing:focus-visible,.pause:focus-visible,.empty:focus-visible{outline-color:var(--brand-on-accent)}.thumbnail{filter:drop-shadow(0 5px 4px #00000066) drop-shadow(0 1px 1px #00000033)}.listing{padding-block:18px}.banner,.group{min-height:104px}@media(max-width:640px){.listing{padding-block:16px}.banner,.group{min-height:92px}}
+.banner,.pause{background:#E4B74A;color:var(--brand-on-accent)}.pause{border-left-color:#191b2040}.listing:focus-visible,.pause:focus-visible,.empty:focus-visible{outline-color:var(--brand-on-accent)}.thumbnail{filter:drop-shadow(0 5px 4px #00000066) drop-shadow(0 1px 1px #00000033)}.listing{padding-block:18px}.banner,.group{min-height:104px}@media(max-width:640px){.listing{padding-block:16px}.banner,.group{min-height:92px}}
