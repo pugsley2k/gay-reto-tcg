@@ -1,4 +1,5 @@
 "use client";
+import {inventoryIdentity,matchingPrinting,inventoryUpdates,type RefreshResult} from '@/lib/inventory-refresh';
 import studio from './SellerStudio.module.css';
 import legacy from './AdminManageCards.module.css';
 import React, { useEffect, useState, useCallback } from "react";
@@ -12,7 +13,7 @@ const supabase = createClient(
 );
 
 interface Card {
-  id: number;
+  id: string;
   name: string;
   number: string | null;
   set: string | null;
@@ -35,25 +36,6 @@ const ALL_HOLO_TYPES = [
   'Reverse Holo','Pokeball Holo','Master Ball Holo','Cosmos Holo',
   'Full Art','Alt Art','Holo Rare',
 ];
-
-/** Extract Pokemon name, card number, set name and series from the stored composite name */
-function parseStoredName(name: string, number: string | null) {
-  if (!number) {
-    const pipeIdx = name.indexOf(' | ');
-    const pokemonName = pipeIdx >= 0 ? name.slice(0, pipeIdx).trim() : name;
-    const afterPipe = pipeIdx >= 0 ? name.slice(pipeIdx + 3).trim() : '';
-    return { pokemonName, cardNum: '', setName: pokemonName, setSeries: afterPipe };
-  }
-  // e.g. "Snover 10/189 Snow Hazard | Scarlet & Violet"
-  const numIndex = name.indexOf(number);
-  const pokemonName = numIndex > 0 ? name.slice(0, numIndex).trim() : name.split(' ')[0];
-  const afterNum    = numIndex >= 0 ? name.slice(numIndex + number.length).trim() : '';
-  const pipeIdx     = afterNum.indexOf(' | ');
-  const setName     = pipeIdx >= 0 ? afterNum.slice(0, pipeIdx).trim() : afterNum;
-  const setSeries   = pipeIdx >= 0 ? afterNum.slice(pipeIdx + 3).trim() : '';
-  const cardNum     = number.split('/')[0];
-  return { pokemonName, cardNum, setName, setSeries };
-}
 
 const s: Record<string, React.CSSProperties> = {
   wrap:       { fontFamily: 'Manrope, sans-serif', color: '#f0eee7', padding: '0 0 2rem' },
@@ -84,13 +66,13 @@ export default function AdminManageCards() {
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState('');
   const [holoFilter, setHoloFilter] = useState('');
-  const [fixStatus, setFixStatus] = useState<Record<number, FixStatus>>({});
-  const [fixMsg, setFixMsg]       = useState<Record<number, string>>({});
-  const [pcUrl, setPcUrl]         = useState<Record<number, string>>({});
-  const [manualPrice, setManualPrice] = useState<Record<number, string>>({});
-  const [saving, setSaving]       = useState<Record<number, boolean>>({});
-  const [deleting, setDeleting]   = useState<Record<number, boolean>>({});
-  const [holoEdit, setHoloEdit]   = useState<Record<number, boolean>>({});
+  const [fixStatus, setFixStatus] = useState<Record<string, FixStatus>>({});
+  const [fixMsg, setFixMsg]       = useState<Record<string, string>>({});
+  const [pcUrl, setPcUrl]         = useState<Record<string, string>>({});
+  const [manualPrice, setManualPrice] = useState<Record<string, string>>({});
+  const [saving, setSaving]       = useState<Record<string, boolean>>({});
+  const [deleting, setDeleting]   = useState<Record<string, boolean>>({});
+  const [holoEdit, setHoloEdit]   = useState<Record<string, boolean>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -111,13 +93,13 @@ export default function AdminManageCards() {
     return matchSearch && matchHolo;
   });
 
-  async function patchCard(id: number, updates: { price?: number; image_url?: string; condition?: string | null; edition?: string | null }) {
+  async function patchCard(id: string, updates: { price?: number; image_url?: string; condition?: string | null; edition?: string | null }) {
     const res = await fetch('/api/cards', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, ...updates }),
     });
-    if (!res.ok) throw new Error(await res.text());
+    if (!res.ok) {const data=await res.json().catch(()=>({}));throw new Error(data.message||'Could not save this card. Please retry.');}
     setCards(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
   }
 
@@ -126,52 +108,19 @@ export default function AdminManageCards() {
     setFixMsg(p => ({ ...p, [card.id]: '' }));
     setPcUrl(p => ({ ...p, [card.id]: '' }));
     try {
-      const { pokemonName, cardNum, setName, setSeries } = parseStoredName(card.name, card.number);
-      const params = new URLSearchParams({
-        name:       pokemonName,
-        number:     cardNum,
-        holo_type:  card.holo_type ?? '',
-        language:   card.language ?? 'English',
-        set_name:   setName,
-        set_series: setSeries,
-      });
-      const pcData = await fetch(`/api/pricecharting?${params}`).then(r => r.json());
-
-      // Always store the URL PC searched so user can inspect it
-      if (pcData.url) setPcUrl(p => ({ ...p, [card.id]: pcData.url }));
-
-      if (pcData.not_found) {
-        setFixStatus(p => ({ ...p, [card.id]: 'not_found' }));
-        setFixMsg(p => ({ ...p, [card.id]: `Not found — set manual price below` }));
-        return;
-      }
-      if (pcData.error) {
-        setFixStatus(p => ({ ...p, [card.id]: 'fail' }));
-        setFixMsg(p => ({ ...p, [card.id]: pcData.error }));
-        return;
-      }
-
-      const SPECIAL_HOLOS = new Set(['Pokeball Holo', 'Master Ball Holo', 'Cosmos Holo']);
-      const isSpecialHolo = SPECIAL_HOLOS.has(card.holo_type ?? '');
-
-      const updates: { price?: number; image_url?: string } = {};
-      // For special holos, only save the image — PC has no specific price for these variants
-      if (pcData.image_url) updates.image_url = pcData.image_url;
-      if (pcData.price && !isSpecialHolo) updates.price = pcData.price;
-
-      if (!Object.keys(updates).length) {
-        setFixStatus(p => ({ ...p, [card.id]: 'not_found' }));
-        setFixMsg(p => ({ ...p, [card.id]: 'PC found page but no image — set price manually below' }));
-        return;
-      }
-
-      await patchCard(card.id, updates);
-      setFixStatus(p => ({ ...p, [card.id]: isSpecialHolo ? 'not_found' : 'done' }));
-      const parts: string[] = [];
-      if (updates.image_url) parts.push('image updated');
-      if (isSpecialHolo) parts.push('set price manually — PC has no Pokeball/MB/Cosmos Holo pricing');
-      else if (updates.price) parts.push(`£${(updates.price / 100).toFixed(2)}`);
-      setFixMsg(p => ({ ...p, [card.id]: parts.join(' · ') }));
+      const identity=inventoryIdentity(card);
+      async function lookup(catalog_id?:string):Promise<RefreshResult>{const response=await fetch('/api/card-details',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...identity,catalog_id})});const result=await response.json();if(!response.ok)throw new Error(result.error||'Catalogue lookup failed. Please retry.');return result;}
+      let result=await lookup();
+      if(!result.matched){const selected=matchingPrinting(result,identity.set);if(selected)result=await lookup(selected);}
+      const updates=inventoryUpdates(result,identity.set);
+      if(!Object.keys(updates).length){setFixStatus(p=>({...p,[card.id]:'not_found'}));setFixMsg(p=>({...p,[card.id]:result.notice||'No reliable image or price is available. Existing details were kept.'}));return;}
+      await patchCard(card.id,updates);
+      setFixStatus(p=>({...p,[card.id]:updates.price!==undefined?'done':'not_found'}));
+      const parts:string[]=[];
+      if(updates.image_url)parts.push('Catalogue image updated');
+      if(updates.price!==undefined)parts.push(`Price updated to £${(updates.price/100).toFixed(2)} (${result.pricing!.source}; ${result.pricing!.updated})`);
+      else parts.push('Current price kept. '+(result.notice||'No reliable quote is available for this finish and edition.'));
+      setFixMsg(p=>({...p,[card.id]:parts.join('. ')}));
     } catch (e: any) {
       setFixStatus(p => ({ ...p, [card.id]: 'fail' }));
       setFixMsg(p => ({ ...p, [card.id]: e.message ?? 'Unknown error' }));
@@ -331,11 +280,11 @@ export default function AdminManageCards() {
                     <div className={legacy.style32}>
                       <div className={legacy.style33}>
                         {st === 'loading' ? (
-                          <button className={legacy.style34} disabled>Checking PC…</button>
+                          <button className={legacy.style34} disabled>Checking catalogue…</button>
                         ) : st === 'done' ? (
-                          <button className={legacy.style35} onClick={() => fixCard(card)}>✓ Fixed · Retry?</button>
+                          <button className={legacy.style35} onClick={() => fixCard(card)}>Updated · Refresh again</button>
                         ) : showManual ? (
-                          <button className={legacy.style36} onClick={() => fixCard(card)}>✗ Retry PC</button>
+                          <button className={legacy.style36} onClick={() => fixCard(card)}>Retry lookup</button>
                         ) : (
                           <button className={legacy.style37} onClick={() => fixCard(card)}>Update price &amp; image</button>
                         )}
@@ -358,7 +307,7 @@ export default function AdminManageCards() {
 
                       {/* Status message */}
                       {msg && (
-                        <div style={{ ...s.statusTxt, color: st === 'done' ? '#86efac' : st === 'not_found' ? '#e9a79b' : '#f87171' }}>
+                        <div role="status" style={{ ...s.statusTxt, color: st === 'done' ? '#86efac' : st === 'not_found' ? '#e9a79b' : '#f87171' }}>
                           {msg}
                         </div>
                       )}
@@ -367,7 +316,7 @@ export default function AdminManageCards() {
                       {url && (
                         <a href={url} target="_blank" rel="noreferrer"
                           className={legacy.style38}>
-                          🔗 View PC page
+                          View source
                         </a>
                       )}
 
