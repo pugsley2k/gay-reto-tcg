@@ -1,4 +1,6 @@
 "use client";
+import studio from './SellerStudio.module.css';
+import legacy from './AdminManageCards.module.css';
 import React, { useEffect, useState, useCallback } from "react";
 import { CARD_EDITIONS } from '@/lib/card-edition';
 import { CARD_CONDITIONS } from '@/lib/card-condition';
@@ -54,25 +56,25 @@ function parseStoredName(name: string, number: string | null) {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  wrap:       { fontFamily: 'Space Mono, monospace', color: '#d0d0f0', padding: '0 0 2rem' },
+  wrap:       { fontFamily: 'Manrope, sans-serif', color: '#f0eee7', padding: '0 0 2rem' },
   toolbar:    { display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' },
-  searchBox:  { background: '#0f0f22', border: '1px solid #2d2d50', borderRadius: 6, color: '#d0d0f0', padding: '6px 10px', fontSize: 13, flex: 1, minWidth: 180 },
-  filterSel:  { background: '#0f0f22', border: '1px solid #2d2d50', borderRadius: 6, color: '#d0d0f0', padding: '6px 8px', fontSize: 12 },
+  searchBox:  { background: '#191b20', border: '1px solid #34383f', borderRadius: 6, color: '#f0eee7', padding: '6px 10px', fontSize: 13, flex: 1, minWidth: 180 },
+  filterSel:  { background: '#191b20', border: '1px solid #34383f', borderRadius: 6, color: '#f0eee7', padding: '6px 8px', fontSize: 12 },
   table:      { width: '100%', borderCollapse: 'collapse' as const },
-  th:         { textAlign: 'left' as const, fontSize: 10, color: '#5a5a8a', padding: '6px 8px', borderBottom: '1px solid #1e1e3a', letterSpacing: '0.1em', textTransform: 'uppercase' as const },
-  td:         { padding: '8px', borderBottom: '1px solid #111128', verticalAlign: 'top' as const, fontSize: 12 },
-  thumb:      { width: 40, height: 56, objectFit: 'contain' as const, borderRadius: 3, background: '#08081a' },
-  name:       { maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, fontSize: 11, color: '#c0c0e0' },
-  holo:       { fontSize: 10, color: '#a78bfa', background: 'rgba(124,106,240,0.15)', padding: '2px 6px', borderRadius: 4 },
-  price:      { fontSize: 13, color: '#ffd166', fontWeight: 700 },
-  btnFix:     { background: 'linear-gradient(90deg,#7c6af0,#b84fff)', border: 'none', borderRadius: 5, color: '#fff', padding: '5px 12px', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap' as const },
-  btnFixDone: { background: '#1a3a1a', border: '1px solid #2a6a2a', borderRadius: 5, color: '#86efac', padding: '5px 12px', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap' as const },
-  btnFixFail: { background: '#3a1a1a', border: '1px solid #6a2a2a', borderRadius: 5, color: '#f87171', padding: '5px 12px', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap' as const },
-  btnDelete:  { background: 'transparent', border: '1px solid #3a1a1a', borderRadius: 5, color: '#f87171', padding: '5px 10px', fontSize: 11, cursor: 'pointer' },
-  btnSave:    { background: '#1a3050', border: '1px solid #2a5080', borderRadius: 5, color: '#93c5fd', padding: '4px 10px', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap' as const },
-  statusTxt:  { fontSize: 10, marginTop: 2, color: '#7070a0' },
+  th:         { textAlign: 'left' as const, fontSize: 10, color: '#b8b7b0', padding: '6px 8px', borderBottom: '1px solid #191b20', letterSpacing: '0.1em', textTransform: 'uppercase' as const },
+  td:         { padding: '8px', borderBottom: '1px solid #191b20', verticalAlign: 'top' as const, fontSize: 12 },
+  thumb:      { width: 40, height: 56, objectFit: 'contain' as const, borderRadius: 3, background: '#191b20' },
+  name:       { maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, fontSize: 11, color: '#f0eee7' },
+  holo:       { fontSize: 10, color: '#faeac4', background: 'rgba(250,234,196,0.12)', padding: '2px 6px', borderRadius: 4 },
+  price:      { fontSize: 13, color: '#faeac4', fontWeight: 700 },
+  btnFix:     { background: '#faeac4', border: 'none', borderRadius: 5, color: '#191b20', padding: '5px 12px', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap' as const },
+  btnFixDone: { background: '#191b20', border: '1px solid #34383f', borderRadius: 5, color: '#86efac', padding: '5px 12px', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap' as const },
+  btnFixFail: { background: '#191b20', border: '1px solid #34383f', borderRadius: 5, color: '#f87171', padding: '5px 12px', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap' as const },
+  btnDelete:  { background: 'transparent', border: '1px solid #191b20', borderRadius: 5, color: '#f87171', padding: '5px 10px', fontSize: 11, cursor: 'pointer' },
+  btnSave:    { background: '#34383f', border: '1px solid #34383f', borderRadius: 5, color: '#faeac4', padding: '4px 10px', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap' as const },
+  statusTxt:  { fontSize: 10, marginTop: 2, color: '#b8b7b0' },
   manualRow:  { display: 'flex', gap: 5, alignItems: 'center', marginTop: 6, flexWrap: 'wrap' as const },
-  manualInput:{ background: '#0a0a1a', border: '1px solid #2d2d50', borderRadius: 4, color: '#ffd166', padding: '3px 7px', fontSize: 12, width: 80 },
+  manualInput:{ background: '#191b20', border: '1px solid #34383f', borderRadius: 4, color: '#faeac4', padding: '3px 7px', fontSize: 12, width: 80 },
 };
 
 type FixStatus = 'idle' | 'loading' | 'done' | 'fail' | 'not_found';
@@ -236,42 +238,42 @@ export default function AdminManageCards() {
   const allHoloTypes = [...new Set(cards.map(c => c.holo_type).filter(Boolean))].sort();
 
   return (
-    <div style={s.wrap}>
-      <div style={s.toolbar}>
+    <div className={legacy.style0}><header><h2>Inventory</h2><p>Find listings and update their price, condition or availability.</p></header>
+      <div className={legacy.style1}>
         <input
-          style={s.searchBox}
-          placeholder="Search by name…"
+          className={legacy.style2}
+          aria-label="Search inventory" placeholder="Search by name…"
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
-        <select style={s.filterSel} value={holoFilter} onChange={e => setHoloFilter(e.target.value)}>
+        <select aria-label="Filter by finish" className={legacy.style3} value={holoFilter} onChange={e => setHoloFilter(e.target.value)}>
           <option value="">All types</option>
           <option value="__special__">Special holos only</option>
           {allHoloTypes.map(h => <option key={h!} value={h!}>{h}</option>)}
         </select>
-        <span style={{ fontSize: 11, color: '#4a4a72' }}>{filtered.length} card{filtered.length !== 1 ? 's' : ''}</span>
-        <button style={{ ...s.btnFix, background: '#1a1a30' }} onClick={load}>↺ Refresh</button>
+        <span className={legacy.style4}>{filtered.length} card{filtered.length !== 1 ? 's' : ''}</span>
+        <button className={legacy.style5} onClick={load}>Refresh</button>
         <button
           style={{ ...s.btnFix, opacity: fixAllRunning ? 0.6 : 1, whiteSpace: 'nowrap' }}
           disabled={fixAllRunning}
           onClick={fixAll}
         >
-          {fixAllRunning ? `⏳ ${fixAllProgress}` : '⚡ Fix All'}
+          {fixAllRunning ? `${fixAllProgress}` : 'Update all prices & images'}
         </button>
       </div>
 
       {loading ? (
-        <p style={{ color: '#4a4a72', fontSize: 12 }}>Loading…</p>
+        <p className={legacy.style6}>Loading…</p>
       ) : (
-        <table style={s.table}>
+        <div className={studio.tableScroll} role="region" aria-label="Card inventory" tabIndex={0}><table className={legacy.style7}>
           <thead>
             <tr>
-              <th style={s.th}></th>
-              <th style={s.th}>Name</th>
-              <th style={s.th}>Type</th>
-              <th style={s.th}>Lang</th>
-              <th style={s.th}>Price</th>
-              <th style={s.th}>Actions</th>
+              <th className={legacy.style8}></th>
+              <th className={legacy.style9}>Name</th>
+              <th className={legacy.style10}>Type</th>
+              <th className={legacy.style11}>Lang</th>
+              <th className={legacy.style12}>Price</th>
+              <th className={legacy.style13}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -282,19 +284,19 @@ export default function AdminManageCards() {
               const showManual = st === 'not_found' || st === 'fail';
               return (
                 <tr key={card.id}>
-                  <td style={s.td}>
-                    <img src={card.image_url || '/placeholder.png'} alt="" style={s.thumb} />
+                  <td className={legacy.style14}>
+                    <img src={card.image_url || '/placeholder.png'} alt="" className={legacy.style15} />
                   </td>
-                  <td style={s.td}>
-                    <div style={s.name} title={card.name}>{card.name}</div>
-                    {card.number && <div style={s.statusTxt}># {card.number}</div>}
-                    <label style={{display:'block',fontSize:11,marginTop:8}}>Edition<select aria-label={`Edition for ${card.name}`} style={{...s.filterSel,display:'block',marginTop:5,maxWidth:180}} value={card.edition || ''} disabled={saving[card.id]} onChange={async e=>{setSaving(p=>({...p,[card.id]:true}));try{await patchCard(card.id,{edition:e.target.value || null});}catch(error){setFixMsg(p=>({...p,[card.id]:error instanceof Error?error.message:'Could not save edition.'}));}finally{setSaving(p=>({...p,[card.id]:false}));}}}><option value="">Not specified</option>{CARD_EDITIONS.map(v=><option key={v}>{v}</option>)}</select></label>
-                    <label style={{display:'block',fontSize:11,marginTop:8}}>Condition<select aria-label={`Condition for ${card.name}`} style={{...s.filterSel,display:'block',marginTop:5,maxWidth:180}} value={card.condition || ''} disabled={saving[card.id]} onChange={async e=>{setSaving(p=>({...p,[card.id]:true}));try{await patchCard(card.id,{condition:e.target.value || null});}catch(error){setFixMsg(p=>({...p,[card.id]:error instanceof Error?error.message:'Could not save condition.'}));}finally{setSaving(p=>({...p,[card.id]:false}));}}}><option value="">Not specified</option>{CARD_CONDITIONS.map(c=><option key={c.value}>{c.value}</option>)}</select></label>
+                  <td className={legacy.style16}>
+                    <div className={legacy.style17} title={card.name}>{card.name}</div>
+                    {card.number && <div className={legacy.style18}># {card.number}</div>}
+                    <label className={legacy.style19}>Edition<select aria-label={`Edition for ${card.name}`} className={legacy.style20} value={card.edition || ''} disabled={saving[card.id]} onChange={async e=>{setSaving(p=>({...p,[card.id]:true}));try{await patchCard(card.id,{edition:e.target.value || null});}catch(error){setFixMsg(p=>({...p,[card.id]:error instanceof Error?error.message:'Could not save edition.'}));}finally{setSaving(p=>({...p,[card.id]:false}));}}}><option value="">Not specified</option>{CARD_EDITIONS.map(v=><option key={v}>{v}</option>)}</select></label>
+                    <label className={legacy.style21}>Condition<select aria-label={`Condition for ${card.name}`} className={legacy.style22} value={card.condition || ''} disabled={saving[card.id]} onChange={async e=>{setSaving(p=>({...p,[card.id]:true}));try{await patchCard(card.id,{condition:e.target.value || null});}catch(error){setFixMsg(p=>({...p,[card.id]:error instanceof Error?error.message:'Could not save condition.'}));}finally{setSaving(p=>({...p,[card.id]:false}));}}}><option value="">Not specified</option>{CARD_CONDITIONS.map(c=><option key={c.value}>{c.value}</option>)}</select></label>
                   </td>
-                  <td style={s.td}>
+                  <td className={legacy.style23}>
                     {holoEdit[card.id] ? (
                       <select
-                        style={{ ...s.filterSel, fontSize: 10, padding: '3px 4px' }}
+                        className={legacy.style24}
                         defaultValue={card.holo_type ?? ''}
                         autoFocus
                         onChange={e => saveHoloType(card, e.target.value)}
@@ -305,57 +307,57 @@ export default function AdminManageCards() {
                       </select>
                     ) : (
                       <span
-                        style={{ ...s.holo, cursor: 'pointer' }}
+                        className={legacy.style25}
                         title="Click to edit"
                         onClick={() => setHoloEdit(p => ({ ...p, [card.id]: true }))}
                       >
-                        {card.holo_type ?? <span style={{ color: '#3a3a5a' }}>— edit</span>}
+                        {card.holo_type ?? <span className={legacy.style26}>— edit</span>}
                       </span>
                     )}
                   </td>
-                  <td style={s.td}>
-                    <span style={{ fontSize: 11, color: '#7070a0' }}>
+                  <td className={legacy.style27}>
+                    <span className={legacy.style28}>
                       {card.language === 'Japanese' ? '🇯🇵' : card.language === 'Korean' ? '🇰🇷' : '🇬🇧'}{' '}
                       {card.language ?? 'EN'}
                     </span>
                   </td>
-                  <td style={s.td}>
-                    <span style={s.price}>
+                  <td className={legacy.style29}>
+                    <span className={legacy.style30}>
                       {typeof card.price === 'number' ? `£${(card.price / 100).toFixed(2)}` : '—'}
                     </span>
                   </td>
-                  <td style={s.td}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <div style={{ display: 'flex', gap: 6 }}>
+                  <td className={legacy.style31}>
+                    <div className={legacy.style32}>
+                      <div className={legacy.style33}>
                         {st === 'loading' ? (
-                          <button style={{ ...s.btnFix, opacity: 0.6 }} disabled>Checking PC…</button>
+                          <button className={legacy.style34} disabled>Checking PC…</button>
                         ) : st === 'done' ? (
-                          <button style={s.btnFixDone} onClick={() => fixCard(card)}>✓ Fixed · Retry?</button>
+                          <button className={legacy.style35} onClick={() => fixCard(card)}>✓ Fixed · Retry?</button>
                         ) : showManual ? (
-                          <button style={s.btnFixFail} onClick={() => fixCard(card)}>✗ Retry PC</button>
+                          <button className={legacy.style36} onClick={() => fixCard(card)}>✗ Retry PC</button>
                         ) : (
-                          <button style={s.btnFix} onClick={() => fixCard(card)}>Fix Price &amp; Image</button>
+                          <button className={legacy.style37} onClick={() => fixCard(card)}>Update price &amp; image</button>
                         )}
                         <button
-                          title={card.available ? 'Mark as sold' : 'Mark as available'}
+                          title={card.available ? 'Take off sale' : 'Make available'}
                           style={{
-                            background: card.available ? 'rgba(6,214,160,0.1)' : 'rgba(255,62,108,0.1)',
-                            border: `1px solid ${card.available ? 'rgba(6,214,160,0.4)' : 'rgba(255,62,108,0.4)'}`,
-                            borderRadius: 5, color: card.available ? '#06d6a0' : '#ff3e6c',
+                            background: card.available ? 'rgba(250,234,196,0.12)' : 'rgba(233,167,155,0.12)',
+                            border: `1px solid ${card.available ? 'rgba(250,234,196,0.12)' : 'rgba(233,167,155,0.12)'}`,
+                            borderRadius: 5, color: card.available ? '#faeac4' : '#e9a79b',
                             padding: '5px 8px', fontSize: 11, cursor: 'pointer',
                           }}
                           onClick={() => toggleAvailable(card)}
-                        >{card.available ? '✓ Live' : '✗ Sold'}</button>
+                        >{card.available ? 'Available' : 'Off sale'}</button>
                         <button
                           style={{ ...s.btnDelete, opacity: deleting[card.id] ? 0.5 : 1 }}
                           disabled={deleting[card.id]}
                           onClick={() => deleteCard(card)}
-                        >🗑</button>
+                        >Delete</button>
                       </div>
 
                       {/* Status message */}
                       {msg && (
-                        <div style={{ ...s.statusTxt, color: st === 'done' ? '#86efac' : st === 'not_found' ? '#fb923c' : '#f87171' }}>
+                        <div style={{ ...s.statusTxt, color: st === 'done' ? '#86efac' : st === 'not_found' ? '#e9a79b' : '#f87171' }}>
                           {msg}
                         </div>
                       )}
@@ -363,20 +365,20 @@ export default function AdminManageCards() {
                       {/* PC search URL — so you can see exactly what was searched */}
                       {url && (
                         <a href={url} target="_blank" rel="noreferrer"
-                          style={{ fontSize: 10, color: '#4a6a9a', wordBreak: 'break-all' }}>
+                          className={legacy.style38}>
                           🔗 View PC page
                         </a>
                       )}
 
                       {/* Manual price entry — shown when PC lookup failed */}
                       {showManual && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                        <div className={legacy.style39}>
                           {/* Quick-pick buttons */}
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                          <div className={legacy.style40}>
                             {[1,2,3,4,5,6,7,8].map(p => (
                               <button
                                 key={p}
-                                style={{ background: '#1a2a40', border: '1px solid #2a4a70', borderRadius: 4, color: '#93c5fd', padding: '3px 7px', fontSize: 11, cursor: 'pointer' }}
+                                className={legacy.style41}
                                 disabled={saving[card.id]}
                                 onClick={() => {
                                   setManualPrice(prev => ({ ...prev, [card.id]: String(p) }));
@@ -389,10 +391,10 @@ export default function AdminManageCards() {
                             ))}
                           </div>
                           {/* Manual input */}
-                          <div style={s.manualRow}>
-                            <span style={{ fontSize: 10, color: '#5a5a8a' }}>Other:</span>
+                          <div className={legacy.style42}>
+                            <span className={legacy.style43}>Other:</span>
                             <input
-                              style={s.manualInput}
+                              className={legacy.style44}
                               placeholder="£0.00"
                               value={manualPrice[card.id] ?? ''}
                               onChange={e => setManualPrice(p => ({ ...p, [card.id]: e.target.value }))}
@@ -412,7 +414,7 @@ export default function AdminManageCards() {
               );
             })}
           </tbody>
-        </table>
+        </table></div>
       )}
     </div>
   );

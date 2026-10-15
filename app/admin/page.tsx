@@ -3,6 +3,7 @@ import { auth, currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import AdminUploadForm from '@/components/AdminUploadForm'; // Assuming AdminUploadForm.tsx is in src/components/
 import Link from 'next/link';
+import studio from '@/components/SellerStudio.module.css';
 
 export default async function AdminPage() {
   const { userId } = await auth(); // Gets session information.
@@ -30,9 +31,9 @@ export default async function AdminPage() {
 
   // If the user is an authenticated admin, render the actual form component.
   return (
-    <div style={{ minHeight: '80vh', background: '#191b20' }}>
-      <Link href="/admin/scan" style={{ display: 'block', padding: '24px', background: '#faeac4', color: '#25271f', textAlign: 'center', fontFamily: 'Arial', fontWeight: 700 }}>Open phone scanner → Photograph, review and list a card</Link>
+    <main id="main-content" className={studio.studio}>
+      <header className={studio.header}><div><p className={studio.eyebrow}>Gay Retro TCG / Seller tools</p><h1>Seller studio</h1><p>Manage your cards, prepare orders and keep track of sales.</p></div><Link href="/admin/scan" className={studio.scanLink}>Open card scanner <span aria-hidden="true">↗</span></Link></header>
       <AdminUploadForm />
-    </div>
+    </main>
   );
 }

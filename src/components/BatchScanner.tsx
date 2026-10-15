@@ -119,7 +119,7 @@ export default function BatchScanner() {
  function clear() {if(busy)return;urls.current.forEach(url=>URL.revokeObjectURL(url));urls.current.clear();mutate(()=>[]);setNotice('');}
  return <main className={styles.page}>
   <header className={styles.header}><Link href="/admin">← Seller studio</Link><span>GAY RETRO / BATCH SCANNER</span></header>
-  <p className={styles.eyebrow}>A quicker way to fill the shop</p><h1>A whole binder.<br /><em>One batch.</em></h1>
+  <p className={styles.eyebrow}>Scan, review and publish</p><h1>Scan multiple cards.<br /><em>Review before publishing.</em></h1>
   <p className={styles.intro}>Choose up to 20 photos, one card in each. We’ll scan the details, sets, rarities and prices. Review every included card before publishing.</p>
   <p className={styles.note}>Keep this page open until you finish. This queue stays in this tab and is lost if you reload or close it. Photos go to OpenAI for recognition; your front and any back photos are published with the listing when you save. Matched catalogue artwork is used for listings, with your photo as the fallback.</p>
   <ScannerDefaults/>

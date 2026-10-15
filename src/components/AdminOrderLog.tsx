@@ -30,7 +30,7 @@ export default function AdminOrderLog() {
   return <section className={styles.orders} aria-label="Orders"><header><div><h2>Orders &amp; dispatch</h2><p>Confirmations send after payment. Add the Royal Mail reference once posted to email tracking.</p></div><button onClick={load} disabled={loading}>Refresh</button><button onClick={testEmail} disabled={!!busy}>Send setup test to your Gmail</button></header>
     <PostageConnection />{error&&<p role="alert">{error}</p>}{notice&&<p role="status">{notice}</p>}
     {loading?<p>Loading orders…</p>:!orders.length?<p>No orders yet.</p>:orders.map(order=><article key={order.id} className={styles.order}>
-      <div className={styles.summary}><h3>Order {order.id.slice(0,8)}</h3><span>{order.dispatched_at?'Dispatched':order.paid_at?'Paid':order.status}</span><strong>{order.shipping?`£${(order.shipping.total/100).toFixed(2)}`:'—'}</strong></div>
+      <div className={styles.summary}><h3>Order {order.id.slice(0,8)}</h3><span>{order.dispatched_at?'Dispatched':order.paid_at?'Paid':order.status==='pending'?'Awaiting payment':order.status}</span><strong>{order.shipping?`£${(order.shipping.total/100).toFixed(2)}`:'—'}</strong></div>
       <p>{new Date(order.created_at).toLocaleString('en-GB')} · {order.customer_email||'Customer email available after payment'}</p>
       <ul>{(order.items||[]).map((item,i)=><li key={i}>{item.quantity} × {item.name}</li>)}</ul>
       {order.shipping&&<p>{order.shipping.label} · £{(order.shipping.price/100).toFixed(2)} postage &amp; packing · compensation band £{(order.shipping.compensation/100).toFixed(0)}</p>}

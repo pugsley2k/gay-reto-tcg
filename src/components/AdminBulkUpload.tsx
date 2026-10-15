@@ -1,4 +1,6 @@
 "use client";
+import studio from './SellerStudio.module.css';
+import legacy from './AdminBulkUpload.module.css';
 import React, { useState, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 
@@ -213,21 +215,21 @@ async function fetchImage(card: MappedCard): Promise<string | null> {
 
 /* ── Styles ── */
 const inputStyle: React.CSSProperties = {
-  background: '#0f0f22', border: '1px solid #2d2d50', borderRadius: 6,
-  color: '#d0d0f0', padding: '10px', fontSize: 12, width: '100%',
-  fontFamily: 'Space Mono, monospace',
+  background: '#191b20', border: '1px solid #34383f', borderRadius: 6,
+  color: '#f0eee7', padding: '10px', fontSize: 12, width: '100%',
+  fontFamily: 'Manrope, sans-serif',
 };
-const btnStyle = (color = 'linear-gradient(90deg,#7c6af0,#b84fff)'): React.CSSProperties => ({
+const btnStyle = (color = '#faeac4'): React.CSSProperties => ({
   background: color, border: 'none', borderRadius: 5,
-  color: '#fff', padding: '8px 18px', fontSize: 12,
-  cursor: 'pointer', fontFamily: 'Space Mono, monospace', whiteSpace: 'nowrap',
+  color: '#191b20', padding: '8px 18px', fontSize: 12,
+  cursor: 'pointer', fontFamily: 'Manrope, sans-serif', whiteSpace: 'nowrap',
 });
 const thStyle: React.CSSProperties = {
-  textAlign: 'left', fontSize: 10, color: '#5a5a8a', padding: '6px 8px',
-  borderBottom: '1px solid #1e1e3a', letterSpacing: '0.1em', textTransform: 'uppercase',
+  textAlign: 'left', fontSize: 10, color: '#b8b7b0', padding: '6px 8px',
+  borderBottom: '1px solid #191b20', letterSpacing: '0.1em', textTransform: 'uppercase',
 };
 const tdStyle: React.CSSProperties = {
-  padding: '5px 8px', borderBottom: '1px solid #111128', fontSize: 11, verticalAlign: 'top',
+  padding: '5px 8px', borderBottom: '1px solid #191b20', fontSize: 11, verticalAlign: 'top',
 };
 
 /* ── Holo types that need PriceCharting scans instead of TCG API ── */
@@ -350,24 +352,24 @@ function DeleteAllCardsButton() {
   return (
     <div>
       {!confirm && !running && (
-        <button style={btnStyle('linear-gradient(90deg,#7f1d1d,#dc2626)')} onClick={() => setConfirm(true)}>
+        <button style={btnStyle('#faeac4')} onClick={() => setConfirm(true)}>
           🗑 Delete All Cards
         </button>
       )}
       {confirm && !running && (
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 11, color: '#f87171' }}>Are you sure? This cannot be undone.</span>
-          <button style={btnStyle('linear-gradient(90deg,#7f1d1d,#dc2626)')} onClick={handleDelete}>Yes, delete all</button>
+        <div className={legacy.style0}>
+          <span className={legacy.style1}>Are you sure? This cannot be undone.</span>
+          <button style={btnStyle('#faeac4')} onClick={handleDelete}>Yes, delete all</button>
           <button style={btnStyle()} onClick={() => setConfirm(false)}>Cancel</button>
         </div>
       )}
-      {running && <span style={{ fontSize: 11, color: '#8080b0' }}>Deleting…</span>}
+      {running && <span className={legacy.style2}>Deleting…</span>}
       {result && (
         <div style={{
           padding: '10px 14px', borderRadius: 6, marginTop: 12, fontSize: 12,
-          background: result.ok ? 'rgba(6,214,160,0.1)' : 'rgba(248,113,113,0.1)',
-          border: `1px solid ${result.ok ? 'rgba(6,214,160,0.3)' : 'rgba(248,113,113,0.3)'}`,
-          color: result.ok ? '#06d6a0' : '#f87171',
+          background: result.ok ? 'rgba(250,234,196,0.12)' : 'rgba(248,113,113,0.1)',
+          border: `1px solid ${result.ok ? 'rgba(250,234,196,0.12)' : 'rgba(248,113,113,0.3)'}`,
+          color: result.ok ? '#faeac4' : '#f87171',
         }}>
           {result.msg}
         </div>
@@ -444,24 +446,24 @@ function RestoreFromCSV() {
   return (
     <div>
       <input ref={fileRef} type="file" accept=".csv" onChange={handleFile}
-        style={{ ...inputStyle, cursor: 'pointer', marginBottom: 10 }} />
+        className={legacy.style3} />
       {rows.length > 0 && !running && (
-        <div style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 11, color: '#8080b0', marginBottom: 8 }}>
+        <div className={legacy.style4}>
+          <div className={legacy.style5}>
             {rows.length} records loaded — {nullImages} with image cleared (will be re-fetched by backfill)
           </div>
-          <button style={btnStyle('linear-gradient(90deg,#06d6a0,#118ab2)')} onClick={handleApply}>
+          <button style={btnStyle('#faeac4')} onClick={handleApply}>
             Apply {rows.length} updates to DB
           </button>
         </div>
       )}
-      {running && <span style={{ fontSize: 11, color: '#8080b0' }}>Applying…</span>}
+      {running && <span className={legacy.style6}>Applying…</span>}
       {result && (
         <div style={{
           padding: '10px 14px', borderRadius: 6, marginTop: 10, fontSize: 12,
-          background: result.ok ? 'rgba(6,214,160,0.1)' : 'rgba(248,113,113,0.1)',
-          border: `1px solid ${result.ok ? 'rgba(6,214,160,0.3)' : 'rgba(248,113,113,0.3)'}`,
-          color: result.ok ? '#06d6a0' : '#f87171',
+          background: result.ok ? 'rgba(250,234,196,0.12)' : 'rgba(248,113,113,0.1)',
+          border: `1px solid ${result.ok ? 'rgba(250,234,196,0.12)' : 'rgba(248,113,113,0.3)'}`,
+          color: result.ok ? '#faeac4' : '#f87171',
         }}>
           {result.msg}
         </div>
@@ -513,16 +515,13 @@ function FixLanguageButton() {
   return (
     <div>
       {!running && (
-        <button style={btnStyle('linear-gradient(90deg,#ffd166,#ff8c42)')} onClick={handleFix}>
+        <button style={btnStyle('#faeac4')} onClick={handleFix}>
           Fix JP/KR Language
         </button>
       )}
-      {running && <span style={{ fontSize: 11, color: '#8080b0' }}>Fixing…</span>}
+      {running && <span className={legacy.style7}>Fixing…</span>}
       {result && (
-        <div style={{
-          padding: '10px 14px', borderRadius: 6, marginTop: 12, fontSize: 12,
-          background: 'rgba(6,214,160,0.1)', border: '1px solid rgba(6,214,160,0.3)', color: '#06d6a0',
-        }}>
+        <div className={legacy.style8}>
           {result.msg}
         </div>
       )}
@@ -659,40 +658,42 @@ export default function AdminBulkUpload() {
   }
 
   return (
-    <div style={{ fontFamily: 'Space Mono, monospace', color: '#d0d0f0', paddingBottom: '2rem' }}>
+    <div className={legacy.style9}>
 
       {/* Info block */}
-      <div style={{ background: '#0c0c1e', border: '1px solid #2d2d50', borderRadius: 8, padding: '12px 16px', marginBottom: '1.5rem', fontSize: 11 }}>
-        <div style={{ color: '#a78bfa', fontWeight: 700, marginBottom: 6 }}>Portfolio CSV Import</div>
-        <div style={{ color: '#8080b0', lineHeight: 1.7 }}>
+      <div className={legacy.style10}>
+        <h2>CSV import</h2>
+        <div className={legacy.style12}>
           Accepts the export format from your portfolio tracker. Expected columns:<br />
-          <code style={{ color: '#ffd166' }}>Portfolio Name, Category, Set, Product Name, Card Number, Rarity, Variance, Grade, Card Condition, Average Cost Paid, Quantity, Market Price, Price Override, Watchlist, Date Added, Notes</code><br />
-          <span style={{ color: '#5a5a8a' }}>Only "Pokemon" category rows are imported. Price Override used when &gt; 0, otherwise Market Price. USD → GBP conversion applied.</span>
+          <code className={legacy.style13}>Portfolio Name, Category, Set, Product Name, Card Number, Rarity, Variance, Grade, Card Condition, Average Cost Paid, Quantity, Market Price, Price Override, Watchlist, Date Added, Notes</code><br />
+          <span className={legacy.style14}>Only "Pokemon" category rows are imported. Price Override used when &gt; 0, otherwise Market Price. USD → GBP conversion applied.</span>
         </div>
       </div>
 
       {/* File + rate row */}
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: '1rem' }}>
-        <div style={{ flex: 1, minWidth: 220 }}>
-          <label style={{ display: 'block', fontSize: 10, color: '#5a5a8a', marginBottom: 4, letterSpacing: '0.1em', textTransform: 'uppercase' }}>CSV File</label>
+      <div className={legacy.style15}>
+        <div className={legacy.style16}>
+          <label htmlFor="portfolio-csv" className={legacy.style17}>CSV file</label>
           <input
+            id="portfolio-csv"
             ref={fileRef}
             type="file"
             accept=".csv,text/csv"
             onChange={handleFile}
-            style={{ ...inputStyle, cursor: 'pointer' }}
+            className={legacy.style18}
           />
         </div>
-        <div style={{ width: 150 }}>
-          <label style={{ display: 'block', fontSize: 10, color: '#5a5a8a', marginBottom: 4, letterSpacing: '0.1em', textTransform: 'uppercase' }}>USD → GBP Rate</label>
+        <div className={legacy.style19}>
+          <label htmlFor="portfolio-rate" className={legacy.style20}>USD → GBP rate</label>
           <input
+            id="portfolio-rate"
             type="number"
             step="0.01"
             min="0.1"
             max="2"
             value={gbpRate}
             onChange={e => setGbpRate(parseFloat(e.target.value) || 0.79)}
-            style={{ ...inputStyle, width: '100%' }}
+            className={legacy.style21}
           />
         </div>
         <button
@@ -706,11 +707,11 @@ export default function AdminBulkUpload() {
 
       {/* Parsed summary */}
       {parsed && (
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: '1rem', fontSize: 11 }}>
-          <span style={{ color: '#06d6a0' }}>✓ {validRows.length} cards to import</span>
-          {pokemonOnly.length > 0 && <span style={{ color: '#f87171' }}>✗ {pokemonOnly.length} with errors</span>}
-          <span style={{ color: '#5a5a8a' }}>⊘ {skippedRows.length - pokemonOnly.length} non-Pokémon skipped</span>
-          <span style={{ color: '#ffd166' }}>
+        <div className={legacy.style22}>
+          <span className={legacy.style23}>✓ {validRows.length} cards to import</span>
+          {pokemonOnly.length > 0 && <span className={legacy.style24}>✗ {pokemonOnly.length} with errors</span>}
+          <span className={legacy.style25}>⊘ {skippedRows.length - pokemonOnly.length} non-Pokémon skipped</span>
+          <span className={legacy.style26}>
             Total value: £{(validRows.reduce((s, r) => s + r.price, 0) / 100).toFixed(2)}
           </span>
         </div>
@@ -718,18 +719,18 @@ export default function AdminBulkUpload() {
 
       {/* Import controls */}
       {validRows.length > 0 && !progress && (
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#8080b0', cursor: 'pointer' }}>
+        <div className={legacy.style27}>
+          <label className={legacy.style28}>
             <input
               type="checkbox"
               checked={fetchImages}
               onChange={e => setFetchImages(e.target.checked)}
-              style={{ accentColor: '#b84fff' }}
+              className={legacy.style29}
             />
             Fetch images from Pokémon TCG API (slower, ~{Math.ceil(validRows.length / 5) * 0.3}s)
           </label>
           <button
-            style={btnStyle('linear-gradient(90deg,#06d6a0,#118ab2)')}
+            style={btnStyle('#faeac4')}
             onClick={handleImport}
           >
             Import {validRows.length} cards
@@ -739,16 +740,16 @@ export default function AdminBulkUpload() {
 
       {/* Progress bar */}
       {progress && (
-        <div style={{ marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 6, color: '#8080b0' }}>
+        <div className={legacy.style30}>
+          <div className={legacy.style31}>
             <span>{fetchImages ? 'Fetching images & importing…' : 'Importing…'} {progress.done}/{progress.total}</span>
-            <button onClick={handleCancel} style={{ background: 'none', border: '1px solid #5a5a8a', borderRadius: 4, color: '#a0a0c0', fontSize: 10, cursor: 'pointer', padding: '2px 8px' }}>Cancel</button>
+            <button onClick={handleCancel} className={legacy.style32}>Cancel</button>
           </div>
-          <div style={{ background: '#1a1a30', borderRadius: 4, height: 8, overflow: 'hidden' }}>
+          <div className={legacy.style33}>
             <div style={{
               height: '100%',
               width: `${(progress.done / progress.total) * 100}%`,
-              background: 'linear-gradient(90deg,#7c6af0,#b84fff)',
+              background: '#faeac4',
               transition: 'width 0.3s ease',
             }} />
           </div>
@@ -759,9 +760,9 @@ export default function AdminBulkUpload() {
       {result && (
         <div style={{
           padding: '10px 14px', borderRadius: 6, marginBottom: '1rem', fontSize: 12,
-          background: result.ok ? 'rgba(6,214,160,0.1)' : 'rgba(248,113,113,0.1)',
-          border: `1px solid ${result.ok ? 'rgba(6,214,160,0.3)' : 'rgba(248,113,113,0.3)'}`,
-          color: result.ok ? '#06d6a0' : '#f87171',
+          background: result.ok ? 'rgba(250,234,196,0.12)' : 'rgba(248,113,113,0.1)',
+          border: `1px solid ${result.ok ? 'rgba(250,234,196,0.12)' : 'rgba(248,113,113,0.3)'}`,
+          color: result.ok ? '#faeac4' : '#f87171',
         }}>
           {result.msg}
         </div>
@@ -769,43 +770,43 @@ export default function AdminBulkUpload() {
 
       {/* Preview table */}
       {rows.length > 0 && (
-        <div style={{ overflowX: 'auto', marginTop: '0.5rem' }}>
-          <div style={{ fontSize: 10, color: '#5a5a8a', marginBottom: 8 }}>
+        <div className={legacy.style34}>
+          <div className={legacy.style35}>
             Showing {rows.length} rows (✓ will import, ✗ skipped)
           </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
+          <table className={legacy.style36}>
             <thead>
               <tr>
-                <th style={thStyle}></th>
-                <th style={thStyle}>Name</th>
-                <th style={thStyle}>Number</th>
-                <th style={thStyle}>Set</th>
-                <th style={thStyle}>Rarity</th>
-                <th style={thStyle}>Holo Type</th>
-                <th style={thStyle}>Price (GBP)</th>
-                <th style={thStyle}>Available</th>
+                <th className={legacy.style37}></th>
+                <th className={legacy.style38}>Name</th>
+                <th className={legacy.style39}>Number</th>
+                <th className={legacy.style40}>Set</th>
+                <th className={legacy.style41}>Rarity</th>
+                <th className={legacy.style42}>Holo Type</th>
+                <th className={legacy.style43}>Price (GBP)</th>
+                <th className={legacy.style44}>Available</th>
               </tr>
             </thead>
             <tbody>
               {rows.slice(0, 200).map((row, i) => (
                 <tr key={i} style={{ opacity: row._error ? 0.4 : 1 }}>
-                  <td style={tdStyle}>
+                  <td className={legacy.style45}>
                     {row._error
-                      ? <span title={row._error} style={{ color: '#f87171', fontSize: 12 }}>✗</span>
-                      : <span style={{ color: '#06d6a0', fontSize: 12 }}>✓</span>
+                      ? <span title={row._error} className={legacy.style46}>✗</span>
+                      : <span className={legacy.style47}>✓</span>
                     }
                   </td>
-                  <td style={{ ...tdStyle, color: '#c0c0e0', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {row.name || <em style={{ color: '#5a5a8a' }}>—</em>}
+                  <td className={legacy.style48}>
+                    {row.name || <em className={legacy.style49}>—</em>}
                   </td>
-                  <td style={tdStyle}>{row.number || '—'}</td>
-                  <td style={{ ...tdStyle, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.set || '—'}</td>
-                  <td style={tdStyle}>{row.rarity || '—'}</td>
-                  <td style={{ ...tdStyle, color: '#a78bfa' }}>{row.holo_type}</td>
-                  <td style={{ ...tdStyle, color: row._error ? '#5a5a8a' : '#ffd166' }}>
+                  <td className={legacy.style50}>{row.number || '—'}</td>
+                  <td className={legacy.style51}>{row.set || '—'}</td>
+                  <td className={legacy.style52}>{row.rarity || '—'}</td>
+                  <td className={legacy.style53}>{row.holo_type}</td>
+                  <td style={{ ...tdStyle, color: row._error ? '#b8b7b0' : '#faeac4' }}>
                     {row._error ? '—' : `£${(row.price / 100).toFixed(2)}`}
                   </td>
-                  <td style={{ ...tdStyle, color: row.available ? '#06d6a0' : '#5a5a8a' }}>
+                  <td style={{ ...tdStyle, color: row.available ? '#faeac4' : '#b8b7b0' }}>
                     {row.available ? 'Yes' : 'No'}
                   </td>
                 </tr>
@@ -813,54 +814,55 @@ export default function AdminBulkUpload() {
             </tbody>
           </table>
           {rows.length > 200 && (
-            <div style={{ fontSize: 10, color: '#5a5a8a', marginTop: 8, textAlign: 'center' }}>
+            <div className={legacy.style54}>
               Showing first 200 of {rows.length} rows. All {validRows.length} valid cards will be imported.
             </div>
           )}
         </div>
       )}
 
+      <details className={studio.maintenance}><summary>Advanced maintenance</summary>
       {/* ── Apply fixed DB export CSV ── */}
-      <div style={{ marginTop: '2.5rem', borderTop: '1px solid #1e1e3a', paddingTop: '1.5rem' }}>
-        <div style={{ color: '#06d6a0', fontWeight: 700, fontSize: 12, marginBottom: 6 }}>Apply Fixed DB Export</div>
-        <div style={{ color: '#5a5a8a', fontSize: 11, marginBottom: 12 }}>
-          Upload <code style={{ color: '#ffd166' }}>Card_rows_fixed.csv</code> — updates every record in the DB by ID.
+      <div className={legacy.style55}>
+        <div className={legacy.style56}>Apply Fixed DB Export</div>
+        <div className={legacy.style57}>
+          Upload <code className={legacy.style58}>Card_rows_fixed.csv</code> — updates every record in the DB by ID.
           Cards with cleared images will be re-fetched by the backfill below.
         </div>
         <RestoreFromCSV />
       </div>
 
       {/* ── Danger zone: delete all cards for clean re-import ── */}
-      <div style={{ marginTop: '2.5rem', borderTop: '1px solid #1e1e3a', paddingTop: '1.5rem' }}>
-        <div style={{ color: '#f87171', fontWeight: 700, fontSize: 12, marginBottom: 6 }}>⚠ Reset & Re-import</div>
-        <div style={{ color: '#5a5a8a', fontSize: 11, marginBottom: 12 }}>
+      <div className={legacy.style59}>
+        <div className={legacy.style60}>⚠ Reset & Re-import</div>
+        <div className={legacy.style61}>
           Deletes every card from the database so you can do a clean re-import with the corrected rarity, language, and image logic.
         </div>
         <DeleteAllCardsButton />
       </div>
 
       {/* ── Fix language on existing JP cards ── */}
-      <div style={{ marginTop: '2.5rem', borderTop: '1px solid #1e1e3a', paddingTop: '1.5rem' }}>
-        <div style={{ color: '#ffd166', fontWeight: 700, fontSize: 12, marginBottom: 6 }}>Fix Language on JP/KR Cards</div>
-        <div style={{ color: '#5a5a8a', fontSize: 11, marginBottom: 12 }}>
+      <div className={legacy.style62}>
+        <div className={legacy.style63}>Fix Language on JP/KR Cards</div>
+        <div className={legacy.style64}>
           Finds all cards whose name contains "(JP)" or "(KR)" and sets their language field correctly.
         </div>
         <FixLanguageButton />
       </div>
 
       {/* ── Backfill missing images ── */}
-      <div style={{ marginTop: '2.5rem', borderTop: '1px solid #1e1e3a', paddingTop: '1.5rem' }}>
-        <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: 12, marginBottom: 6 }}>Fix Missing Images</div>
-        <div style={{ color: '#5a5a8a', fontSize: 11, marginBottom: 12 }}>
+      <div className={legacy.style65}>
+        <div className={legacy.style66}>Fix Missing Images</div>
+        <div className={legacy.style67}>
           Finds all cards in the database with no image and looks them up on the Pokémon TCG API.
         </div>
 
         {!backfillProgress && (
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button style={btnStyle('linear-gradient(90deg,#06d6a0,#118ab2)')} onClick={() => handleBackfill(1)}>
+          <div className={legacy.style68}>
+            <button style={btnStyle('#faeac4')} onClick={() => handleBackfill(1)}>
               Test 1 Card
             </button>
-            <button style={btnStyle('linear-gradient(90deg,#ff8c42,#ff3e6c)')} onClick={() => handleBackfill()}>
+            <button style={btnStyle('#faeac4')} onClick={() => handleBackfill()}>
               Backfill All Missing Images
             </button>
           </div>
@@ -868,20 +870,20 @@ export default function AdminBulkUpload() {
 
         {backfillProgress && (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 6, color: '#8080b0' }}>
+            <div className={legacy.style69}>
               <span>
                 {backfillProgress.total === 0
                   ? 'Counting cards…'
                   : `Looking up images… ${backfillProgress.done}/${backfillProgress.total}`}
               </span>
-              <button onClick={() => { backfillAbort.current = true; }} style={{ background: 'none', border: '1px solid #5a5a8a', borderRadius: 4, color: '#a0a0c0', fontSize: 10, cursor: 'pointer', padding: '2px 8px' }}>Cancel</button>
+              <button onClick={() => { backfillAbort.current = true; }} className={legacy.style70}>Cancel</button>
             </div>
             {backfillProgress.total > 0 && (
-              <div style={{ background: '#1a1a30', borderRadius: 4, height: 8, overflow: 'hidden' }}>
+              <div className={legacy.style71}>
                 <div style={{
                   height: '100%',
                   width: `${(backfillProgress.done / backfillProgress.total) * 100}%`,
-                  background: 'linear-gradient(90deg,#ff8c42,#ff3e6c)',
+                  background: '#faeac4',
                   transition: 'width 0.3s ease',
                 }} />
               </div>
@@ -890,34 +892,35 @@ export default function AdminBulkUpload() {
         )}
 
         {backfillResult && (
-          <div style={{ marginTop: 12 }}>
+          <div className={legacy.style72}>
             <div style={{
               padding: '10px 14px', borderRadius: 6, fontSize: 12,
-              background: backfillResult.ok ? 'rgba(6,214,160,0.1)' : 'rgba(248,113,113,0.1)',
-              border: `1px solid ${backfillResult.ok ? 'rgba(6,214,160,0.3)' : 'rgba(248,113,113,0.3)'}`,
-              color: backfillResult.ok ? '#06d6a0' : '#f87171',
+              background: backfillResult.ok ? 'rgba(250,234,196,0.12)' : 'rgba(248,113,113,0.1)',
+              border: `1px solid ${backfillResult.ok ? 'rgba(250,234,196,0.12)' : 'rgba(248,113,113,0.3)'}`,
+              color: backfillResult.ok ? '#faeac4' : '#f87171',
             }}>
               {backfillResult.msg}
             </div>
             {backfillResult.testCards && backfillResult.testCards.map((c, i) => (
-              <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginTop: 12, background: '#0c0c1e', border: '1px solid #2d2d50', borderRadius: 8, padding: 12 }}>
+              <div key={i} className={legacy.style73}>
                 {c.url
-                  ? <img src={c.url} alt={c.name} style={{ width: 80, borderRadius: 4, flexShrink: 0 }} />
-                  : <div style={{ width: 80, height: 110, background: '#1a1a30', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#5a5a8a', flexShrink: 0 }}>No image</div>
+                  ? <img src={c.url} alt={c.name} className={legacy.style74} />
+                  : <div className={legacy.style75}>No image</div>
                 }
                 <div>
-                  <div style={{ fontSize: 11, color: '#c0c0e0', marginBottom: 4 }}>{c.name}</div>
+                  <div className={legacy.style76}>{c.name}</div>
                   {c.url
-                    ? <div style={{ fontSize: 10, color: '#06d6a0' }}>✓ Image found</div>
-                    : <div style={{ fontSize: 10, color: '#f87171' }}>✗ Not found — check name/set/holo_type</div>
+                    ? <div className={legacy.style77}>✓ Image found</div>
+                    : <div className={legacy.style78}>✗ Not found — check name/set/holo_type</div>
                   }
-                  {c.url && <div style={{ fontSize: 9, color: '#5a5a8a', wordBreak: 'break-all', marginTop: 4 }}>{c.url}</div>}
+                  {c.url && <div className={legacy.style79}>{c.url}</div>}
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+      </details>
     </div>
   );
 }

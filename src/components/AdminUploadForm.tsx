@@ -1,5 +1,7 @@
 // src/components/AdminUploadForm.tsx
 "use client";
+import studio from './SellerStudio.module.css';
+import legacy from './AdminUploadForm.module.css';
 import CollectionInsights from './CollectionInsights';
 
 import { useState, FormEvent, useRef } from "react";
@@ -83,38 +85,38 @@ export default function AdminUploadForm() {
   ];
 
   const HOLO_OPTIONS = [
-    { label: 'Normal',                    color: '#2a2a42' },
-    { label: 'Common',                    color: '#2a2a42' },
-    { label: 'Uncommon',                  color: '#1a3a2a' },
-    { label: 'Rare',                      color: '#1a2a4a' },
-    { label: 'Rare Holo',                color: '#5e4a10' },
-    { label: 'Rare Holo EX',             color: '#5e4a10' },
-    { label: 'Rare Holo GX',             color: '#5e4a10' },
-    { label: 'Rare Holo Lv.X',           color: '#5e4a10' },
-    { label: 'Rare Prime',               color: '#4a3a10' },
-    { label: 'LEGEND',                   color: '#5e4510' },
-    { label: 'Ultra Rare',               color: '#3a1a6e' },
-    { label: 'Double Rare',              color: '#4a3a10' },
-    { label: 'ACE SPEC rare',            color: '#5e2a00' },
-    { label: 'Rare BREAK',              color: '#4a2a00' },
-    { label: 'Promo',                    color: '#5e1040' },
-    { label: 'Amazing',                  color: '#1a4a3a' },
-    { label: 'Radiant Rare',             color: '#3a4a1a' },
-    { label: 'Illustration Rare',        color: '#1a3a5e' },
-    { label: 'Special Illustration Rare',color: '#5e3010' },
-    { label: 'Shiny Rare',               color: '#2a1a5e' },
-    { label: 'Shiny Ultra Rare',         color: '#3a1a6e' },
-    { label: 'Hyper Rare',               color: '#5e1a3a' },
-    { label: 'Black White rare',         color: '#3a3a3a' },
-    { label: 'Mega Hyper Rare',          color: '#6e1a1a' },
-    { label: 'Mega Attack Rare',         color: '#6e2a00' },
-    { label: 'Reverse Holo',             color: '#1a3a5e' },
-    { label: 'Pokeball Holo',            color: '#5e1a1a' },
-    { label: 'Master Ball Holo',         color: '#2a1a6e' },
-    { label: 'Cosmos Holo',              color: '#0a2a5e' },
-    { label: 'Full Art',                 color: '#1a5e3a' },
-    { label: 'Alt Art',                  color: '#2e5e1a' },
-    { label: 'Holo Rare',                color: '#5e4a10' },
+    { label: 'Normal',                    color: '#34383f' },
+    { label: 'Common',                    color: '#34383f' },
+    { label: 'Uncommon',                  color: '#34383f' },
+    { label: 'Rare',                      color: '#34383f' },
+    { label: 'Rare Holo',                color: '#34383f' },
+    { label: 'Rare Holo EX',             color: '#34383f' },
+    { label: 'Rare Holo GX',             color: '#34383f' },
+    { label: 'Rare Holo Lv.X',           color: '#34383f' },
+    { label: 'Rare Prime',               color: '#34383f' },
+    { label: 'LEGEND',                   color: '#34383f' },
+    { label: 'Ultra Rare',               color: '#34383f' },
+    { label: 'Double Rare',              color: '#34383f' },
+    { label: 'ACE SPEC rare',            color: '#34383f' },
+    { label: 'Rare BREAK',              color: '#191b20' },
+    { label: 'Promo',                    color: '#34383f' },
+    { label: 'Amazing',                  color: '#34383f' },
+    { label: 'Radiant Rare',             color: '#34383f' },
+    { label: 'Illustration Rare',        color: '#34383f' },
+    { label: 'Special Illustration Rare',color: '#34383f' },
+    { label: 'Shiny Rare',               color: '#34383f' },
+    { label: 'Shiny Ultra Rare',         color: '#34383f' },
+    { label: 'Hyper Rare',               color: '#34383f' },
+    { label: 'Black White rare',         color: '#34383f' },
+    { label: 'Mega Hyper Rare',          color: '#34383f' },
+    { label: 'Mega Attack Rare',         color: '#34383f' },
+    { label: 'Reverse Holo',             color: '#34383f' },
+    { label: 'Pokeball Holo',            color: '#34383f' },
+    { label: 'Master Ball Holo',         color: '#34383f' },
+    { label: 'Cosmos Holo',              color: '#34383f' },
+    { label: 'Full Art',                 color: '#34383f' },
+    { label: 'Alt Art',                  color: '#34383f' },
+    { label: 'Holo Rare',                color: '#34383f' },
   ];
 
   const [scanQueue, setScanQueue] = useState<ScanQueueItem[]>([]);
@@ -396,11 +398,11 @@ export default function AdminUploadForm() {
   const renderVersionButtons = (card: PokemonTCGCard) => {
     const prices = card.tcgplayer?.prices;
     if (!prices) return (
-      <button type="button" style={s.pickBtn} onClick={() => pickImage(card, 'Normal', null)}>Use Image (no price data)</button>
+      <button type="button" style={s.pickBtn} onClick={() => pickImage(card, 'Normal', null)}>Use image (no price available)</button>
     );
     const versions = Object.entries(prices).map(([key, val]) => ({ name: key, price: val?.market })).filter(v => v.price != null);
     if (!versions.length) return (
-      <button type="button" style={s.pickBtn} onClick={() => pickImage(card, 'Normal', null)}>Use Image (no price data)</button>
+      <button type="button" style={s.pickBtn} onClick={() => pickImage(card, 'Normal', null)}>Use image (no price available)</button>
     );
     return versions.map(v => {
       const label = v.name.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase());
@@ -414,102 +416,89 @@ export default function AdminUploadForm() {
 
   /* ── Inline styles ─────────────────────────────────────── */
   const s: Record<string, React.CSSProperties> = {
-    wrap: { maxWidth: 640, margin: '2rem auto', fontFamily: 'system-ui, sans-serif', color: '#e2e8f0' },
-    card: { background: '#1a1a2e', border: '1px solid #2d2d4e', borderRadius: 12, padding: '1.5rem', marginBottom: '1rem' },
-    h1: { textAlign: 'center', margin: '0 0 1.5rem', fontSize: 22, color: '#c4b5fd' },
-    label: { display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: '#7c6af0', marginBottom: 4 },
-    input: { width: '100%', padding: '0.6rem 0.8rem', background: '#0f0f1e', border: '1px solid #3d3d6e', borderRadius: 6, color: '#e2e8f0', fontSize: 14, boxSizing: 'border-box' },
+    wrap: { maxWidth: 640, margin: '2rem auto', fontFamily: 'Manrope, sans-serif', color: '#f0eee7' },
+    card: { background: '#191b20', border: '1px solid #34383f', borderRadius: 12, padding: '1.5rem', marginBottom: '1rem' },
+    h1: { textAlign: 'center', margin: '0 0 1.5rem', fontSize: 22, color: '#faeac4' },
+    label: { display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: '#faeac4', marginBottom: 4 },
+    input: { width: '100%', padding: '0.6rem 0.8rem', background: '#191b20', border: '1px solid #34383f', borderRadius: 6, color: '#f0eee7', fontSize: 14, boxSizing: 'border-box' },
     row: { display: 'flex', gap: 10 },
     group: { marginBottom: '1rem' },
-    btn: { padding: '0.6rem 1.2rem', border: 'none', borderRadius: 6, background: 'linear-gradient(135deg,#7c6af0,#5b4dd4)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 },
-    btnGhost: { padding: '0.5rem 1rem', border: '1px solid #3d3d6e', borderRadius: 6, background: 'transparent', color: '#c4b5fd', cursor: 'pointer', fontSize: 13 },
-    submitBtn: { width: '100%', padding: '1rem', border: 'none', borderRadius: 8, background: 'linear-gradient(135deg,#7c6af0,#5b4dd4)', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 20px rgba(124,106,240,0.4)', marginTop: 8 },
-    flash: { padding: '0.75rem 1rem', borderRadius: 6, marginBottom: '1rem', background: '#1a3a2a', border: '1px solid #2d6a4f', color: '#86efac', fontSize: 13 },
-    flashErr: { padding: '0.75rem 1rem', borderRadius: 6, marginBottom: '1rem', background: '#3a1a1a', border: '1px solid #6a2d2d', color: '#fca5a5', fontSize: 13 },
+    btn: { padding: '0.6rem 1.2rem', border: 'none', borderRadius: 6, background: '#faeac4', color: '#191b20', cursor: 'pointer', fontSize: 13, fontWeight: 600 },
+    btnGhost: { padding: '0.5rem 1rem', border: '1px solid #34383f', borderRadius: 6, background: 'transparent', color: '#faeac4', cursor: 'pointer', fontSize: 13 },
+    submitBtn: { width: '100%', padding: '1rem', border: 'none', borderRadius: 8, background: '#faeac4', color: '#191b20', fontSize: 16, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 20px rgba(250,234,196,0.12)', marginTop: 8 },
+    flash: { padding: '0.75rem 1rem', borderRadius: 6, marginBottom: '1rem', background: '#34383f', border: '1px solid #34383f', color: '#86efac', fontSize: 13 },
+    flashErr: { padding: '0.75rem 1rem', borderRadius: 6, marginBottom: '1rem', background: '#191b20', border: '1px solid #34383f', color: '#fca5a5', fontSize: 13 },
     // Wizard
     wizardHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' },
     progress: { display: 'flex', gap: 6, alignItems: 'center' },
-    dot: { width: 10, height: 10, borderRadius: '50%', background: '#2d2d4e' },
-    dotActive: { width: 10, height: 10, borderRadius: '50%', background: '#7c6af0' },
+    dot: { width: 10, height: 10, borderRadius: '50%', background: '#34383f' },
+    dotActive: { width: 10, height: 10, borderRadius: '50%', background: '#faeac4' },
     dotDone: { width: 10, height: 10, borderRadius: '50%', background: '#86efac' },
     scanCard: { display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: '1rem' },
-    scanThumb: { width: 90, height: 126, objectFit: 'cover', borderRadius: 6, border: '2px solid #3d3d6e', flexShrink: 0 },
+    scanThumb: { width: 90, height: 126, objectFit: 'cover', borderRadius: 6, border: '2px solid #34383f', flexShrink: 0 },
     scanInfo: { flex: 1 },
     badge: { display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, marginRight: 4 },
-    badgeGreen: { background: '#1a3a2a', color: '#86efac', border: '1px solid #2d6a4f' },
-    badgeRed: { background: '#3a1a1a', color: '#fca5a5', border: '1px solid #6a2d2d' },
-    badgeBlue: { background: '#1a2a3a', color: '#93c5fd', border: '1px solid #2d4a6a' },
+    badgeGreen: { background: '#34383f', color: '#86efac', border: '1px solid #34383f' },
+    badgeRed: { background: '#191b20', color: '#fca5a5', border: '1px solid #34383f' },
+    badgeBlue: { background: '#34383f', color: '#faeac4', border: '1px solid #34383f' },
     // Match grid
     matchGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10, marginTop: 10 },
-    matchItem: { background: '#0f0f1e', border: '1px solid #3d3d6e', borderRadius: 8, padding: 8, cursor: 'pointer', textAlign: 'center', transition: 'border-color 0.15s' },
+    matchItem: { background: '#191b20', border: '1px solid #34383f', borderRadius: 8, padding: 8, cursor: 'pointer', textAlign: 'center', transition: 'border-color 0.15s' },
     matchImg: { width: '100%', borderRadius: 4, marginBottom: 6 },
-    matchName: { fontSize: 11, fontWeight: 700, color: '#e2e8f0', marginBottom: 2 },
-    matchSet: { fontSize: 10, color: '#7c7c9e' },
+    matchName: { fontSize: 11, fontWeight: 700, color: '#f0eee7', marginBottom: 2 },
+    matchSet: { fontSize: 10, color: '#b8b7b0' },
     // Selected image
-    selBox: { display: 'flex', gap: 12, alignItems: 'center', padding: '0.75rem', background: '#0f0f1e', borderRadius: 8, border: '1px solid #3d3d6e' },
-    selImg: { width: 60, height: 84, objectFit: 'cover', borderRadius: 4, border: '1px solid #3d3d6e' },
-    hr: { border: 'none', borderTop: '1px solid #2d2d4e', margin: '1.2rem 0' },
+    selBox: { display: 'flex', gap: 12, alignItems: 'center', padding: '0.75rem', background: '#191b20', borderRadius: 8, border: '1px solid #34383f' },
+    selImg: { width: 60, height: 84, objectFit: 'cover', borderRadius: 4, border: '1px solid #34383f' },
+    hr: { border: 'none', borderTop: '1px solid #34383f', margin: '1.2rem 0' },
     // Inline rescan
     rescanRow: { display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' as const },
   };
 
-  const tabBar: React.CSSProperties = { display: 'flex', gap: 6, padding: '1rem 1rem 0', borderBottom: '1px solid #1e1e3a', marginBottom: 0 };
-  const tabBtn = (active: boolean): React.CSSProperties => ({
-    fontFamily: 'Space Mono, monospace', fontSize: 12, fontWeight: 700,
-    padding: '8px 20px', border: '1px solid', borderBottom: 'none', borderRadius: '8px 8px 0 0', cursor: 'pointer',
-    background: active ? '#0f0f22' : 'transparent',
-    color: active ? '#c4b5fd' : '#4a4a72',
-    borderColor: active ? '#3d3d6e' : 'transparent',
-    position: 'relative', bottom: -1,
-  });
-
   return (
     <>
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
+      <canvas ref={canvasRef} className={legacy.style0} />
 
       {/* ── Tab bar ── */}
-      <div style={tabBar}>
-        <button style={tabBtn(tab === 'upload')} onClick={() => setTab('upload')}>➕ Upload</button>
-        <button style={tabBtn(tab === 'manage')} onClick={() => setTab('manage')}>🗂 Manage Cards</button>
-        <button style={tabBtn(tab === 'bulk')}   onClick={() => setTab('bulk')}>📋 Bulk CSV</button>
-        <button style={tabBtn(tab === 'orders')} onClick={() => setTab('orders')}>📦 Orders</button><button style={tabBtn(tab === 'insights')} onClick={() => setTab('insights')}>Collection & sales</button>
-      </div>
+      <nav className={studio.navigation} aria-label="Seller studio sections">
+        {([['upload','Manual listing'],['manage','Inventory'],['bulk','CSV import'],['orders','Orders & dispatch'],['insights','Collection & sales']] as const).map(([value,label])=><button key={value} className={studio.tab} aria-pressed={tab===value} onClick={()=>setTab(value)}>{label}</button>)}
+      </nav>
 
       {/* ── Manage tab ── */}
       {tab === 'manage' && (
-        <div style={{ ...s.wrap, padding: '1.5rem' }}>
+        <div className={studio.panel}>
           <AdminManageCards />
         </div>
       )}
 
       {/* ── Bulk CSV tab ── */}
       {tab === 'bulk' && (
-        <div style={{ ...s.wrap, padding: '1.5rem' }}>
+        <div className={studio.panel}>
           <AdminBulkUpload />
         </div>
       )}
 
       {/* ── Orders tab ── */}
       {tab === 'orders' && (
-        <div style={{ ...s.wrap, padding: '1.5rem' }}>
+        <div className={studio.panel}>
           <AdminOrderLog />
         </div>
       )}
 
-      {tab === 'insights' && <div style={{padding:'24px',maxWidth:1100,margin:'auto'}}><CollectionInsights/></div>}
+      {tab === 'insights' && <div className={studio.panel}><CollectionInsights/></div>}
       {/* ── Upload tab ── */}
       {tab === 'upload' && (
-      <div style={s.wrap}>
+      <div className={studio.manual}>
 
         {/* ── WIZARD MODE ─────────────────────────────────── */}
         {wizardActive && currentItem && (
-          <div style={s.card}>
+          <div className={legacy.style7}>
             {/* Header: progress */}
-            <div style={s.wizardHeader}>
-              <span style={{ color: '#c4b5fd', fontWeight: 700, fontSize: 15 }}>
+            <div className={legacy.style8}>
+              <span className={legacy.style9}>
                 Card {wizardIndex + 1} of {scanQueue.length}
               </span>
-              <div style={s.progress}>
+              <div className={legacy.style10}>
                 {scanQueue.map((item, i) => (
                   <div key={item.id} style={
                     i === wizardIndex ? s.dotActive :
@@ -517,46 +506,46 @@ export default function AdminUploadForm() {
                   } />
                 ))}
               </div>
-              <button type="button" style={s.btnGhost} onClick={skipWizardCard}>
+              <button type="button" className={legacy.style11} onClick={skipWizardCard}>
                 {wizardIndex < scanQueue.length - 1 ? 'Skip →' : 'Done'}
               </button>
             </div>
 
             {/* Scanned photo + AI result */}
-            <div style={s.scanCard}>
-              <img src={currentItem.previewUrl} alt="scan" style={s.scanThumb} />
-              <div style={s.scanInfo}>
+            <div className={legacy.style12}>
+              <img src={currentItem.previewUrl} alt="scan" className={legacy.style13} />
+              <div className={legacy.style14}>
                 {currentItem.status === 'scanning' && (
-                  <p style={{ color: '#7c7c9e', margin: 0 }}>⏳ Scanning with AI…</p>
+                  <p className={legacy.style15}>⏳ Scanning with AI…</p>
                 )}
                 {currentItem.status === 'error' && (
                   <>
-                    <span style={{ ...s.badge, ...s.badgeRed }}>✗ Scan failed</span>
-                    <p style={{ color: '#fca5a5', fontSize: 12, margin: '6px 0 0' }}>{currentItem.error}</p>
+                    <span className={legacy.style16}>✗ Scan failed</span>
+                    <p className={legacy.style17}>{currentItem.error}</p>
                   </>
                 )}
                 {currentItem.status === 'done' && (
                   <>
-                    <p style={{ margin: '0 0 2px', fontWeight: 700, fontSize: 15 }}>
+                    <p className={legacy.style18}>
                       {currentItem.englishName || '(unknown)'}
                     </p>
                     {currentItem.originalName && currentItem.originalName !== currentItem.englishName && (
-                      <p style={{ margin: '0 0 6px', fontSize: 12, color: '#7c7c9e' }}>{currentItem.originalName}</p>
+                      <p className={legacy.style19}>{currentItem.originalName}</p>
                     )}
                     <div>
                       {currentItem.apiResults?.length
-                        ? <span style={{ ...s.badge, ...s.badgeGreen }}>✓ {currentItem.apiResults.length} matches</span>
-                        : <span style={{ ...s.badge, ...s.badgeRed }}>✗ No matches</span>
+                        ? <span className={legacy.style20}>✓ {currentItem.apiResults.length} matches</span>
+                        : <span className={legacy.style21}>✗ No matches</span>
                       }
                       {currentItem.language === 'Japanese'
-                        ? <span style={{ ...s.badge, ...s.badgeBlue }}>🇯🇵 JP</span>
+                        ? <span className={legacy.style22}>🇯🇵 JP</span>
                         : currentItem.language === 'Korean'
-                        ? <span style={{ ...s.badge, ...s.badgeBlue }}>🇰🇷 KR</span>
-                        : <span style={{ ...s.badge, ...s.badgeBlue }}>🇬🇧 EN</span>
+                        ? <span className={legacy.style23}>🇰🇷 KR</span>
+                        : <span className={legacy.style24}>🇬🇧 EN</span>
                       }
                     </div>
                     {currentItem.cardNumber && (
-                      <p style={{ margin: '4px 0 0', fontSize: 12, color: '#7c7c9e' }}>
+                      <p className={legacy.style25}>
                         #{currentItem.cardNumber}{currentItem.cardTotal ? `/${currentItem.cardTotal}` : ''}
                       </p>
                     )}
@@ -567,14 +556,14 @@ export default function AdminUploadForm() {
 
             {/* ── Holo type blocker ── shown when scan is done but type unknown */}
             {currentItem.status === 'done' && !currentItem.holoType && (
-              <div style={{ background: '#0a0a1a', borderRadius: 10, padding: '1rem', border: '2px solid #7c6af0', marginTop: 4 }}>
-                <p style={{ margin: '0 0 10px', fontWeight: 700, color: '#c4b5fd', fontSize: 13 }}>
+              <div className={legacy.style26}>
+                <p className={legacy.style27}>
                   🃏 AI couldn't detect the holo type — what type is this card?
                 </p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                <div className={legacy.style28}>
                   {HOLO_OPTIONS.map(({ label, color }) => (
                     <button key={label} type="button"
-                      style={{ background: color, border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: '#e2e8f0', padding: '7px 4px', fontSize: 10, cursor: 'pointer', fontWeight: 600, lineHeight: 1.3 }}
+                      style={{ background: color, border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: '#f0eee7', padding: '7px 4px', fontSize: 10, cursor: 'pointer', fontWeight: 600, lineHeight: 1.3 }}
                       onClick={() => {
                         setScanQueue(prev => prev.map(i => i.id === currentItem.id ? { ...i, holoType: label } : i));
                         setHoloType(label);
@@ -588,12 +577,12 @@ export default function AdminUploadForm() {
 
             {/* ── AI detected holo type — show with change button ── */}
             {currentItem.status === 'done' && currentItem.holoType && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, marginBottom: 2 }}>
-                <span style={{ fontSize: 12, color: '#86efac' }}>
+              <div className={legacy.style29}>
+                <span className={legacy.style30}>
                   ✓ <strong>{currentItem.holoType}</strong>
                 </span>
                 <button type="button"
-                  style={{ ...s.btnGhost, fontSize: 10, padding: '2px 8px' }}
+                  className={legacy.style31}
                   onClick={() => setScanQueue(prev => prev.map(i => i.id === currentItem.id ? { ...i, holoType: null } : i))}>
                   Change
                 </button>
@@ -603,26 +592,26 @@ export default function AdminUploadForm() {
             {/* ── Search correction row + match grid (only when holo type is set) ── */}
             {currentItem.status === 'done' && currentItem.holoType && (
               <>
-                <div style={s.rescanRow}>
+                <div className={legacy.style32}>
                   <input
                     placeholder="Name"
                     defaultValue={currentItem.englishName ?? ''}
                     onChange={e => setScanQueue(prev => prev.map(i => i.id === currentItem.id ? { ...i, englishName: e.target.value } : i))}
-                    style={{ ...s.input, flex: '2 1 120px' }}
+                    className={legacy.style33}
                   />
                   <input
                     placeholder="#"
                     defaultValue={currentItem.cardNumber ?? ''}
                     onChange={e => setScanQueue(prev => prev.map(i => i.id === currentItem.id ? { ...i, cardNumber: e.target.value } : i))}
-                    style={{ ...s.input, flex: '1 1 60px' }}
+                    className={legacy.style34}
                   />
                   <input
                     placeholder="Total"
                     defaultValue={currentItem.cardTotal ?? ''}
                     onChange={e => setScanQueue(prev => prev.map(i => i.id === currentItem.id ? { ...i, cardTotal: e.target.value } : i))}
-                    style={{ ...s.input, flex: '1 1 70px' }}
+                    className={legacy.style35}
                   />
-                  <button type="button" style={s.btn} onClick={async () => {
+                  <button type="button" className={legacy.style36} onClick={async () => {
                     setScanQueue(prev => prev.map(i => i.id === currentItem.id ? { ...i, status: 'scanning' } : i));
                     const r = await searchPokemonCard(currentItem.englishName ?? '', currentItem.cardNumber, currentItem.cardTotal);
                     setScanQueue(prev => prev.map(i => i.id === currentItem.id ? { ...i, status: 'done', apiResults: r.results } : i));
@@ -632,8 +621,8 @@ export default function AdminUploadForm() {
                 {/* Match grid — one Select button per card, price reflects chosen holo type */}
                 {currentItem.apiResults && currentItem.apiResults.length > 0 && (
                   <>
-                    <p style={{ margin: '10px 0 4px', fontSize: 12, color: '#7c7c9e' }}>Pick the matching card:</p>
-                    <div style={s.matchGrid}>
+                    <p className={legacy.style37}>Pick the matching card:</p>
+                    <div className={legacy.style38}>
                       {currentItem.apiResults.map(card => {
                         const prices = card.tcgplayer?.prices;
                         const ht = currentItem.holoType!;
@@ -654,13 +643,13 @@ export default function AdminUploadForm() {
                           : null;
 
                         return (
-                          <div key={card.id} style={s.matchItem}>
-                            <img src={card.images.small} alt={card.name} style={s.matchImg} />
-                            <div style={s.matchName}>{card.name}</div>
-                            <div style={s.matchSet}>{card.set?.name}</div>
-                            <div style={{ marginTop: 6 }}>
+                          <div key={card.id} className={legacy.style39}>
+                            <img src={card.images.small} alt={card.name} className={legacy.style40} />
+                            <div className={legacy.style41}>{card.name}</div>
+                            <div className={legacy.style42}>{card.set?.name}</div>
+                            <div className={legacy.style43}>
                               <button type="button"
-                                style={{ ...s.btn, fontSize: 10, padding: '5px 6px', width: '100%' }}
+                                className={legacy.style44}
                                 onClick={() => pickImage(card, ht, refPrice)}>
                                 Select{priceLabel ? ` — ${priceLabel}` : ''}
                               </button>
@@ -677,60 +666,60 @@ export default function AdminUploadForm() {
         )}
 
         {/* ── MAIN FORM ───────────────────────────────────── */}
-        <form onSubmit={handleSubmit} style={s.card}>
-          <h1 style={s.h1}>{wizardActive ? '📋 Card Details' : '➕ Add New Card'}</h1>
+        <form onSubmit={handleSubmit} className={legacy.style45}>
+          <h2 className={legacy.style46}>{wizardActive ? 'Card details' : 'Manual listing'}</h2>
 
           {msg && <div style={msg.startsWith('Error') || msg.startsWith('✗') ? s.flashErr : s.flash}>{msg}</div>}
 
           {/* Scan input — only show when not in wizard mode */}
           {!wizardActive && (
-            <div style={s.group}>
-              <label style={s.label}>📷 Scan Physical Card Photos</label>
-              <input type="file" accept="image/*" multiple onChange={handleScanPhotos}
-                style={{ ...s.input, padding: '0.5rem' }} />
+            <div className={legacy.style47}>
+              <label htmlFor="manual-scan-photos" className={legacy.style48}>Scan card photos</label>
+              <input id="manual-scan-photos" type="file" accept="image/*" multiple onChange={handleScanPhotos}
+                className={legacy.style49} />
             </div>
           )}
 
           {/* Add more cards button when in wizard */}
           {wizardActive && (
-            <div style={{ ...s.group, textAlign: 'center' as const }}>
-              <label style={{ ...s.label, textAlign: 'center' as const }}>📷 Add more cards to queue</label>
-              <input type="file" accept="image/*" multiple onChange={handleScanPhotos}
-                style={{ ...s.input, padding: '0.5rem' }} />
+            <div className={legacy.style50}>
+              <label htmlFor="manual-more-photos" className={legacy.style51}>Add more card photos</label>
+              <input id="manual-more-photos" type="file" accept="image/*" multiple onChange={handleScanPhotos}
+                className={legacy.style52} />
             </div>
           )}
 
-          <hr style={s.hr} />
+          <hr className={legacy.style53} />
 
           {/* Selected image preview */}
           {selectedImages.length > 0 && (
-            <div style={{ ...s.group }}>
-              <label style={s.label}>Selected Image</label>
-              <div style={s.selBox}>
-                <img src={selectedImages[0].url} alt="selected" style={s.selImg} />
-                <span style={{ fontSize: 13, color: '#c4b5fd' }}>{selectedImages[0].apiCardName} {selectedImages[0].holoType ? `(${selectedImages[0].holoType})` : ''}</span>
+            <div className={legacy.style54}>
+              <label className={legacy.style55}>Selected Image</label>
+              <div className={legacy.style56}>
+                <img src={selectedImages[0].url} alt="selected" className={legacy.style57} />
+                <span className={legacy.style58}>{selectedImages[0].apiCardName} {selectedImages[0].holoType ? `(${selectedImages[0].holoType})` : ''}</span>
               </div>
             </div>
           )}
 
-          <div style={s.group}>
-            <label style={s.label}>Card Name</label>
-            <input style={s.input} value={name} onChange={e => setName(e.target.value)} required />
+          <div className={legacy.style59}>
+            <label htmlFor="manual-name" className={legacy.style60}>Card Name</label>
+            <input id="manual-name" className={legacy.style61} value={name} onChange={e => setName(e.target.value)} required />
           </div>
 
-          <div style={{ ...s.row }}>
-            <div style={{ ...s.group, flex: 1 }}>
-              <label style={s.label}>Card Number</label>
-              <input style={s.input} value={cardNumber} onChange={e => setNumber(e.target.value)} required />
+          <div className={legacy.style62}>
+            <div className={legacy.style63}>
+              <label htmlFor="manual-number" className={legacy.style64}>Card Number</label>
+              <input id="manual-number" className={legacy.style65} value={cardNumber} onChange={e => setNumber(e.target.value)} required />
             </div>
-            <div style={{ ...s.group, flex: 1 }}>
-              <label style={s.label}>Price (pence)</label>
-              <input type="number" min="0" style={s.input} value={price} onChange={e => setPrice(e.target.value)} required />
+            <div className={legacy.style66}>
+              <label htmlFor="manual-price" className={legacy.style67}>Price (pence)</label>
+              <input id="manual-price" type="number" min="0" className={legacy.style68} value={price} onChange={e => setPrice(e.target.value)} required />
               {(holoType === 'Pokeball Holo' || holoType === 'Master Ball Holo' || holoType === 'Cosmos Holo') && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+                <div className={legacy.style69}>
                   {[1,2,3,4,5,6,7,8].map(p => (
                     <button key={p} type="button"
-                      style={{ background: '#1a2a40', border: '1px solid #2a4a70', borderRadius: 4, color: '#93c5fd', padding: '3px 8px', fontSize: 11, cursor: 'pointer' }}
+                      className={legacy.style70}
                       onClick={() => setPrice(String(p * 100))}
                     >£{p}</button>
                   ))}
@@ -739,52 +728,52 @@ export default function AdminUploadForm() {
             </div>
           </div>
 
-          <div style={{ ...s.row }}>
-            <div style={{ ...s.group, flex: 1 }}>
-              <label style={s.label}>Set</label>
-              <input style={s.input} value={setCode} onChange={e => setSetCode(e.target.value)} />
+          <div className={legacy.style71}>
+            <div className={legacy.style72}>
+              <label htmlFor="manual-set" className={legacy.style73}>Set</label>
+              <input id="manual-set" className={legacy.style74} value={setCode} onChange={e => setSetCode(e.target.value)} />
             </div>
-            <div style={{ ...s.group, flex: 1 }}>
-              <label style={s.label}>Rarity</label>
-              <input style={s.input} value={rarity} onChange={e => setRarity(e.target.value)} />
+            <div className={legacy.style75}>
+              <label htmlFor="manual-rarity" className={legacy.style76}>Rarity</label>
+              <input id="manual-rarity" className={legacy.style77} value={rarity} onChange={e => setRarity(e.target.value)} />
             </div>
           </div>
 
-          <div style={{ ...s.row }}>
-            <div style={{ ...s.group, flex: 1 }}>
-              <label style={s.label}>Language</label>
-              <select style={s.input} value={language} onChange={e => setLanguage(e.target.value)}>
+          <div className={legacy.style78}>
+            <div className={legacy.style79}>
+              <label htmlFor="manual-language" className={legacy.style80}>Language</label>
+              <select id="manual-language" className={legacy.style81} value={language} onChange={e => setLanguage(e.target.value)}>
                 <option>English</option><option>Japanese</option><option>Korean</option>
                 <option>Chinese</option><option>French</option><option>German</option><option>Spanish</option>
               </select>
             </div>
-            <div style={{ ...s.group, flex: 1 }}>
-              <label style={s.label}>Holo Type</label>
-              <input style={s.input} value={holoType ?? ''} onChange={e => setHoloType(e.target.value)} />
+            <div className={legacy.style82}>
+              <label htmlFor="manual-finish" className={legacy.style83}>Finish</label>
+              <input id="manual-finish" className={legacy.style84} value={holoType ?? ''} onChange={e => setHoloType(e.target.value)} />
             </div>
           </div>
 
-          <hr style={s.hr} />
+          <hr className={legacy.style85} />
 
           {/* Manual search (collapsed when not needed) */}
           {!wizardActive && (
-            <div style={s.group}>
-              <label style={s.label}>🔍 Search Pokémon TCG API</label>
-              <div style={s.row}>
-                <input style={{ ...s.input, flex: 1 }} placeholder="Pokémon name" value={searchTerm} onChange={e => setTerm(e.target.value)} />
-                <button type="button" style={s.btn} onClick={handleSearch} disabled={searching || !searchTerm.trim()}>
+            <div className={legacy.style86}>
+              <label htmlFor="catalogue-search" className={legacy.style87}>Find catalogue artwork</label>
+              <div className={legacy.style88}>
+                <input id="catalogue-search" className={legacy.style89} placeholder="Pokémon name" value={searchTerm} onChange={e => setTerm(e.target.value)} />
+                <button type="button" className={legacy.style90} onClick={handleSearch} disabled={searching || !searchTerm.trim()}>
                   {searching ? '…' : 'Search'}
                 </button>
               </div>
               {results.length > 0 && (
-                <div style={{ marginTop: 10, border: '1px solid #2d2d4e', borderRadius: 8, overflow: 'hidden' }}>
+                <div className={legacy.style91}>
                   {results.map(card => (
-                    <div key={card.id} style={{ display: 'flex', gap: 10, padding: '8px 10px', borderBottom: '1px solid #2d2d4e', alignItems: 'flex-start', background: '#0f0f1e' }}>
-                      <img src={card.images.small} alt={card.name} width={50} style={{ borderRadius: 4, border: '1px solid #3d3d6e' }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 700, fontSize: 13 }}>{card.name}</div>
-                        <div style={{ fontSize: 11, color: '#7c7c9e', marginBottom: 4 }}>{card.set?.name} · #{card.number}</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>{renderVersionButtons(card)}</div>
+                    <div key={card.id} className={legacy.style92}>
+                      <img src={card.images.small} alt={card.name} width={50} className={legacy.style93} />
+                      <div className={legacy.style94}>
+                        <div className={legacy.style95}>{card.name}</div>
+                        <div className={legacy.style96}>{card.set?.name} · #{card.number}</div>
+                        <div className={legacy.style97}>{renderVersionButtons(card)}</div>
                       </div>
                     </div>
                   ))}
@@ -794,15 +783,15 @@ export default function AdminUploadForm() {
           )}
 
           {/* Upload own image */}
-          <div style={s.group}>
-            <label style={s.label}>📁 Upload Your Own Image</label>
-            <input id="file-input" type="file" accept="image/*" style={{ ...s.input, padding: '0.5rem' }}
+          <div className={legacy.style98}>
+            <label htmlFor="file-input" className={legacy.style99}>Upload a listing image</label>
+            <input id="file-input" type="file" accept="image/*" className={legacy.style100}
               onChange={e => { setFiles(e.target.files); if (e.target.files?.length) setMsg(`Image ready — fill in details and click Add Card.`); }} />
-            {files && files.length > 0 && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#86efac' }}>✔ {files[0].name}</p>}
+            {files && files.length > 0 && <p className={legacy.style101}>✔ {files[0].name}</p>}
           </div>
 
-          <button style={s.submitBtn} type="submit" disabled={uploading}>
-            {uploading ? 'Uploading…' : wizardActive && wizardIndex < scanQueue.length - 1 ? `Add Card & Next → (${wizardIndex + 1}/${scanQueue.length})` : 'Add Card ✔'}
+          <button className={legacy.style102} type="submit" disabled={uploading}>
+            {uploading ? 'Uploading…' : wizardActive && wizardIndex < scanQueue.length - 1 ? `Add card & next → (${wizardIndex + 1}/${scanQueue.length})` : 'Add card'}
           </button>
         </form>
       </div>
