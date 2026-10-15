@@ -1,7 +1,9 @@
+import {EXAMPLE_CARD_ID} from './example-listing';
 export type Stock = {id:string;name:string;price:number;available:boolean;createdAt:string;sold_at?:string|null};
 export type Cost = {card_id:string;cost_pence:number|null};
 export type Sale = {id:string;paid_at?:string|null;items:{id:string;name:string;quantity:number;cost_pence?:number|null}[];shipping?:{total:number;price:number};payment_fee_pence?:number|null;carrier_cost_pence?:number|null};
 export function collectionInsights(cards:Stock[],costs:Cost[],orders:Sale[],now=Date.now()){
+ cards=cards.filter(card=>card.id!==EXAMPLE_CARD_ID);
  const costMap=new Map(costs.map(cost=>[cost.card_id,cost.cost_pence]));
  const sales=orders.filter(order=>order.paid_at);
  const popular=new Map<string,number>();let knownProfit=0,completeOrders=0;
