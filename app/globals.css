@@ -305,4 +305,4 @@ body::after{display:none}
 body{background-color:#191b20!important}
 ::-webkit-scrollbar{background:#191b20}::-webkit-scrollbar-track{background:#191b20}::-webkit-scrollbar-thumb{background:#858c68;border-color:#191b20}::-webkit-scrollbar-thumb:hover{background:#e0f16e}
 
-:root{--brand-accent:#841c0c;--brand-accent-hover:#a52c1b;--brand-accent-light:#e6a28e;--brand-on-accent:#f6eddd}:focus-visible{outline-color:var(--brand-accent-light)}::-webkit-scrollbar-thumb:hover{background:var(--brand-accent)}
+:root{--brand-accent:#FAEAC4;--brand-accent-hover:#ead6a8;--brand-accent-light:#FAEAC4;--brand-on-accent:#191b20;--brand-accent-ink:#675331}:focus-visible{outline-color:var(--brand-accent-light)}::-webkit-scrollbar-thumb:hover{background:var(--brand-accent)}
