@@ -398,16 +398,16 @@ export default function AdminUploadForm() {
   const renderVersionButtons = (card: PokemonTCGCard) => {
     const prices = card.tcgplayer?.prices;
     if (!prices) return (
-      <button type="button" style={s.pickBtn} onClick={() => pickImage(card, 'Normal', null)}>Use image (no price available)</button>
+      <button type="button" className={studio.primary} onClick={() => pickImage(card, 'Normal', null)}>Use image (no price available)</button>
     );
     const versions = Object.entries(prices).map(([key, val]) => ({ name: key, price: val?.market })).filter(v => v.price != null);
     if (!versions.length) return (
-      <button type="button" style={s.pickBtn} onClick={() => pickImage(card, 'Normal', null)}>Use image (no price available)</button>
+      <button type="button" className={studio.primary} onClick={() => pickImage(card, 'Normal', null)}>Use image (no price available)</button>
     );
     return versions.map(v => {
       const label = v.name.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase());
       return (
-        <button key={v.name} type="button" style={s.pickBtn} onClick={() => pickImage(card, label, v.price ?? null)}>
+        <button key={v.name} type="button" className={studio.primary} onClick={() => pickImage(card, label, v.price ?? null)}>
           {label} — £{((v.price ?? 0) * 0.79).toFixed(2)}
         </button>
       );

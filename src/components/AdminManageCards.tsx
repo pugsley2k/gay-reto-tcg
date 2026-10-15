@@ -306,13 +306,14 @@ export default function AdminManageCards() {
                         {ALL_HOLO_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                       </select>
                     ) : (
-                      <span
+                      <button type="button"
+                        aria-label={`Edit finish for ${card.name}`}
                         className={legacy.style25}
                         title="Click to edit"
                         onClick={() => setHoloEdit(p => ({ ...p, [card.id]: true }))}
                       >
                         {card.holo_type ?? <span className={legacy.style26}>— edit</span>}
-                      </span>
+                      </button>
                     )}
                   </td>
                   <td className={legacy.style27}>

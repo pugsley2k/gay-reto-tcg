@@ -8,3 +8,6 @@
 @media(hover:hover){.studio button:not(:disabled):hover{filter:brightness(1.1)}.studio .tab:hover{filter:none;color:var(--studio-accent)}.scanLink:hover{background:#f6dfaa}}
 @media(max-width:700px){.studio{padding:28px 18px 52px}.header{display:block;margin-bottom:24px}.header h1{font-size:42px}.scanLink{margin-top:24px;width:100%;justify-content:space-between}.navigation{gap:24px;margin-bottom:24px}.studio table{min-width:760px}.studio td{padding:14px 10px}.studio button{min-height:44px}}
 @media(prefers-reduced-motion:reduce){.studio button,.scanLink{transition:none}}
+
+.navigation{scrollbar-color:#7f7d72 #23262c}.navigation::-webkit-scrollbar{height:4px}.navigation::-webkit-scrollbar-track{background:#23262c}.navigation::-webkit-scrollbar-thumb{background:#7f7d72;border-radius:2px}
+.primary{background:#faeac4;color:#191b20;border:0;padding:10px 16px;border-radius:4px}
