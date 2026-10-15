@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { isUKShippingOrder } from '../../src/lib/shipping';
+import { completePaidOrder } from '../../src/lib/paid-order';
 
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID!;
 const PAYPAL_SECRET = process.env.PAYPAL_SECRET!;
@@ -35,7 +36,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ error: 'Failed to capture payment', captureData });
     }
 
-    console.log("✅ Payment captured!", JSON.stringify(captureData, null, 2));
+    // Email/storage failures must not imply that a captured payment failed.
+    // The verified PayPal webhook retries finalisation independently.
+    try {
+      const completedRes = await fetch(`${BASE_URL}/v2/checkout/orders/${encodeURIComponent(token)}`, { headers: { Authorization: `Bearer ${auth}` } });
+      if (completedRes.ok) await completePaidOrder(await completedRes.json());
+    } catch { console.error('Paid order finalisation pending webhook retry.'); }
     return res.status(200).json({ success: true, captureData });
   } catch (err: any) {
     console.error("🔥 Capture error:", err);

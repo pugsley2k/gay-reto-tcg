@@ -1,6 +1,6 @@
 // pages/api/checkout.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { createClient } from "@supabase/supabase-js";
+import { serverDb } from '../../src/lib/server-db';
 import { v4 as uuidv4 } from 'uuid';
 import { validateCheckout, priceCheckout } from '../../src/lib/checkout';
 import { requireShipping, type ShippingQuote } from '../../src/lib/shipping';
@@ -9,10 +9,6 @@ const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID!;
 const PAYPAL_SECRET = process.env.PAYPAL_SECRET!;
 const BASE_URL = process.env.PAYPAL_API_BASE || "https://api-m.paypal.com"; // Live PayPal URL
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -21,6 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const { lineItems } = req.body;
+  const supabase = serverDb();
 
   if (!Array.isArray(lineItems) || lineItems.length === 0) {
     return res.status(400).json({ error: 'Invalid or empty lineItems provided.' });
@@ -106,6 +103,8 @@ console.log("🧾 Inserting order:", {
     if (!approvalLink) {
       return res.status(500).json({ error: 'Approval URL not found in PayPal response' });
     }
+    const { error: linked } = await supabase.from('orders').update({ paypal_order_id: orderData.id }).eq('id', orderId);
+    if (linked) return res.status(503).json({ error: 'Could not link your payment. Please try again.' });
 
     return res.status(200).json({ url: approvalLink });
 

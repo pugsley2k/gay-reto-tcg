@@ -18,6 +18,6 @@ for (const country of ['GB', 'US', undefined]) {
     await capture({ query: { token: 'TEST-ORDER' } } as unknown as NextApiRequest, response as unknown as NextApiResponse);
     assert.equal(status, country === 'GB' ? 200 : 400);
     assert.equal(calls.some(url => url.endsWith('/capture')), country === 'GB');
-    assert.equal(calls.filter(url => url.includes('/v2/checkout/orders/TEST-ORDER')).length, country === 'GB' ? 2 : 1);
+    assert.equal(calls.filter(url => url.includes('/v2/checkout/orders/TEST-ORDER')).length, country === 'GB' ? 3 : 1);
   });
 }

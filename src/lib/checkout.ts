@@ -20,5 +20,5 @@ export function priceCheckout(ids: string[], cards: StockCard[]) {
   const stock = ordered as StockCard[];
   const total = stock.reduce((sum, card) => sum + card.price, 0);
   if (!Number.isSafeInteger(total) || total < 30) throw new Error('The minimum order is £0.30.');
-  return { total, summary: stock.map(card => ({ id: card.id, name: card.name, quantity: 1 })) };
+  return { total, summary: stock.map(card => ({ id: card.id, name: card.name, price: card.price, quantity: 1 })) };
 }

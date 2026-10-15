@@ -1,1 +1,1 @@
-{}
+{"crons":[{"path":"/api/internal/email-retry","schedule":"0 9 * * *"}]}
