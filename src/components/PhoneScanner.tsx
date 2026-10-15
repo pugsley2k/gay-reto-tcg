@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import CardCondition from './CardCondition';
+import DuplicateCheck from './DuplicateCheck';
+import ScannerDefaults,{readScannerPreset} from './ScannerDefaults';
 import ConditionSuggestion from './ConditionSuggestion';
 import { CARD_EDITIONS, isCardEdition } from '@/lib/card-edition';
 import { isCardCondition } from '@/lib/card-condition';
@@ -21,6 +23,9 @@ async function readResponse(response: Response) {
 export default function PhoneScanner() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState('');
+  const [backPhoto,setBackPhoto]=useState<File|null>(null);
+  const [backUpload,setBackUpload]=useState<{url:string;public_id:string}|null>(null);
+  const clientId=useRef('');
   const [details, setDetails] = useState<Details>(blank);
   const [stage, setStage] = useState<'capture' | 'scanning' | 'review' | 'saving' | 'saved'>('capture');
   const [error, setError] = useState('');
@@ -47,7 +52,7 @@ export default function PhoneScanner() {
   }
   function applyMetadata(data: Enrichment) {
     setEnrichment(data); setUsePhoto(false);
-    if (data.matched) setDetails(prev => ({ ...prev, edition: data.edition === undefined ? prev.edition : data.edition || '', name: data.name || prev.name, set: data.set || '', rarity: data.rarity || '', holo_type: data.holo_type || '', price: data.pricing?.gbp || '' }));
+    if (data.matched) setDetails(prev => ({ ...prev, edition: data.edition === undefined ? prev.edition : data.edition || '', name: data.name || prev.name, set: data.set || '', rarity: data.rarity || '', holo_type: data.holo_type || prev.holo_type, price: data.pricing?.gbp || '' }));
   }
   async function lookup(catalog_id?: string) {
     setLookingUp(true); setError('');
@@ -58,7 +63,7 @@ export default function PhoneScanner() {
   async function scan(photo: File | undefined) {
     if (!photo || busy) return;
     setError('');
-    setFile(null); setUploadedPhoto(null); setDetails(blank); setEnrichment(null); setOriginalName(''); setStage('scanning');
+    clientId.current=crypto.randomUUID();setBackPhoto(null);setBackUpload(null);setFile(null); setUploadedPhoto(null); setDetails(blank); setEnrichment(null); setOriginalName(''); setStage('scanning');
     let preparedPhoto: File | null = null;
     try {
       const prepared = await prepareCardPhoto(photo);
@@ -66,7 +71,7 @@ export default function PhoneScanner() {
       setFile(prepared);
       const body = new FormData(); body.append('image', prepared);
       const result = await readResponse(await fetch('/api/scan-card', { method: 'POST', body }));
-      setDetails({ ...blank, name: result.english_name || '', number: result.card_number || '', language: result.language || 'English', edition: result.edition || '' });
+      setDetails({ ...blank, name: result.english_name || '', number: result.card_number || '', language: result.language || readScannerPreset().language, holo_type:readScannerPreset().finish, edition: result.edition || '' });
       setOriginalName(result.original_name || '');
       applyMetadata(result.enrichment || {});
     } catch (err) { setError(err instanceof Error ? err.message : 'Scan failed. Enter the details below or try another photo.'); }
@@ -89,7 +94,8 @@ export default function PhoneScanner() {
         setUploadedPhoto(upload);
       }
       if (!upload?.url) throw new Error('The photo upload did not finish. Please try again.');
-      await readResponse(await fetch('/api/cards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...details, price, image_url: !usePhoto && enrichment?.matched && enrichment.image_url ? enrichment.image_url : upload.url, scan_url: upload.public_id, available: published }) }));
+      let uploadedBack=backUpload;if(backPhoto&&!uploadedBack){const body=new FormData();body.append('file',backPhoto);uploadedBack=await readResponse(await fetch('/api/upload',{method:'POST',body}));setBackUpload(uploadedBack);}
+      await readResponse(await fetch('/api/cards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...details, client_id:clientId.current,front_image_url:upload.url,back_image_url:uploadedBack?.url||null,price, image_url: !usePhoto && enrichment?.matched && enrichment.image_url ? enrichment.image_url : upload.url, scan_url: upload.public_id, available: published }) }));
       setStage('saved');
     } catch (err) { setError(err instanceof Error ? err.message : 'Could not save this card.'); setStage('review'); }
   }
@@ -101,6 +107,7 @@ export default function PhoneScanner() {
     <details className={styles.install}><summary>Add this app to your phone</summary><p>On iPhone: open this page in Safari, tap Share, then Add to Home Screen. On Android: open it in Chrome, open the browser menu, then choose Install app or Add to Home screen. An internet connection is required to scan and save.</p></details>
     <ol className={styles.steps} aria-label="Listing progress"><li aria-current={stage === 'capture' || stage === 'scanning' ? 'step' : undefined}>01 Photograph</li><li aria-current={stage === 'review' || stage === 'saving' ? 'step' : undefined}>02 Review</li><li aria-current={stage === 'saved' ? 'step' : undefined}>03 Save</li></ol>
     {error && <p className={styles.error} role="alert">{error}</p>}
+    <ScannerDefaults/>
     <input ref={camera} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className={styles.hidden} onChange={e => { void scan(e.target.files?.[0]); e.target.value = ''; }} />
     <input ref={gallery} type="file" accept="image/jpeg,image/png,image/webp" className={styles.hidden} onChange={e => { void scan(e.target.files?.[0]); e.target.value = ''; }} />
     {stage === 'saved' ? <section className={styles.success} aria-live="polite"><span>✓</span><h2>{published ? 'Your card is in the shop.' : 'Draft saved.'}</h2><p>{details.name} · £{Number(details.price).toFixed(2)}</p><button onClick={reset}>Scan another card ↗</button><Link href={published ? '/shop' : '/admin'}>{published ? 'View the shop' : 'Manage your cards'}</Link></section> : <div className={styles.workspace}>
@@ -111,7 +118,7 @@ export default function PhoneScanner() {
         <p className={styles.note}>Photos are sent to OpenAI for identification. Saved card photos are uploaded to the store’s image host.</p>
       </section>
       {(stage === 'review' || stage === 'saving') && <form onSubmit={save} className={styles.form}>
-        <h2>Review your card</h2><p className={styles.note}>AI can misread names and numbers. Check the card, language and finish before publishing. Matched catalogue artwork becomes the listing image; your photo is kept as a reference.</p>
+        <h2>Review your card</h2><p className={styles.note}>AI can misread names and numbers. Check the card, language and finish before publishing. Matched catalogue artwork becomes the listing image; your actual front and any back photos are also included for buyers.</p>
         {enrichment?.notice && <p className={styles.note} role="status">{enrichment.notice}</p>}
         {enrichment?.candidates?.map(candidate => <button className={styles.secondary} type="button" key={candidate.id} disabled={busy} onClick={() => void lookup(candidate.id)}>{candidate.name} · {candidate.set} · #{candidate.number}</button>)}
         {enrichment?.matched && enrichment.image_url ? <div><p className={styles.note}>Catalogue artwork — check that it matches your card.</p><img src={enrichment.image_url} alt="Matched catalogue card artwork" width={150} height={206} style={{objectFit:"contain"}} onError={() => setEnrichment(prev => prev ? {...prev,image_url:null} : prev)} /><label className={styles.check}><input type="checkbox" checked={usePhoto} onChange={e => setUsePhoto(e.target.checked)} />Use my photo instead</label></div> : <p className={styles.note}>No catalogue image available. Your photo will be used.</p>}
@@ -123,7 +130,7 @@ export default function PhoneScanner() {
         {enrichment?.pricing && <p className={styles.note}><strong>Suggested £{enrichment.pricing.gbp}</strong> · {enrichment.pricing.source}<br />Market data: {enrichment.pricing.updated.slice(0,10)} · {enrichment.pricing.original} {enrichment.pricing.currency} converted to GBP using rates dated {enrichment.pricing.rate_date}.<br />Market guide for this variant, not a condition appraisal or a UK sold-price guarantee. Adjust for wear before listing.</p>}
         <div className={styles.fields}><label>Language<select value={details.language} onChange={e => field('language', e.target.value)}>{['English','Japanese','Korean'].map(v => <option key={v}>{v}</option>)}</select></label><label>Finish<select value={details.holo_type} onChange={e => field('holo_type', e.target.value)}><option value="">Confirm finish</option>{[...new Set([details.holo_type,'Normal','Reverse Holo','Holo Rare','Rare Holo EX','Rare Holo GX','Double Rare','Ultra Rare','Full Art','Alt Art','Illustration Rare','Special Illustration Rare','Hyper Rare','Shiny Rare','Shiny Ultra Rare','Radiant Rare','Pokeball Holo','Master Ball Holo','Cosmos Holo','Promo'])].filter(Boolean).map(v => <option key={v}>{v}</option>)}</select></label></div>
         <label>Edition<select required value={details.edition} onChange={e=>field('edition',e.target.value)}><option value="">Check edition</option>{CARD_EDITIONS.map(v=><option key={v}>{v}</option>)}</select></label>
-        {file && <ConditionSuggestion key={preview} front={file} disabled={busy} onBusy={setConditionBusy} onInvalidate={() => field('condition', '')} onConfirm={value => field('condition', value)} />}
+        {file && <><DuplicateCheck name={details.name} number={details.number} set={details.set} language={details.language}/><ConditionSuggestion onBackPhoto={photo=>{setBackPhoto(photo);setBackUpload(null);}} key={preview} front={file} disabled={busy} onBusy={setConditionBusy} onInvalidate={() => field('condition', '')} onConfirm={value => field('condition', value)} /></>}
         <CardCondition value={details.condition} onChange={value => field('condition', value)} disabled={busy} />
         <label className={styles.check}><input type="checkbox" checked={published} onChange={e => setPublished(e.target.checked)} /> List in the shop immediately</label><p className={styles.note}>Leave unchecked to keep the card off the storefront. Check the physical condition before listing for sale.</p>
         <button disabled={busy} type="submit">{stage === 'saving' ? 'Saving your card…' : published ? 'Publish card ↗' : 'Save draft ↗'}</button>

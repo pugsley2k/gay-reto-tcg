@@ -32,7 +32,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (error) return res.status(503).json({ error: 'Could not check inventory. Please try again.' });
     const priced = priceCheckout(ids, data ?? []);
     totalAmount = priced.total;
-    cardSummary = priced.summary;
+    const {data:costs,error:costError}=await supabase.from('card_economics').select('card_id,cost_pence').in('card_id',ids);
+    if(costError)throw new Error('Could not prepare order details. Please try again.');
+    cardSummary = priced.summary.map(item=>({...item,cost_pence:costs?.find(cost=>cost.card_id===item.id)?.cost_pence??null}));
     shipping = requireShipping(totalAmount, ids.length, req.body.shippingMethod);
   } catch (error) {
     return res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid cart.' });
@@ -41,13 +43,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // 🔥 Generate orderId
   const orderId = uuidv4();
 
-  // 🧾 Create cart summary to store in DB
-console.log("🧾 Inserting order:", {
-  id: orderId,
-  items: cardSummary,
-  status: "pending",
-});
-  console.log("Total amount to charge:", totalAmount);
   // 💾 Store order in Supabase
   const { error: insertError } = await supabase.from("orders").insert({
     id: orderId,

@@ -13,7 +13,7 @@ export async function completePaidOrder(paypalOrder: any) {
   const email = paypalOrder.payer?.email_address;
   if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Customer email is unavailable.');
   const message = orderEmail(order as EmailOrder, 'confirmation');
-  const { error: settled } = await db.rpc('complete_paid_order', { p_id: order.id, p_paypal_id: paypalOrder.id, p_capture_id: capture.id, p_email: email, p_message: message });
+  const { error: settled } = await db.rpc('complete_paid_order', { p_id: order.id, p_paypal_id: paypalOrder.id, p_capture_id: capture.id, p_email: email, p_message: message, p_details: {address:unit.shipping,fee:capture.seller_receivable_breakdown?.paypal_fee?.currency_code === "GBP" && /^\d+(\.\d{1,2})?$/.test(capture.seller_receivable_breakdown.paypal_fee.value) ? Math.round(Number(capture.seller_receivable_breakdown.paypal_fee.value)*100) : null} });
   if (settled) throw new Error('Could not save the completed order.');
   return flushEmails(order.id);
 }

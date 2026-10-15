@@ -1,5 +1,6 @@
 // src/components/AdminUploadForm.tsx
 "use client";
+import CollectionInsights from './CollectionInsights';
 
 import { useState, FormEvent, useRef } from "react";
 import AdminManageCards from "./AdminManageCards";
@@ -43,7 +44,7 @@ interface SelectedImageDetail {
    Component
 ──────────────────────────────────────────────────────────── */
 export default function AdminUploadForm() {
-  const [tab, setTab] = useState<'upload' | 'manage' | 'bulk' | 'orders'>('upload');
+  const [tab, setTab] = useState<'upload' | 'manage' | 'bulk' | 'orders' | 'insights'>('upload');
 
   /* core state */
   const [name, setName]           = useState("");
@@ -471,7 +472,7 @@ export default function AdminUploadForm() {
         <button style={tabBtn(tab === 'upload')} onClick={() => setTab('upload')}>➕ Upload</button>
         <button style={tabBtn(tab === 'manage')} onClick={() => setTab('manage')}>🗂 Manage Cards</button>
         <button style={tabBtn(tab === 'bulk')}   onClick={() => setTab('bulk')}>📋 Bulk CSV</button>
-        <button style={tabBtn(tab === 'orders')} onClick={() => setTab('orders')}>📦 Orders</button>
+        <button style={tabBtn(tab === 'orders')} onClick={() => setTab('orders')}>📦 Orders</button><button style={tabBtn(tab === 'insights')} onClick={() => setTab('insights')}>Collection & sales</button>
       </div>
 
       {/* ── Manage tab ── */}
@@ -495,8 +496,9 @@ export default function AdminUploadForm() {
         </div>
       )}
 
+      {tab === 'insights' && <div style={{padding:'24px',maxWidth:1100,margin:'auto'}}><CollectionInsights/></div>}
       {/* ── Upload tab ── */}
-      {tab !== 'manage' && (
+      {tab === 'upload' && (
       <div style={s.wrap}>
 
         {/* ── WIZARD MODE ─────────────────────────────────── */}

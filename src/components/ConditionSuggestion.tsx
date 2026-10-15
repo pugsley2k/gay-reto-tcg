@@ -4,8 +4,9 @@ import { prepareCardPhoto } from '@/lib/card-photo';
 import { parseConditionAssessment, type ConditionAssessment } from '@/lib/condition-assessment';
 import styles from './ConditionSuggestion.module.css';
 
-export default function ConditionSuggestion({ front, disabled, onConfirm, onInvalidate, onBusy }: {
+export default function ConditionSuggestion({ front, disabled, onConfirm, onInvalidate, onBusy, onBackPhoto }: {
   front: File; disabled: boolean; onConfirm: (condition: string) => void; onInvalidate: () => void; onBusy: (busy: boolean) => void;
+  onBackPhoto?: (photo:File|null)=>void;
 }) {
   const [back, setBack] = useState<File | null>(null);
   const [preview, setPreview] = useState('');
@@ -25,8 +26,8 @@ export default function ConditionSuggestion({ front, disabled, onConfirm, onInva
   async function choose(photo?: File) {
     if (!photo || disabled || working.current) return;
     working.current = true; setLoading(true); onBusy(true);
-    setBack(null); setAssessment(null); setConfirmed(false); setError(''); onInvalidate();
-    try { setBack(await prepareCardPhoto(photo, 2 * 1024 * 1024)); }
+    setBack(null); onBackPhoto?.(null); setAssessment(null); setConfirmed(false); setError(''); onInvalidate();
+    try { const prepared=await prepareCardPhoto(photo, 2 * 1024 * 1024);setBack(prepared);onBackPhoto?.(prepared); }
     catch (error) { setError(error instanceof Error ? error.message : 'Could not prepare the back photo.'); }
     finally { working.current = false; setLoading(false); onBusy(false); }
   }
@@ -46,7 +47,7 @@ export default function ConditionSuggestion({ front, disabled, onConfirm, onInva
   }
   return <section className={styles.panel} aria-label="AI condition suggestion">
     <h3>Suggest condition from both sides</h3>
-    <p>Add the back of this same card. Remove sleeves and show all four corners in good light. Your front scan and back photo go to OpenAI for assessment. The back photo is not saved to the listing.</p>
+    <p>Add the back of this same card. Remove sleeves and show all four corners in good light. Your front scan and back photo go to OpenAI for assessment. When you save, both actual-card photos are included for buyers to inspect.</p>
     <input ref={gallery} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={e => { void choose(e.target.files?.[0]); e.target.value = ''; }} />
     <input ref={camera} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" hidden onChange={e => { void choose(e.target.files?.[0]); e.target.value = ''; }} />
     {preview && <img src={preview} alt="Back photo for condition review" width={90} height={126} />}

@@ -20,7 +20,15 @@ export function validateListing(input: unknown) {
   if (condition && !isCardCondition(condition)) throw new Error('Choose a supported card condition.');
   const edition = text('edition', 40);
   if (edition && !isCardEdition(edition)) throw new Error('Choose a supported edition.');
+  function photo(key: string) {
+    const value = text(key, 2048);
+    if (!value) return null;
+    const url = new URL(value);
+    if (url.protocol !== 'https:' || url.username || url.password) throw new Error('Use a secure photo URL.');
+    return value;
+  }
   return { edition: edition || null, condition: condition || null, name, image_url: image, price: value.price as number, available: value.available,
+    front_image_url: photo('front_image_url'), back_image_url: photo('back_image_url'),
     number: text('number', 40), set: text('set', 160), rarity: text('rarity', 100),
     scan_url: text('scan_url', 2048), language: value.language as string, holo_type: text('holo_type', 100) };
 }

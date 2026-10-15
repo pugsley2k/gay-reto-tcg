@@ -30,8 +30,8 @@ export default async function AdminPage() {
 
   // If the user is an authenticated admin, render the actual form component.
   return (
-    <div style={{ minHeight: '80vh', background: '#06060f' }}>
-      <Link href="/admin/scan" style={{ display: 'block', padding: '24px', background: '#d5ddaa', color: '#25271f', textAlign: 'center', fontFamily: 'Arial', fontWeight: 700 }}>Open phone scanner → Photograph, review and list a card</Link>
+    <div style={{ minHeight: '80vh', background: '#191b20' }}>
+      <Link href="/admin/scan" style={{ display: 'block', padding: '24px', background: '#faeac4', color: '#25271f', textAlign: 'center', fontFamily: 'Arial', fontWeight: 700 }}>Open phone scanner → Photograph, review and list a card</Link>
       <AdminUploadForm />
     </div>
   );

@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { prepareCardPhoto } from '@/lib/card-photo';
 import CardCondition from './CardCondition';
+import DuplicateCheck from './DuplicateCheck';
+import ScannerDefaults,{readScannerPreset} from './ScannerDefaults';
 import ConditionSuggestion from './ConditionSuggestion';
 import { CARD_EDITIONS, isCardEdition } from '@/lib/card-edition';
 import { isCardCondition } from '@/lib/card-condition';
@@ -10,7 +12,7 @@ import styles from './BatchScanner.module.css';
 
 type Fields = { name: string; number: string; set: string; rarity: string; language: string; holo_type: string; price: string; condition: string; edition: string };
 type Metadata = { edition?: string | null; image_url?: string | null; name?: string; matched?: boolean; set?: string; rarity?: string; holo_type?: string; notice?: string; candidates?: {id:string;name:string;set:string;number:string}[]; pricing?: {gbp:string;source:string;updated:string} };
-type Item = { id: string; file: File; preview: string; status: 'queued'|'scanning'|'review'|'error'|'publishing'|'published'; fields: Fields; included: boolean; reviewed: boolean; savedAsDraft?: boolean; usePhoto?: boolean; error: string; original: string; total: string; metadata?: Metadata; uploaded?: {url:string;public_id:string} };
+type Item = { fingerprint?:string; back?:File|null; backUpload?:{url:string;public_id:string}; id: string; file: File; preview: string; status: 'queued'|'scanning'|'review'|'error'|'publishing'|'published'; fields: Fields; included: boolean; reviewed: boolean; savedAsDraft?: boolean; usePhoto?: boolean; error: string; original: string; total: string; metadata?: Metadata; uploaded?: {url:string;public_id:string} };
 const empty: Fields = {name:'',number:'',set:'',rarity:'',language:'English',holo_type:'',price:'',condition:'',edition:''};
 async function responseData(response: Response) {
  const data = await response.json().catch(()=>({}));
@@ -18,7 +20,8 @@ async function responseData(response: Response) {
  return data;
 }
 function valid(item: Item) { const p=Number(item.fields.price); return isCardEdition(item.fields.edition) && isCardCondition(item.fields.condition) && !!item.preview && !!item.fields.name.trim() && !!item.fields.number.trim() && !!item.fields.set.trim() && !!item.fields.rarity.trim() && !!item.fields.holo_type && !!item.fields.price.trim() && Number.isFinite(p) && p>=.01 && p<=100000; }
-function mergeMetadata(fields: Fields, metadata: Metadata): Fields { return metadata.matched ? {...fields,edition:metadata.edition === undefined ? fields.edition : metadata.edition || '',name:metadata.name || fields.name,set:metadata.set || '',rarity:metadata.rarity || '',holo_type:metadata.holo_type || '',price:metadata.pricing?.gbp || ''} : fields; }
+function missingDetails(item:Item){const fields=item.fields;const missing=['name','number','set','rarity','holo_type'].filter(key=>!fields[key as keyof Fields]?.trim()).map(key=>key==='holo_type'?'finish':key);if(!isCardEdition(fields.edition))missing.push('edition');if(!isCardCondition(fields.condition))missing.push('condition');const price=Number(fields.price);if(!fields.price||!Number.isFinite(price)||price<.01||price>100000)missing.push('valid price (£0.01–£100,000)');return missing.join(', ');}
+function mergeMetadata(fields: Fields, metadata: Metadata): Fields { return metadata.matched ? {...fields,edition:metadata.edition === undefined ? fields.edition : metadata.edition || '',name:metadata.name || fields.name,set:metadata.set || '',rarity:metadata.rarity || '',holo_type:metadata.holo_type || fields.holo_type,price:metadata.pricing?.gbp || ''} : fields; }
 
 export default function BatchScanner() {
  const [items,setItems]=useState<Item[]>([]);
@@ -26,6 +29,7 @@ export default function BatchScanner() {
  const [scanning,setScanning]=useState(false);
  const [publishing,setPublishing]=useState(false);
  const [notice,setNotice]=useState('');
+ const [queueFilter,setQueueFilter]=useState('all');
  const [lookupId,setLookupId]=useState('');
  const [conditionBusy,setConditionBusy]=useState(false);
  const locked=useRef(false);
@@ -47,10 +51,11 @@ export default function BatchScanner() {
    const file=await prepareCardPhoto(item.file);
    const preview=URL.createObjectURL(file);urls.current.add(preview);
    if(item.preview){URL.revokeObjectURL(item.preview);urls.current.delete(item.preview);}
-   update(id,{file,preview,uploaded:undefined});
+   update(id,{file,preview,uploaded:undefined,back:null,backUpload:undefined,reviewed:false});
    const body=new FormData();body.append('image',file);
    const result=await responseData(await fetch('/api/scan-card',{method:'POST',body}));
-   const fields={...empty,name:result.english_name||'',number:result.card_number||'',language:result.language||'English',edition:result.edition||''};
+   const defaults=readScannerPreset();
+   const fields={...empty,name:result.english_name||'',number:result.card_number||'',language:result.language||defaults.language,holo_type:defaults.finish,edition:result.edition||''};
    update(id,{status:'review',fields:mergeMetadata(fields,result.enrichment||{}),metadata:result.enrichment,usePhoto:false,original:result.original_name||'',total:result.card_total||''});
   }catch(error){update(id,{status:'error',error:error instanceof Error?error.message:'Scan failed. Retry or enter details manually.'});}
  }
@@ -60,11 +65,15 @@ export default function BatchScanner() {
   async function worker(){while(index<ids.length){const id=ids[index++];await scanOne(id);}}
   try{await Promise.all([worker(),worker()]);}finally{locked.current=false;setScanning(false);}
  }
- function addFiles(files:File[]) {
+ async function addFiles(files:File[]) {
   if(locked.current||lookupId)return;
   if(current.current.length+files.length>20){setNotice('Use up to 20 photos per batch. Finish this batch before adding more.');return;}
   if(files.reduce((n,f)=>n+f.size,0)>100*1024*1024){setNotice('Choose a smaller group: selected photos must total less than 100 MB.');return;}
-  const added=files.map(file=>({id:crypto.randomUUID(),file,preview:'',status:'queued' as const,fields:{...empty},included:true,reviewed:false,error:'',original:'',total:''}));
+  const known=new Set(current.current.map(item=>item.fingerprint));const unique:{file:File;fingerprint:string}[]=[];
+  for(const file of files){const fingerprint=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await file.arrayBuffer()))).map(value=>value.toString(16).padStart(2,'0')).join('');if(!known.has(fingerprint)){known.add(fingerprint);unique.push({file,fingerprint});}}
+  const added=unique.map(({file,fingerprint})=>({id:crypto.randomUUID(),fingerprint,file,preview:'',status:'queued' as const,fields:{...empty},included:true,reviewed:false,error:'',original:'',total:''}));
+  if(!added.length){setNotice('These exact photos are already in this batch.');return;}
+
   mutate(prev=>[...prev,...added]);void runQueue(added.map(i=>i.id));
  }
  function edit(id:string,key:keyof Fields,value:string) {
@@ -99,7 +108,8 @@ export default function BatchScanner() {
      let upload=initial.uploaded;
      if(!upload){const body=new FormData();body.append('file',initial.file);upload=await responseData(await fetch('/api/upload',{method:'POST',body}));update(initial.id,{uploaded:upload});}
      if(!upload?.url)throw new Error('Photo upload did not complete. Retry this card.');
-     await responseData(await fetch('/api/cards',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...initial.fields,client_id:initial.id,price:Math.round(Number(initial.fields.price)*100),image_url:!initial.usePhoto&&initial.metadata?.matched&&initial.metadata.image_url?initial.metadata.image_url:upload.url,scan_url:upload.public_id,available})}));
+     let backUpload=initial.backUpload;if(initial.back&&!backUpload){const body=new FormData();body.append('file',initial.back);backUpload=await responseData(await fetch('/api/upload',{method:'POST',body}));update(initial.id,{backUpload});}
+     await responseData(await fetch('/api/cards',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...initial.fields,client_id:initial.id,price:Math.round(Number(initial.fields.price)*100),image_url:!initial.usePhoto&&initial.metadata?.matched&&initial.metadata.image_url?initial.metadata.image_url:upload.url,front_image_url:upload.url,back_image_url:backUpload?.url||null,scan_url:upload.public_id,available})}));
      update(initial.id,{status:'published',savedAsDraft:!available});count++;
     }catch(error){update(initial.id,{status:'review',error:error instanceof Error?error.message:'Could not publish. Retry this card.'});}
    }
@@ -111,12 +121,14 @@ export default function BatchScanner() {
   <header className={styles.header}><Link href="/admin">← Seller studio</Link><span>GAY RETRO / BATCH SCANNER</span></header>
   <p className={styles.eyebrow}>A quicker way to fill the shop</p><h1>A whole binder.<br /><em>One batch.</em></h1>
   <p className={styles.intro}>Choose up to 20 photos, one card in each. We’ll scan the details, sets, rarities and prices. Review every included card before publishing.</p>
-  <p className={styles.note}>Keep this page open until you finish. This queue stays in this tab and is lost if you reload or close it. Photos go to OpenAI for recognition; your photos are kept as references when you save. Matched catalogue artwork is used for listings, with your photo as the fallback.</p>
+  <p className={styles.note}>Keep this page open until you finish. This queue stays in this tab and is lost if you reload or close it. Photos go to OpenAI for recognition; your front and any back photos are published with the listing when you save. Matched catalogue artwork is used for listings, with your photo as the fallback.</p>
+  <ScannerDefaults/>
   <input ref={photos} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden onChange={e=>{addFiles(Array.from(e.target.files||[]));e.target.value='';}} />
   <div className={styles.toolbar}><button disabled={busy||items.length>=20} onClick={()=>photos.current?.click()}>{items.length?'Add more photos':'Choose card photos'}</button>{items.length>0&&<button className={styles.secondary} disabled={busy} onClick={clear}>Clear batch</button>}</div>
   {notice&&<p role="status" className={styles.notice}>{notice}</p>}
   {items.length>0&&<div className={styles.progress} role="status">{scanning?`${items.filter(i=>!['queued','scanning'].includes(i.status)).length} of ${items.length} scanned — two cards at a time`: `${items.filter(i=>i.reviewed&&i.status!=='published').length} reviewed · ${items.filter(i=>i.status==='published'&&!i.savedAsDraft).length} published · ${items.filter(i=>i.savedAsDraft).length} drafts · ${pending.filter(i=>!i.included).length} excluded`}</div>}
-  <div className={styles.queue}>{items.map((item,index)=><article key={item.id} className={styles.item}>
+  {items.length>0&&<label>Show cards<select value={queueFilter} onChange={event=>setQueueFilter(event.target.value)}><option value="all">All cards</option><option value="review">Needs review</option><option value="ready">Reviewed</option><option value="error">Errors</option></select></label>}
+  <div className={styles.queue}>{items.filter(item=>queueFilter==='all'||(queueFilter==='ready'?item.reviewed:queueFilter==='error'?!!item.error:!item.reviewed&&item.status!=='published')).map((item,index)=><article key={item.id} className={styles.item}>
    <div className={styles.itemTop}>{item.preview?<img src={item.preview} alt={`Card photo ${index+1}`} />:<span className={styles.placeholder}>{index+1}</span>}<div><span className={styles.eyebrow}>CARD {index+1} / {item.status==='published'?(item.savedAsDraft?'DRAFT SAVED':'PUBLISHED'):item.status==='scanning'?'SCANNING':item.status==='queued'?'QUEUED':item.reviewed?'REVIEWED':'NEEDS REVIEW'}</span><h2>{item.fields.name||item.file.name}</h2><p>{item.fields.set||'Set not confirmed'}{item.fields.price?` · £${Number(item.fields.price).toFixed(2)}`:''}</p></div></div>
    {item.error&&<p className={styles.error} role="alert">{item.error}</p>}
    {!['queued','scanning','published','publishing'].includes(item.status)&&<><label className={styles.check}><input type="checkbox" checked={item.included} disabled={busy} onChange={e=>update(item.id,{included:e.target.checked})}/>Include in this batch</label>
@@ -130,10 +142,11 @@ export default function BatchScanner() {
     {item.metadata?.pricing&&<p className={styles.note}>Suggested £{item.metadata.pricing.gbp} · {item.metadata.pricing.source} · {item.metadata.pricing.updated.slice(0,10)}. Adjust for condition.</p>}
     <div className={styles.toolbar}><button type="button" className={styles.secondary} onClick={()=>void lookup(item.id)}>Refresh set & price</button><button type="button" className={styles.secondary} onClick={()=>void runQueue([item.id])}>Rescan photo</button></div>
     <label>Edition<select value={item.fields.edition} onChange={e=>edit(item.id,'edition',e.target.value)}><option value="">Check edition</option>{CARD_EDITIONS.map(v=><option key={v}>{v}</option>)}</select></label>
-    <ConditionSuggestion key={item.preview} front={item.file} disabled={busy} onBusy={setConditionBusy} onInvalidate={()=>edit(item.id,'condition','')} onConfirm={value=>edit(item.id,'condition',value)}/>
+    <DuplicateCheck name={item.fields.name} number={item.fields.number} set={item.fields.set} language={item.fields.language}/>
+    <ConditionSuggestion onBackPhoto={back=>update(item.id,{back,backUpload:undefined,reviewed:false})} key={item.preview} front={item.file} disabled={busy} onBusy={setConditionBusy} onInvalidate={()=>edit(item.id,'condition','')} onConfirm={value=>edit(item.id,'condition',value)}/>
     <CardCondition value={item.fields.condition} onChange={value=>edit(item.id,'condition',value)} disabled={busy}/>
     <label className={styles.check}><input type="checkbox" checked={item.reviewed} disabled={!valid(item)} onChange={e=>update(item.id,{reviewed:e.target.checked,status:'review'})}/>I’ve checked the card, finish, condition and price</label>
-    {!valid(item)&&<p className={styles.note}>Complete the name, number, set, rarity, finish, edition, condition and a price of at least £0.01 before marking reviewed.</p>}
+    {!valid(item)&&<p className={styles.note}>Still needed: {missingDetails(item)}.</p>}
    </fieldset></div></details></>}
    {item.status==='publishing'&&<p role="status">Saving this card…</p>}
   </article>)}</div>

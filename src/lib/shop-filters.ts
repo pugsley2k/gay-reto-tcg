@@ -1,5 +1,5 @@
 export type FilterOption = { label: string; values: string[] };
-export type FilterCard = { set: string | null; rarity: string | null; holo_type: string | null; language: string | null };
+export type FilterCard = { set: string | null; rarity: string | null; holo_type: string | null; language: string | null; condition?:string|null;edition?:string|null };
 
 function finishLabel(value: string): string | null {
   const key = value.toLowerCase().replace(/[\s_-]/g, '');
@@ -27,5 +27,5 @@ export function buildShopFilters(cards: FilterCard[]) {
     }
     return [...groups.values()].sort((a, b) => a.label.localeCompare(b.label));
   }
-  return { sets: options('set'), rarities: options('rarity'), finishes: options('holo_type', finishLabel), languages: options('language') };
+  return { sets: options('set'), rarities: options('rarity'), finishes: options('holo_type', finishLabel), languages: options('language'),conditions:options('condition'),editions:options('edition').filter(value=>value.label!=='Not applicable') };
 }

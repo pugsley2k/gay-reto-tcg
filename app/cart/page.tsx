@@ -110,7 +110,7 @@ export default function CartPage() {
                 className={styles.itemImage}
               />
               <div>
-                <h2 className={styles.itemName}>{item.name}</h2>
+                <h2 className={styles.itemName}><Link href={`/cards/${encodeURIComponent(item.id)}`}>{item.name}</Link></h2>
                 {item.edition && item.edition !== 'Not applicable' && <p className={styles.itemPrice}>{item.edition}</p>}
                 <p className={styles.itemPrice}>{item.condition || 'Condition not specified'}</p>
                 <p className={styles.itemPrice}> £{(item.price / 100).toFixed(2)}</p>

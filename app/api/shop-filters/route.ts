@@ -12,7 +12,7 @@ export async function GET() {
   try {
     // Stable pagination avoids silently losing options after the Data API row limit.
     for (let from = 0; ; from += 1000) {
-      const { data, error } = await client.from('Card').select('set,rarity,holo_type,language').eq('available', true).order('id').range(from, from + 999);
+      const { data, error } = await client.from('Card').select('set,rarity,holo_type,language,condition,edition').eq('available', true).order('id').range(from, from + 999);
       if (error) throw error;
       rows.push(...data);
       if (data.length < 1000) break;
