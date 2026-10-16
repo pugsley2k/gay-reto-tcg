@@ -51,3 +51,13 @@ test('vintage prices require the correct edition and never use a general market 
  assert.equal(marketQuote(priced,'Holo Rare','1st Edition')?.amount,999);
  assert.equal(marketQuote(priced,'Holo Rare','Unlimited')?.amount,200);
 });
+
+
+test('Base Set Charizard standard Unlimited quote requires the verified product ID',()=>{
+ const standard:CatalogCard={...card,id:'base1-4',variants:{holo:true,firstEdition:true},pricing:{tcgplayer:{unit:'USD',updated:'2026-10-16',holofoil:{productId:42382,marketPrice:954.65}}}};
+ assert.equal(marketQuote(standard,'Holo Rare','Unlimited')?.amount,954.65);
+ assert.equal(marketQuote(standard,'Holo Rare','1st Edition'),null);
+ assert.equal(marketQuote(standard,'Holo Rare'),null);
+ assert.equal(marketQuote({...standard,id:'base1-2'},'Holo Rare','Unlimited'),null);
+ assert.equal(marketQuote({...standard,pricing:{tcgplayer:{unit:'USD',updated:'2026-10-16',holofoil:{productId:999,marketPrice:954.65}}}},'Holo Rare','Unlimited'),null);
+});
