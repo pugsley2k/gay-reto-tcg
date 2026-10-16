@@ -9,6 +9,8 @@ import ConditionSuggestion from './ConditionSuggestion';
 import { CARD_EDITIONS, isCardEdition } from '@/lib/card-edition';
 import { isCardCondition } from '@/lib/card-condition';
 import styles from './PhoneScanner.module.css';
+import {scannerLookupPayload,scannerPriceAfterLookup} from '@/lib/scanner-lookup';
+import {matchingPrinting} from '@/lib/inventory-refresh';
 import { prepareCardPhoto } from '@/lib/card-photo';
 
 type Details = { name: string; number: string; set: string; rarity: string; language: string; holo_type: string; price: string; condition: string; edition: string };
@@ -33,6 +35,9 @@ export default function PhoneScanner() {
   const [usePhoto, setUsePhoto] = useState(false);
   const [enrichment, setEnrichment] = useState<Enrichment | null>(null);
   const [originalName, setOriginalName] = useState('');
+  const [printedTotal,setPrintedTotal]=useState('');
+  const [lookupMessage,setLookupMessage]=useState('');
+  const [lookupError,setLookupError]=useState('');
   const [lookingUp, setLookingUp] = useState(false);
   const [conditionBusy, setConditionBusy] = useState(false);
   const [uploadedPhoto, setUploadedPhoto] = useState<{ url: string; public_id: string } | null>(null);
@@ -47,22 +52,29 @@ export default function PhoneScanner() {
   function field(key: keyof Details, value: string) {
     const identityChanged = ['name','number','language'].includes(key);
     setDetails(prev => ({ ...prev, ...(identityChanged ? { set: '', rarity: '', price: '', holo_type: '' } : {}), ...(['set','holo_type','edition'].includes(key) ? { price: '' } : {}), [key]: value }));
-    if (identityChanged) { setOriginalName(''); setEnrichment(null); }
-    else if (['set','holo_type','edition'].includes(key)) setEnrichment(prev => prev ? { ...prev, ...(['set','edition'].includes(key) ? { image_url: null } : {}), pricing: null, notice: 'Details changed. Look up the card again to refresh its suggested price.' } : null);
+    setLookupMessage('');setLookupError('');
+    if (identityChanged) { setOriginalName(''); setPrintedTotal(''); setEnrichment(null); }
+    else if (['set','holo_type','edition'].includes(key)) setEnrichment(prev => prev ? { ...prev, ...(['set','edition'].includes(key) ? { image_url: null, ...(key==='set'?{catalog_id:undefined}:{}) } : {}), pricing: null, notice: 'Details changed. Look up the card again to refresh its suggested price.' } : null);
   }
   function applyMetadata(data: Enrichment) {
     setEnrichment(data); setUsePhoto(false);
-    if (data.matched) setDetails(prev => ({ ...prev, edition: data.edition === undefined ? prev.edition : data.edition || '', name: data.name || prev.name, set: data.set || '', rarity: data.rarity || '', holo_type: data.holo_type || prev.holo_type, price: data.pricing?.gbp || '' }));
+    if (data.matched) setDetails(prev => ({ ...prev, edition: data.edition === undefined ? prev.edition : data.edition || '', name: data.name || prev.name, set: data.set || '', rarity: data.rarity || '', holo_type: data.holo_type || prev.holo_type, price: scannerPriceAfterLookup(prev.price,!!data.matched,data.pricing) }));
   }
   async function lookup(catalog_id?: string) {
-    setLookingUp(true); setError('');
-    try { applyMetadata(await readResponse(await fetch('/api/card-details', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...details, original_name: originalName || details.name, finish: details.holo_type, catalog_id }) }))); }
-    catch (error) { setError(error instanceof Error ? error.message : 'Lookup failed.'); }
-    finally { setLookingUp(false); }
+    if(busy)return;
+    setLookingUp(true);setLookupMessage('');setLookupError('');setError('');
+    try {
+      async function request(id?:string):Promise<Enrichment>{return readResponse(await fetch('/api/card-details',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(scannerLookupPayload(details,originalName,printedTotal,id))}));}
+      let data=await request(catalog_id||enrichment?.catalog_id);
+      if(!data.matched&&!catalog_id){const chosen=matchingPrinting({matched:false,candidates:data.candidates},details.set);if(chosen)data=await request(chosen);}
+      applyMetadata(data);
+      setLookupMessage(data.pricing?`Suggested £${data.pricing.gbp} filled into the price field. Check it against the card’s condition.`:(data.notice||'No reliable price was found. Check the matching set, finish and edition, or enter a price manually.')+(details.price?' Your entered price was kept.':''));
+    }catch(error){setLookupError(error instanceof Error?error.message:'Lookup failed. Please retry.');}
+    finally{setLookingUp(false);}
   }
   async function scan(photo: File | undefined) {
     if (!photo || busy) return;
-    setError('');
+    setError('');setPrintedTotal('');setLookupMessage('');setLookupError('');
     clientId.current=crypto.randomUUID();setBackPhoto(null);setBackUpload(null);setFile(null); setUploadedPhoto(null); setDetails(blank); setEnrichment(null); setOriginalName(''); setStage('scanning');
     let preparedPhoto: File | null = null;
     try {
@@ -73,6 +85,7 @@ export default function PhoneScanner() {
       const result = await readResponse(await fetch('/api/scan-card', { method: 'POST', body }));
       setDetails({ ...blank, name: result.english_name || '', number: result.card_number || '', language: result.language || readScannerPreset().language, holo_type:readScannerPreset().finish, edition: result.edition || '' });
       setOriginalName(result.original_name || '');
+      setPrintedTotal(result.card_total||'');
       applyMetadata(result.enrichment || {});
     } catch (err) { setError(err instanceof Error ? err.message : 'Scan failed. Enter the details below or try another photo.'); }
     finally { setStage(preparedPhoto ? 'review' : 'capture'); }
@@ -99,7 +112,7 @@ export default function PhoneScanner() {
       setStage('saved');
     } catch (err) { setError(err instanceof Error ? err.message : 'Could not save this card.'); setStage('review'); }
   }
-  function reset() { setFile(null); setUploadedPhoto(null); setDetails(blank); setEnrichment(null); setOriginalName(''); setStage('capture'); setError(''); setPublished(false); }
+  function reset() { setFile(null); setUploadedPhoto(null); setDetails(blank); setEnrichment(null); setOriginalName(''); setStage('capture'); setPrintedTotal('');setLookupMessage('');setLookupError('');setError(''); setPublished(false); }
   return <main className={styles.page}>
     <header className={styles.header}><Link href="/admin">← Seller studio</Link><span>GAY RETRO / SCANNER</span></header>
     <p className={styles.eyebrow}>From camera to collection</p><h1>Meet your next<br /><em>listing.</em></h1>
@@ -118,7 +131,7 @@ export default function PhoneScanner() {
         <p className={styles.note}>Photos are sent to OpenAI for identification. Saved card photos are uploaded to the store’s image host.</p>
       </section>
       {(stage === 'review' || stage === 'saving') && <form onSubmit={save} className={styles.form}>
-        <h2>Review your card</h2><p className={styles.note}>AI can misread names and numbers. Check the card, language and finish before publishing. Matched catalogue artwork becomes the listing image; your actual front and any back photos are also included for buyers.</p>
+        <fieldset className={styles.reviewFields} disabled={lookingUp||stage==='saving'}><h2>Review your card</h2><p className={styles.note}>AI can misread names and numbers. Check the card, language and finish before publishing. Matched catalogue artwork becomes the listing image; your actual front and any back photos are also included for buyers.</p>
         {enrichment?.notice && <p className={styles.note} role="status">{enrichment.notice}</p>}
         {enrichment?.candidates?.map(candidate => <button className={styles.secondary} type="button" key={candidate.id} disabled={busy} onClick={() => void lookup(candidate.id)}>{candidate.name} · {candidate.set} · #{candidate.number}</button>)}
         {enrichment?.matched && enrichment.image_url ? <div><p className={styles.note}>Catalogue artwork — check that it matches your card.</p><img src={enrichment.image_url} alt="Matched catalogue card artwork" width={150} height={206} style={{objectFit:"contain"}} onError={() => setEnrichment(prev => prev ? {...prev,image_url:null} : prev)} /><label className={styles.check}><input type="checkbox" checked={usePhoto} onChange={e => setUsePhoto(e.target.checked)} />Use my photo instead</label></div> : <p className={styles.note}>No catalogue image available. Your photo will be used.</p>}
@@ -127,13 +140,14 @@ export default function PhoneScanner() {
         <label>Set<input maxLength={160} placeholder="Check the set printed on your card" value={details.set} onChange={e => field('set', e.target.value)} /></label>
         <label>Rarity<input maxLength={100} placeholder="Filled from the matching catalogue card" value={details.rarity} onChange={e => field('rarity', e.target.value)} /></label>
         <button className={styles.secondary} type="button" disabled={busy || !details.name || !details.number} onClick={() => void lookup()}>{lookingUp ? 'Looking up set and price…' : 'Look up set, rarity & price'}</button>
+        <div className={styles.lookupResult} aria-live="polite">{lookingUp?<p role="status">Looking up the matching printing and price…</p>:lookupError?<p role="alert">{lookupError} Your details are still here; try again.</p>:lookupMessage?<p role="status">{lookupMessage}</p>:null}</div>
         {enrichment?.pricing && <p className={styles.note}><strong>Suggested £{enrichment.pricing.gbp}</strong> · {enrichment.pricing.source}<br />Market data: {enrichment.pricing.updated.slice(0,10)} · {enrichment.pricing.original} {enrichment.pricing.currency} converted to GBP using rates dated {enrichment.pricing.rate_date}.<br />Market guide for this variant, not a condition appraisal or a UK sold-price guarantee. Adjust for wear before listing.</p>}
         <div className={styles.fields}><label>Language<select value={details.language} onChange={e => field('language', e.target.value)}>{['English','Japanese','Korean'].map(v => <option key={v}>{v}</option>)}</select></label><label>Finish<select value={details.holo_type} onChange={e => field('holo_type', e.target.value)}><option value="">Confirm finish</option>{[...new Set([details.holo_type,'Normal','Reverse Holo','Holo Rare','Rare Holo EX','Rare Holo GX','Double Rare','Ultra Rare','Full Art','Alt Art','Illustration Rare','Special Illustration Rare','Hyper Rare','Shiny Rare','Shiny Ultra Rare','Radiant Rare','Pokeball Holo','Master Ball Holo','Cosmos Holo','Promo'])].filter(Boolean).map(v => <option key={v}>{v}</option>)}</select></label></div>
         <label>Edition<select required value={details.edition} onChange={e=>field('edition',e.target.value)}><option value="">Check edition</option>{CARD_EDITIONS.map(v=><option key={v}>{v}</option>)}</select></label>
         {file && <><DuplicateCheck name={details.name} number={details.number} set={details.set} language={details.language}/><ConditionSuggestion onBackPhoto={photo=>{setBackPhoto(photo);setBackUpload(null);}} key={preview} front={file} disabled={busy} onBusy={setConditionBusy} onInvalidate={() => field('condition', '')} onConfirm={value => field('condition', value)} /></>}
         <CardCondition value={details.condition} onChange={value => field('condition', value)} disabled={busy} />
         <label className={styles.check}><input type="checkbox" checked={published} onChange={e => setPublished(e.target.checked)} /> List in the shop immediately</label><p className={styles.note}>Leave unchecked to keep the card off the storefront. Check the physical condition before listing for sale.</p>
-        <button disabled={busy} type="submit">{stage === 'saving' ? 'Saving your card…' : published ? 'Publish card ↗' : 'Save draft ↗'}</button>
+        <button disabled={busy} type="submit">{stage === 'saving' ? 'Saving your card…' : published ? 'Publish card ↗' : 'Save draft ↗'}</button></fieldset>
       </form>}
     </div>}
   </main>;

@@ -6,3 +6,5 @@
 .page h1{font-family:'Barlow Condensed',sans-serif;letter-spacing:-.025em;text-wrap:balance}.page em{font-family:inherit;font-style:normal;font-weight:700}.page a{color:#faeac4}.page button:hover:not(:disabled){background:#ead6a8;color:#191b20}.page .secondary:hover:not(:disabled){background:#34383f;color:#faeac4}.page label{color:#b8b7b0}.page input,.page select{border-color:#ffffff36;font-family:Manrope,sans-serif}.page :focus-visible{outline-color:#faeac4}
 
 .page details>label{display:grid;gap:8px;max-width:440px;margin:16px 0}.page details>label select{background:#191b20;color:#f0eee7;border:1px solid #ffffff36;padding:12px;border-radius:4px;min-height:46px;font-size:16px}.page details>summary{cursor:pointer;color:#faeac4;min-height:44px;padding:10px 0}
+
+.reviewFields{border:0;margin:0;padding:0;min-width:0}.lookupResult p{padding:14px 16px;background:#34383f;border-left:2px solid #faeac4;border-radius:4px;font-size:14px;line-height:1.7;margin:14px 0}.lookupResult [role=alert]{color:#fca5a5;border-left-color:#fca5a5}
