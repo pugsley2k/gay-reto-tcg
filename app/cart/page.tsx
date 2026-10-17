@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { shippingOptions, CONTACT_EMAIL, type ShippingMethod } from '@/lib/shipping';
 import { useState } from "react";
 import styles from "../styles/CartPage.module.css";
+import { promoDiscount, MEW_CODE } from '@/lib/promo';
 
 const MINIMUM_SPEND_PENCE = 30;
 
@@ -16,11 +17,19 @@ export default function CartPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>('tracked-48');
+  const [codeInput,setCodeInput] = useState('');
+  const [promoCode,setPromoCode] = useState('');
+  const [promoError,setPromoError] = useState('');
 
   const totalPrice = cart.reduce((total, item) => total + item.price * item.quantity, 0);
   const isBelowMinimumSpend = totalPrice < MINIMUM_SPEND_PENCE;
   const options = shippingOptions(totalPrice, cart.length);
   const shipping = options.find(option => option.id === shippingMethod) || options[0];
+  const discount = promoDiscount(totalPrice,promoCode).amount;
+  function applyCode() {
+    try { const result=promoDiscount(totalPrice,codeInput); setPromoCode(result.code || '');setPromoError(''); }
+    catch(error){setPromoError(error instanceof Error?error.message:'Check your gift code.');}
+  }
 
   async function handleCheckout() {
     if (isBelowMinimumSpend) {
@@ -48,7 +57,7 @@ export default function CartPage() {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lineItems, shippingMethod: shipping?.id }),
+        body: JSON.stringify({ lineItems, shippingMethod: shipping?.id, promoCode }),
       });
 
       const result = await res.json();
@@ -134,6 +143,12 @@ export default function CartPage() {
 
       <div className={styles.cartSummary}>
         <h2 className={styles.summaryTitle}>Order summary</h2>
+        <div className={styles.promo}>
+          <label htmlFor="gift-code">Gift code</label>
+          <div><input id="gift-code" value={codeInput} maxLength={30} autoCapitalize="characters" onChange={e=>{setCodeInput(e.target.value);setPromoError('');}} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();applyCode();}}} placeholder="Enter code" /><button type="button" onClick={applyCode}>Apply</button></div>
+          {promoError && <p role="alert">{promoError}</p>}
+          {promoCode && <p role="status">{MEW_CODE} applied: 5% off cards. <button type="button" onClick={()=>{setPromoCode('');setCodeInput('');setPromoError('');}}>Remove</button></p>}
+        </div>
         <div className={styles.summaryRow}>
           <p className={styles.summaryLabel}>Subtotal:</p>
           <p className={styles.summaryValue}>£{(totalPrice / 100).toFixed(2)}</p>
@@ -150,9 +165,10 @@ export default function CartPage() {
         </fieldset>
         <p className={styles.deliveryNote}>Dispatched within 3–5 working days. Postage and packing are included in the delivery charge. Choose a UK address in PayPal.</p>
         <div className={styles.summaryRow}><p>Delivery:</p><p>{shipping ? `£${(shipping.price / 100).toFixed(2)}` : 'Contact us'}</p></div>
+        {promoCode && <div className={styles.summaryRow}><p>MEW5 saving (5%):</p><p>−£{(discount/100).toFixed(2)}</p></div>}
         <div className={`${styles.summaryRow} ${styles.summaryTotalRow}`}>
           <p className={styles.summaryTotalLabel}>Total:</p>
-          <p className={styles.summaryTotalValue}>{shipping ? `£${((totalPrice + shipping.price) / 100).toFixed(2)}` : '—'}</p>
+          <p className={styles.summaryTotalValue}>{shipping ? `£${((totalPrice - discount + shipping.price) / 100).toFixed(2)}` : '—'}</p>
         </div>
         {isBelowMinimumSpend && (
           <div className={styles.minimumSpendMessage}>

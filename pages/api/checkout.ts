@@ -4,6 +4,7 @@ import { serverDb } from '../../src/lib/server-db';
 import { v4 as uuidv4 } from 'uuid';
 import { validateCheckout, priceCheckout } from '../../src/lib/checkout';
 import { requireShipping, type ShippingQuote } from '../../src/lib/shipping';
+import { promoDiscount } from '../../src/lib/promo';
 
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID!;
 const PAYPAL_SECRET = process.env.PAYPAL_SECRET!;
@@ -24,6 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   let totalAmount: number;
+  let discount: ReturnType<typeof promoDiscount>;
   let shipping: ShippingQuote;
   let cardSummary: { id: string; name: string; quantity: number }[];
   try {
@@ -32,6 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (error) return res.status(503).json({ error: 'Could not check inventory. Please try again.' });
     const priced = priceCheckout(ids, data ?? []);
     totalAmount = priced.total;
+    discount = promoDiscount(totalAmount, req.body.promoCode);
     const {data:costs,error:costError}=await supabase.from('card_economics').select('card_id,cost_pence').in('card_id',ids);
     if(costError)throw new Error('Could not prepare order details. Please try again.');
     cardSummary = priced.summary.map(item=>({...item,cost_pence:costs?.find(cost=>cost.card_id===item.id)?.cost_pence??null}));
@@ -48,7 +51,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     id: orderId,
     items: cardSummary,
     status: "pending",
-    shipping: { ...shipping, country: 'GB', subtotal: totalAmount, total: totalAmount + shipping.price },
+    shipping: { ...shipping, country: 'GB', subtotal: totalAmount, discount: discount.amount, promo_code: discount.code, total: totalAmount - discount.amount + shipping.price },
   });
 
   if (insertError) {
@@ -71,10 +74,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         purchase_units: [{
           amount: {
             currency_code: "GBP",
-            value: ((totalAmount + shipping.price) / 100).toFixed(2),
+            value: ((totalAmount - discount.amount + shipping.price) / 100).toFixed(2),
             breakdown: {
               item_total: { currency_code: 'GBP', value: (totalAmount / 100).toFixed(2) },
               shipping: { currency_code: 'GBP', value: (shipping.price / 100).toFixed(2) },
+              ...(discount.amount ? {discount: {currency_code:'GBP',value:(discount.amount/100).toFixed(2)}} : {}),
             },
           },
           description: shipping.label,
