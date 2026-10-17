@@ -1,1 +1,8 @@
-.logo{display:inline-flex;align-items:center}.logo img{display:block;width:190px;height:auto;max-height:66px;object-fit:contain}@media(max-width:640px){.logo img{width:150px;max-height:52px}}
+.logo{display:inline-flex;align-items:center}
+.logo img{display:block;width:190px;height:auto;max-height:66px;object-fit:contain;transform-origin:50% 70%;transition:transform 200ms cubic-bezier(.23,1,.32,1)}
+.header{animation:logoReveal 700ms cubic-bezier(.23,1,.32,1) backwards}
+.footer img{width:180px;max-height:none}
+@keyframes logoReveal{from{opacity:0;clip-path:inset(0 100% 0 0);transform:translateY(6px) scale(.97)}to{opacity:1;clip-path:inset(0 0 0 0);transform:translateY(0) scale(1)}}
+@media(hover:hover) and (pointer:fine){.logo:hover img{transform:translateY(-2px) rotate(-1deg)}}
+@media(max-width:640px){.header img{width:150px;max-height:52px}.footer img{width:170px}}
+@media(prefers-reduced-motion:reduce){.logo{animation:none}.logo img{transition:none}.logo:hover img{transform:none}}
