@@ -6,3 +6,4 @@
 @media(max-width:900px){.welcome{grid-template-columns:minmax(0,1fr);gap:6px;padding-top:8px}.copy{padding:0 6% 18px}.logo{width:220px;margin-bottom:20px}.copy h1{font-size:54px;max-width:600px}.copy h1 span{display:inline}.eyebrow{margin-bottom:12px}.description{margin:16px 0;max-width:none}.browse{margin-top:2px}}
 @media(max-width:640px){.copy h1{font-size:46px}.logo{width:190px}.eyebrow{font-size:10px}.description{font-size:13px}.welcome{padding-bottom:8px}}
 @media(prefers-reduced-motion:reduce){.browse{transition:none}.browse:hover{transform:none}}
+.welcome{position:relative;isolation:isolate;padding-bottom:52px}.copy,.deck{position:relative;z-index:1;pointer-events:none}.copy>*,.deck>*{pointer-events:auto}
