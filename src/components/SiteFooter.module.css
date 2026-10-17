@@ -3,3 +3,5 @@
 @media(max-width:640px){.footer{grid-template-columns:1fr 1fr;gap:20px;padding:28px 0 20px;margin-top:32px;font-size:12px}.logo{grid-column:1/-1;grid-row:1;justify-self:center}.logo img{width:170px}.seller{text-align:right}}
 
 .links{justify-self:end;display:flex;justify-content:flex-end;flex-wrap:wrap;gap:4px 16px;max-width:280px}.links a{display:inline-flex;align-items:center;min-height:44px;color:#f0eee7;text-underline-offset:4px}.links a:hover{color:var(--brand-accent-light)}@media(max-width:640px){.links{max-width:none;gap:0 16px}.links a{font-size:12px}}
+/* Paint the footer to the viewport edges without adding horizontal scroll. */
+.footer{position:relative;isolation:isolate}.footer::before{content:"";position:absolute;inset:0;z-index:-1;background:#191b20;box-shadow:0 0 0 100vmax #191b20;clip-path:inset(0 -100vmax);pointer-events:none}
