@@ -40,7 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <CartProvider>
             <Navbar />
             <a href="#main-content" className="skip-link">Skip to content</a>
-            {children}
+            <div className="site-content">{children}</div>
             <FloatingMew />
           </CartProvider>
         </ClerkProvider>
