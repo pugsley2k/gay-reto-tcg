@@ -12,7 +12,7 @@ const cards = [
   { name: 'Leafeon VMAX', set: 'Evolving Skies', image: 'https://assets.tcgdex.net/en/swsh/swsh7/205/high.webp' },
   { name: 'Dragonite V', set: 'Evolving Skies', image: 'https://assets.tcgdex.net/en/swsh/swsh7/192/high.webp' },
 ];
-export default function CollectorDeck() {
+export default function CollectorDeck({ compact = false }: { compact?: boolean }) {
   const [active, setActive] = useState(0);
   const [instant, setInstant] = useState(false);
   const [automatic, setAutomatic] = useState(false);
@@ -46,8 +46,8 @@ export default function CollectorDeck() {
   function keys(event:KeyboardEvent<HTMLElement>) {
     if(event.key==='ArrowRight'||event.key==='ArrowLeft') { event.preventDefault(); move(event.key==='ArrowRight'?1:-1,true); }
   }
-  return <section ref={root} className={styles.showcase} onPointerEnter={e=>{if(e.pointerType==='mouse')setHovered(true);}} onPointerLeave={()=>setHovered(false)} onFocusCapture={()=>setFocused(true)} onBlurCapture={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node | null))setFocused(false);}} data-automatic={automatic} aria-label="Pokémon card artwork" aria-roledescription="carousel" onKeyDown={keys} data-instant={instant}>
-    <div className={styles.label}><h1>Pokémon card showcase</h1><Link href="/shop" className={styles.stockLink}>Shop available cards <span aria-hidden="true">↗</span></Link><span>{String(active+1).padStart(2,'0')} / {String(cards.length).padStart(2,'0')}</span></div>
+  return <section ref={root} className={`${styles.showcase} ${compact ? styles.compact : ''}`} onPointerEnter={e=>{if(e.pointerType==='mouse')setHovered(true);}} onPointerLeave={()=>setHovered(false)} onFocusCapture={()=>setFocused(true)} onBlurCapture={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node | null))setFocused(false);}} data-automatic={automatic} aria-label="Pokémon card artwork" aria-roledescription="carousel" onKeyDown={keys} data-instant={instant}>
+    <div className={styles.label}><h2>Pokémon card showcase</h2><Link href="/shop" className={styles.stockLink}>Shop available cards <span aria-hidden="true">↗</span></Link><span>{String(active+1).padStart(2,'0')} / {String(cards.length).padStart(2,'0')}</span></div>
     <div className={styles.arena} onTouchStart={e=>{setPaused(true);touch.current={x:e.touches[0].clientX,y:e.touches[0].clientY};}} onTouchEnd={e=>{if(!touch.current)return;const dx=e.changedTouches[0].clientX-touch.current.x,dy=e.changedTouches[0].clientY-touch.current.y;touch.current=null;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.5){suppressClickUntil.current=Date.now()+350;move(dx<0?1:-1);}}}>
       {cards.map((card,i)=>{let offset=(i-active+cards.length)%cards.length;if(offset>cards.length/2)offset-=cards.length;const visible=Math.abs(offset)<=2;return <button type="button" key={card.name} className={styles.card} data-position={offset} aria-label={offset===0?card.name:'Show '+card.name} aria-current={offset===0?'true':undefined} aria-hidden={!visible} tabIndex={visible?0:-1} onClick={e=>{if(Date.now()<suppressClickUntil.current)return;setPaused(true);setAutomatic(false);setInstant(e.detail===0);setActive(i);}}>
         <Image src={card.image} alt={card.name+' Pokémon card artwork'} width={600} height={840} priority={i===0} sizes="(max-width: 640px) 64vw, (max-width: 1000px) 280px, 340px" />

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@supabase/supabase-js';
-import CollectorDeck from '@/components/CollectorDeck';
+import WelcomeHeader from '@/components/WelcomeHeader';
 import ListingBanner from '@/components/ListingBanner';
 import SiteFooter from '@/components/SiteFooter';
 import styles from './styles/HomePage.module.css';
@@ -18,9 +18,7 @@ async function getArrivals() {
 export default async function HomePage() {
   const { cards, failed } = await getArrivals();
   return <main id="main-content" className={styles.main}>
-    <section className={styles.hero}>
-      <CollectorDeck />
-    </section>
+    <div className={styles.hero}><WelcomeHeader /></div>
     <ListingBanner cards={cards} failed={failed} />
     <section id="latest-cards" className={styles.arrivals}>
       <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>THE COLLECTION</p><h2>Latest <span>cards</span></h2></div><p>Recently added to the shop.</p><Link href="/shop" className={styles.textLink}>All cards <span aria-hidden="true">↗</span></Link></div>
