@@ -23,7 +23,7 @@ export default function FloatingMew() {
   const running = !paused && !reduced && visible && !hidden;
   return <div ref={root} className={styles.background} data-running={running}>
     <div className={styles.horizontal} aria-hidden="true"><div className={styles.vertical}>
-      <img src={running ? '/mew-floating-loop.webp' : '/mew-floating-still.png'} width="192" height="192" alt="" className={styles.mew} />
+      <img src={running ? '/mew-floating-padded.webp' : '/mew-floating-padded-still.png'} width="192" height="192" alt="" className={styles.mew} />
     </div></div>
     {!reduced && <button type="button" className={styles.toggle} aria-pressed={paused} onClick={() => setPaused(value => !value)}>{paused ? 'Play Mew' : 'Pause Mew'}</button>}
   </div>;

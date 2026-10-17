@@ -3,6 +3,7 @@ import "./globals.css";
 import { ClerkProvider } from '@clerk/nextjs';
 import Navbar from '@/components/Navbar';
 import { CartProvider } from '@/components/CartProvider';
+import FloatingMew from '@/components/FloatingMew';
 
 
 export const metadata = {
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Navbar />
             <a href="#main-content" className="skip-link">Skip to content</a>
             {children}
+            <FloatingMew />
           </CartProvider>
         </ClerkProvider>
       </body>
