@@ -13,13 +13,14 @@ test('checkout charges and stores the server-priced 5% discount, excluding shipp
    const address=String(url);
    if(address.includes('/rest/v1/Card'))return Response.json([{id:'a',name:'Mew',price:1299,available:true}]);
    if(address.includes('/rest/v1/card_economics'))return Response.json([]);
-   if(address.includes('/rest/v1/orders')){if(init.method==='POST')stored=JSON.parse(init.body);return new Response(null,{status:204});}
+   if(address.includes('/rpc/reserve_checkout')){const args=JSON.parse(init.body);stored={id:args.p_id,items:args.p_items,shipping:args.p_shipping};return Response.json(stored);}
+   if(address.includes('/rest/v1/orders'))return Response.json({id:stored.id});
    if(String(url).endsWith('/v1/oauth2/token'))return Response.json({access_token:'test-token'});
    paypal=JSON.parse(init.body);return Response.json({id:'test-paypal',links:[{rel:'approve',href:'https://www.paypal.com/checkoutnow?token=test'}]});
  });
  let status=200;let result:any;
  const res={setHeader(){},status(value:number){status=value;return this;},json(value:any){result=value;return this;}};
- await handler({method:'POST',body:{lineItems:[{cardId:'a',quantity:1,price_data:{unit_amount:1}}],shippingMethod:'tracked-48',promoCode:'mew5'},headers:{origin:'https://www.gayretrotcg.com'}} as any,res as any);
+ await handler({method:'POST',cookies:{},body:{requestId:'d870ad10-7d62-4b98-8040-d86b3ab05f71',lineItems:[{cardId:'a',quantity:1,price_data:{unit_amount:1}}],shippingMethod:'tracked-48',promoCode:'mew5'},headers:{origin:'https://www.gayretrotcg.com'}} as any,res as any);
  assert.equal(status,200);assert.ok(result.url);
  assert.equal(stored.shipping.subtotal,1299);assert.equal(stored.shipping.discount,65);assert.equal(stored.shipping.total,1684);assert.equal(stored.shipping.promo_code,'MEW5');
  const amount=paypal.purchase_units[0].amount;
@@ -37,6 +38,6 @@ test('an invalid coupon stops checkout before any order or payment request',asyn
  t.mock.method(globalThis,'fetch',async(url:any)=>{calls.push(String(url));return Response.json([{id:'a',name:'Mew',price:1299,available:true}]);});
  let status=200;let result:any;
  const res={setHeader(){},status(value:number){status=value;return this;},json(value:any){result=value;return this;}};
- await handler({method:'POST',body:{lineItems:[{cardId:'a',quantity:1}],shippingMethod:'tracked-48',promoCode:'MEW100'},headers:{}} as any,res as any);
- assert.equal(status,400);assert.match(result.error,/not recognised/);assert.equal(calls.length,1);assert.match(calls[0],/\/rest\/v1\/Card/);
+ await handler({method:'POST',cookies:{},body:{requestId:'d870ad10-7d62-4b98-8040-d86b3ab05f71',lineItems:[{cardId:'a',quantity:1}],shippingMethod:'tracked-48',promoCode:'MEW100'},headers:{origin:'https://www.gayretrotcg.com'}} as any,res as any);
+ assert.equal(status,400);assert.match(result.error,/not recognised/);assert.equal(calls.length,2);assert.ok(calls.every(url=>/\/rest\/v1\/(Card|card_economics)/.test(url)));
 });

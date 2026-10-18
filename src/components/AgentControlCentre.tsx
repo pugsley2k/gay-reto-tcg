@@ -1,0 +1,47 @@
+'use client';
+import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import styles from './AgentControlCentre.module.css';
+
+type Action = { id:string; kind:string; title:string; detail:string; severity:string; card_id:string|null; order_id:string|null; state:string; expires_at:string };
+type Run = { id:string; status:string; trigger_source:string; started_at:string; summary:{inventory?:number;available?:number;heldPayments?:number;awaitingDispatch?:number;findings?:number};error:string|null };
+type ControlData = { settings:{paused:boolean;spend_limit_pence:number};runs:Run[];actions:Action[];cards:{id:string;name:string;price:number}[];events:{id:string;created_at:string;title:string;detail:string}[];scheduled:boolean };
+const date = (value:string) => new Date(value).toLocaleString('en-GB',{timeZone:'Europe/London',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+export default function AgentControlCentre() {
+  const [data,setData] = useState<ControlData|null>(null);
+  const [error,setError] = useState(''); const [message,setMessage] = useState('');
+  const [busy,setBusy] = useState(''); const [loading,setLoading] = useState(true);
+  const [cardId,setCardId] = useState('');
+  const load = useCallback(async () => {
+    try { const response=await fetch('/api/admin/control',{cache:'no-store'});const result=await response.json();if(!response.ok)throw new Error(result.error);setData(result);setError(''); }
+    catch(e){setError(e instanceof Error?e.message:'Could not load the control centre.');}
+    finally{setLoading(false);}
+  },[]);
+  useEffect(()=>{void load();},[load]);
+  async function act(key:string,body:Record<string,unknown>){
+    setBusy(key);setError('');setMessage('');
+    try{const response=await fetch('/api/admin/control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const result=await response.json();if(!response.ok)throw new Error(result.error);setMessage(result.message||'Checks completed. Your results are below.');await load();}
+    catch(e){setError(e instanceof Error?e.message:'Could not complete this action.');}finally{setBusy('');}
+  }
+  async function exportTikTok(){
+    setBusy('export');setError('');setMessage('');
+    try{const response=await fetch('/api/admin/tiktok-pack',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cardId})});const pack=await response.json();if(!response.ok)throw new Error(pack.error);const url=URL.createObjectURL(new Blob([JSON.stringify(pack,null,2)],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download=`gay-retro-tiktok-${pack.card.id}.json`;link.click();URL.revokeObjectURL(url);setMessage('Draft pack downloaded. Nothing has been sent to TikTok.');await load();}
+    catch(e){setError(e instanceof Error?e.message:'Could not prepare the draft.');}finally{setBusy('');}
+  }
+  if(loading)return <p role="status">Loading your control centre…</p>;
+  const last=data?.runs.find(run=>run.status==='completed');
+  return <section className={styles.centre} aria-labelledby="control-title">
+    <div className={styles.heading}><div><p className={styles.eyebrow}>Operations / First release</p><h2 id="control-title">Agent control centre</h2><p>Keep the shop in order. Review the decisions that need you.</p></div><span className={styles.budget}>Paid AI & ads disabled</span></div>
+    {error&&<div className={styles.notice} role="alert"><p>{error}</p><button type="button" onClick={()=>void load()}>Retry loading</button></div>}
+    {message&&<p className={styles.message} role="status">{message}</p>}
+    {data&&<>
+      <div className={styles.command}><div><strong>{data.settings.paused?'Routine checks paused':'Routine checks ready'}</strong><p>{data.settings.paused?'Resume when you want new inventory and payment findings.':data.scheduled?'Checks share the existing daily schedule. You can also run them now.':'Run checks here. Scheduled checks need the existing scheduler connection.'} Checkout protection always stays active.</p></div><div className={styles.controls}><button type="button" className={styles.primary} disabled={!!busy||data.settings.paused} onClick={()=>void act('run',{action:'run'})}>{busy==='run'?'Checking…':'Run checks now'}</button><button type="button" disabled={!!busy} onClick={()=>void act('pause',{action:'pause',paused:!data.settings.paused})}>{data.settings.paused?'Resume checks':'Pause checks'}</button></div></div>
+      <dl className={styles.overview}><div><dt>Cards available</dt><dd>{last?.summary.available??'—'}</dd></div><div><dt>Payments to check</dt><dd>{last?.summary.heldPayments??'—'}</dd></div><div><dt>Awaiting dispatch</dt><dd>{last?.summary.awaitingDispatch??'—'}</dd></div><div><dt>Last completed check</dt><dd className={styles.date}>{last?date(last.started_at):'Not run yet'}</dd></div></dl>
+      <div className={styles.columns}><div className={styles.inbox}><div className={styles.sectionHeading}><h3>Needs your decision</h3><span>{data.actions.length}{data.actions.length===100?'+':''}</span></div>
+        {data.actions.length===0?<div className={styles.empty}><strong>{last?'No open review requests':'Your first check starts here'}</strong><p>{last?'The latest checks have no pending decisions. New findings will appear here.':'Run checks to inspect listing details and unresolved payments. These checks use rules, with no model calls.'}</p></div>:<ul className={styles.requests}>{data.actions.map(action=><li key={action.id}><span className={styles.tag}>{action.severity==='warning'?'Needs attention':'Review'}</span><h4>{action.title}</h4><p>{action.detail}</p><div className={styles.controls}>{action.kind==='withdraw_listing'?<button type="button" className={styles.primary} disabled={!!busy} onClick={()=>void act(action.id,{action:'decide',id:action.id,decision:'approve'})}>{busy===action.id?'Saving…':'Approve & hide listing'}</button>:<Link href={action.order_id?'/admin?tab=orders':'/admin?tab=manage'}>{action.order_id?'Review order':'Review inventory'} ↗</Link>}<button type="button" disabled={!!busy} onClick={()=>void act(action.id,{action:'decide',id:action.id,decision:'dismiss'})}>Dismiss</button></div>{action.kind==='withdraw_listing'&&<small>Checks current stock before acting. Approval expires {date(action.expires_at)}.</small>}</li>)}</ul>}
+      </div><aside className={styles.side}><h3>What is running</h3><ul className={styles.agents}><li><strong>Inventory keeper</strong><span>Checks photos, condition and saleable listings.</span></li><li><strong>Checkout watch</strong><span>Flags unresolved payments. Keeps uncertain stock held.</span></li><li><strong>Owner approvals</strong><span>Only the exact action shown can be applied.</span></li></ul><div className={styles.policy}><strong>Initial spending limit: £0</strong><p>No paid model calls, ad launches, purchases or subscriptions are available to these agents.</p><p>SEO, website maintenance and campaign agents are planned for later releases.</p></div></aside></div>
+      <div className={styles.tiktok}><div><p className={styles.eyebrow}>Reuse your Suno uploader</p><h3>Prepare a TikTok draft</h3><p>Download a caption and listing details for your own card footage. The desktop helper can send the video through your existing Suno connection after you confirm the account.</p><p className={styles.muted}>This connection sends to the TikTok inbox. You finish publishing in TikTok. No upload happens from this button.</p></div><div className={styles.export}><label htmlFor="tiktok-card">Available card</label><select id="tiktok-card" value={cardId} onChange={event=>setCardId(event.target.value)}><option value="">Choose a card</option>{data.cards.map(card=><option key={card.id} value={card.id}>{card.name} · £{(card.price/100).toFixed(2)}</option>)}</select><button type="button" className={styles.primary} disabled={!cardId||!!busy} onClick={()=>void exportTikTok()}>{busy==='export'?'Preparing…':'Download draft pack'}</button><small>Uses confirmed listing details. No AI generation or advertising spend.</small></div></div>
+      <div className={styles.activity}><h3>Activity</h3>{!data.runs.length&&!data.events.length?<p className={styles.muted}>Completed checks and your decisions will appear here.</p>:<ul>{[...data.runs.map(run=>({id:run.id,time:run.started_at,title:run.status==='completed'?'Store checks completed':run.status==='failed'?'Store checks need attention':'Store checks running',detail:run.error||`${run.trigger_source==='daily'?'Daily':'Manual'} check${run.status==='completed'?` · ${run.summary.findings??0} findings · 0 model calls`:''}`})),...data.events.map(event=>({id:event.id,time:event.created_at,title:event.title,detail:event.detail}))].sort((a,b)=>Date.parse(b.time)-Date.parse(a.time)).slice(0,20).map(event=><li key={event.id}><time dateTime={event.time}>{date(event.time)}</time><div><strong>{event.title}</strong><p>{event.detail}</p></div></li>)}</ul>}</div>
+    </>}
+  </section>;
+}

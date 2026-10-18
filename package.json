@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "test:checkout": "tsx --test src/lib/checkout.test.ts src/lib/capture-order.test.ts src/lib/agent-checks.test.ts && node --test tests/checkout-database.test.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -42,6 +43,7 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.10",
     "@eslint/eslintrc": "^3",
     "@types/estree": "^1.0.8",
     "@types/formidable": "^3.4.5",

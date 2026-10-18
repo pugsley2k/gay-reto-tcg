@@ -4,7 +4,7 @@ import studio from './SellerStudio.module.css';
 import legacy from './AdminUploadForm.module.css';
 import CollectionInsights from './CollectionInsights';
 
-import { useState, FormEvent, useRef } from "react";
+import { useState, useEffect, FormEvent, useRef } from "react";
 import AdminManageCards from "./AdminManageCards";
 import AdminOrderLog from "./AdminOrderLog";
 import AdminBulkUpload from "./AdminBulkUpload";
@@ -47,6 +47,7 @@ interface SelectedImageDetail {
 ──────────────────────────────────────────────────────────── */
 export default function AdminUploadForm() {
   const [tab, setTab] = useState<'upload' | 'manage' | 'bulk' | 'orders' | 'insights'>('upload');
+  useEffect(() => { const selected=new URLSearchParams(window.location.search).get('tab');if(selected==='manage'||selected==='orders')setTab(selected); }, []);
 
   /* core state */
   const [name, setName]           = useState("");

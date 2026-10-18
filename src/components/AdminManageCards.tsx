@@ -5,12 +5,6 @@ import legacy from './AdminManageCards.module.css';
 import React, { useEffect, useState, useCallback } from "react";
 import { CARD_EDITIONS } from '@/lib/card-edition';
 import { CARD_CONDITIONS } from '@/lib/card-condition';
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
 
 interface Card {
   grading?:import('@/lib/card-grading').Grading|null;
@@ -65,6 +59,7 @@ type FixStatus = 'idle' | 'loading' | 'done' | 'fail' | 'not_found';
 export default function AdminManageCards() {
   const [cards, setCards]         = useState<Card[]>([]);
   const [loading, setLoading]     = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [search, setSearch]       = useState('');
   const [holoFilter, setHoloFilter] = useState('');
   const [fixStatus, setFixStatus] = useState<Record<string, FixStatus>>({});
@@ -77,12 +72,19 @@ export default function AdminManageCards() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('Card')
-      .select('id, name, number, set, holo_type, language, price, image_url, available, condition, edition, grading')
-      .order('id', { ascending: false });
-    setCards((data as Card[]) ?? []);
-    setLoading(false);
+    setLoadError('');
+    try {
+      const all: Card[] = [];
+      for (let page = 0; ; page++) {
+        const response = await fetch(`/api/cards?page=${page}`, { cache: 'no-store' });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Could not load inventory.');
+        all.push(...data.cards);
+        if (data.cards.length < 500) break;
+      }
+      setCards(all);
+    } catch (error) { setLoadError(error instanceof Error ? error.message : 'Could not load inventory.'); }
+    finally { setLoading(false); }
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -94,7 +96,7 @@ export default function AdminManageCards() {
     return matchSearch && matchHolo;
   });
 
-  async function patchCard(id: string, updates: { price?: number; image_url?: string; condition?: string | null; edition?: string | null }) {
+  async function patchCard(id: string, updates: { price?: number; image_url?: string; condition?: string | null; edition?: string | null; available?: boolean }) {
     const res = await fetch('/api/cards', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -156,16 +158,20 @@ export default function AdminManageCards() {
 
   async function toggleAvailable(card: Card) {
     const next = !card.available;
-    const { error } = await supabase.from('Card').update({ available: next }).eq('id', card.id);
-    if (!error) setCards(prev => prev.map(c => c.id === card.id ? { ...c, available: next } : c));
+    try { await patchCard(card.id, { available: next }); }
+    catch(error) { setFixMsg(p => ({ ...p, [card.id]: error instanceof Error ? error.message : 'Could not change availability.' })); }
   }
 
   async function deleteCard(card: Card) {
     if (!confirm(`Delete "${card.name}"? This cannot be undone.`)) return;
     setDeleting(p => ({ ...p, [card.id]: true }));
-    const { error } = await supabase.from('Card').delete().eq('id', card.id);
-    if (error) { alert(error.message); setDeleting(p => ({ ...p, [card.id]: false })); return; }
-    setCards(prev => prev.filter(c => c.id !== card.id));
+    try {
+      const response = await fetch('/api/cards', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: card.id }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Could not delete the card.');
+      setCards(prev => prev.filter(c => c.id !== card.id));
+    } catch(error) { setFixMsg(p => ({ ...p, [card.id]: error instanceof Error ? error.message : 'Could not delete the card.' })); }
+    finally { setDeleting(p => ({ ...p, [card.id]: false })); }
   }
 
   const [fixAllRunning, setFixAllRunning] = useState(false);
@@ -212,6 +218,7 @@ export default function AdminManageCards() {
         </button>
       </div>
 
+      {loadError && <p role="alert">{loadError} <button type="button" onClick={load}>Retry</button></p>}
       {loading ? (
         <p className={legacy.style6}>Loading…</p>
       ) : (

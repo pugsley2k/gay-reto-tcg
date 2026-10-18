@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+**/node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -45,3 +46,4 @@ test.py
 card_scanner.py
 # clerk configuration (can include secrets)
 /.clerk/
+/supabase/.temp/

@@ -5,7 +5,7 @@ import Image from "next/image";
 import SiteFooter from '@/components/SiteFooter';
 import Link from 'next/link';
 import { shippingOptions, CONTACT_EMAIL, type ShippingMethod } from '@/lib/shipping';
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import styles from "../styles/CartPage.module.css";
 import { promoDiscount, MEW_CODE } from '@/lib/promo';
 
@@ -19,6 +19,15 @@ export default function CartPage() {
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>('tracked-48');
   const [codeInput,setCodeInput] = useState(promoCode);
   const [promoError,setPromoError] = useState('');
+  const checkoutAttempt = useRef<{ signature: string; id: string } | null>(null);
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const id = url.searchParams.get('cancel_checkout');
+    if (!id) return;
+    fetch('/api/checkout-cancel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+      .then(async response => { const result = await response.json(); if (!response.ok) throw new Error(result.error); sessionStorage.removeItem('grt-checkout-attempt'); url.searchParams.delete('cancel_checkout'); window.history.replaceState(null, '', url); })
+      .catch(() => setCheckoutError('We could not confirm checkout cancellation. If you approved payment, check PayPal before trying again.'));
+  }, []);
 
   const totalPrice = cart.reduce((total, item) => total + item.price * item.quantity, 0);
   const isBelowMinimumSpend = totalPrice < MINIMUM_SPEND_PENCE;
@@ -52,14 +61,27 @@ export default function CartPage() {
     try {
       setCheckoutError('');
       setIsLoading(true);
+      const signature = JSON.stringify({ lineItems, shippingMethod: shipping?.id, promoCode });
+      if (!checkoutAttempt.current) {
+        try { checkoutAttempt.current = JSON.parse(sessionStorage.getItem('grt-checkout-attempt') || 'null'); } catch { /* Start a fresh checkout. */ }
+      }
+      if (checkoutAttempt.current?.signature !== signature) {
+        if (checkoutAttempt.current?.id) {
+          const cancelled = await fetch('/api/checkout-cancel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: checkoutAttempt.current.id }) });
+          if (!cancelled.ok) throw new Error('Your previous checkout needs checking before its cards can be released. If you approved payment, check PayPal first.');
+        }
+        checkoutAttempt.current = { signature, id: crypto.randomUUID() };
+      }
+      try { sessionStorage.setItem('grt-checkout-attempt', JSON.stringify(checkoutAttempt.current)); } catch { /* The in-memory attempt still prevents duplicate requests in this tab. */ }
 
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lineItems, shippingMethod: shipping?.id, promoCode }),
+        body: JSON.stringify({ lineItems, shippingMethod: shipping?.id, promoCode, requestId: checkoutAttempt.current.id }),
       });
 
       const result = await res.json();
+      if (result.resetCheckout) { checkoutAttempt.current = null; sessionStorage.removeItem('grt-checkout-attempt'); }
       if (!res.ok) throw new Error(result.error || 'Checkout failed. Please try again.');
       const { url } = result;
 

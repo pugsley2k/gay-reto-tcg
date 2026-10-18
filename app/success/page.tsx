@@ -15,10 +15,13 @@ function SuccessContent() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   const { clearCart } = useCart();
 
   useEffect(() => {
+    let active = true;
     if (!token) {
       setError("Missing PayPal token.");
       setIsLoading(false);
@@ -26,23 +29,30 @@ function SuccessContent() {
     }
 
     async function finalizeCapture() {
+      setIsLoading(true); setError(null); setPending(null);
       try {
-        const res = await fetch(`/api/paypal-capture?token=${token}`);
+        const res = await fetch('/api/paypal-capture', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) });
         const data = await res.json();
+        if (!active) return;
         if (!res.ok) {
           setError(data.error || "Payment could not be completed. Please email gayretrotcg@gmail.com.");
-        } else {
+        } else if (data.success) {
           clearCart();
+          try { sessionStorage.removeItem('grt-checkout-attempt'); } catch { /* Payment is confirmed even when browser storage is disabled. */ }
+        } else {
+          setPending(data.message || 'Payment is still being checked. Please do not pay again.');
+          if (data.paid) { clearCart(); try { sessionStorage.removeItem('grt-checkout-attempt'); } catch { /* Storage is optional. */ } }
         }
       } catch {
-        setError("Unexpected error during payment finalisation.");
+        if (active) setPending("We could not confirm the payment result. Check again here; please do not pay again.");
       } finally {
-        setIsLoading(false);
+        if (active) setIsLoading(false);
       }
     }
 
     finalizeCapture();
-  }, [token, clearCart]);
+    return () => { active = false; };
+  }, [token, clearCart, attempt]);
 
   if (isLoading) {
     return (
@@ -55,6 +65,7 @@ function SuccessContent() {
     );
   }
 
+  if (pending) return <div className={styles.page}><div className={styles.card}><h1 className={styles.successTitle}>Checking your order</h1><p className={styles.bodyText} role="status">{pending}</p><button type="button" className={styles.ctaBtn} onClick={() => setAttempt(value => value + 1)}>Check payment status</button><p className={styles.bodyText}>Need help? <a href="mailto:gayretrotcg@gmail.com">Contact the shop</a>.</p></div></div>;
   if (error) {
     return (
       <div className={styles.page}>

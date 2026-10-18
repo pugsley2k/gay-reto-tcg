@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { MEW_CODE } from '@/lib/promo';
 
 interface Product {
@@ -109,6 +109,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setCart(current => { removeUnavailableFromCart(current); return current; });
   }, [hydrated]); // intentionally only runs once on hydration
 
+  const clearCart = useCallback(() => {
+    setCart([]);
+    setPromoCode('');
+  }, []);
+
   if (!hydrated) {
     return null;
   }
@@ -136,11 +141,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
         )
         .filter((item) => item.quantity > 0)
     );
-  }
-
-  function clearCart() {
-    setCart([]);
-    setPromoCode('');
   }
 
   function getTotalPrice() {

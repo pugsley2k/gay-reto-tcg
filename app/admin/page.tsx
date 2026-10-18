@@ -32,7 +32,7 @@ export default async function AdminPage() {
   // If the user is an authenticated admin, render the actual form component.
   return (
     <main id="main-content" className={studio.studio}>
-      <header className={studio.header}><div><p className={studio.eyebrow}>Gay Retro TCG / Seller tools</p><h1>Seller studio</h1><p>Manage your cards, prepare orders and keep track of sales.</p></div><div className={studio.headerActions}><Link href="/admin/scan" className={studio.scanLink}>Open card scanner <span aria-hidden="true">↗</span></Link><Link href="/admin/assess" className={studio.labLink}>Video condition lab <span aria-hidden="true">↗</span></Link></div></header>
+      <header className={studio.header}><div><p className={studio.eyebrow}>Gay Retro TCG / Seller tools</p><h1>Seller studio</h1><p>Manage your cards, prepare orders and keep track of sales.</p></div><div className={studio.headerActions}><Link href="/admin/control" className={studio.labLink}>Agent control centre <span aria-hidden="true">↗</span></Link><Link href="/admin/scan" className={studio.scanLink}>Open card scanner <span aria-hidden="true">↗</span></Link><Link href="/admin/assess" className={studio.labLink}>Video condition lab <span aria-hidden="true">↗</span></Link></div></header>
       <AdminUploadForm />
     </main>
   );
