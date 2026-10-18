@@ -47,3 +47,4 @@ card_scanner.py
 # clerk configuration (can include secrets)
 /.clerk/
 /supabase/.temp/
+/.promo-worker/

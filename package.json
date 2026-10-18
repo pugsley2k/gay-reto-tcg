@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "test:promos": "node --test tests/card-promo-database.test.mjs tests/automatic-promo-database.test.mjs tests/promo-worker.test.cjs",
     "test:promos:browser": "node --test --test-concurrency=1 tests/promo-browser.test.mjs",
     "test:cart:browser": "node --test --test-concurrency=1 tests/cart-browser.test.mjs",
     "test:agents": "tsx --test src/lib/agent-checks.test.ts src/lib/web-agent-checks.test.ts && node --test tests/checkout-database.test.mjs",

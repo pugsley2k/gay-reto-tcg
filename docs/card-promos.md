@@ -1,5 +1,7 @@
 # Card promo studio
 
+The default workflow now prepares finished videos on the shop PC and offers owner-approved TikTok inbox delivery. See [Automatic promos](automatic-card-promos.md). The controls described below remain available under **Manual video preview and export tools**.
+
 Open Seller Studio → Agent control centre → Card promo studio. Available listings automatically join a private database queue when added. The existing available stock is included on installation. A price, artwork, condition or availability change refreshes the draft revision. This is event-driven and does not wait for the daily agents.
 
 Choose **Preview promo**, optionally change the colour treatment, then **Play preview** or **Export MP4**. Keep the tab visible for eight seconds. Download the MP4 and copy the caption. Upload it to TikTok and choose music there. Nothing is sent or posted by the studio; no Suno dependency, account credentials, paid model, cloud renderer, new scheduler or video storage is used. The browser produces a silent H.264 MP4, 1080 × 1920, approximately eight seconds. Current Chrome/Edge with MP4 MediaRecorder support are recommended. Unsupported browsers get an explicit message rather than a mislabeled WebM file.

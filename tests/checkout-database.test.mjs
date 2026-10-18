@@ -14,7 +14,7 @@ before(async () => {
     create table public.rarities(code text); create table public.finishes(code text); create table public.setnames(code text); create table public._prisma_migrations(id text);
     grant usage on schema public to anon,authenticated,service_role;
     grant all on public."Card" to anon,authenticated,service_role;`);
-  for (const name of readdirSync(new URL('../supabase/migrations/', import.meta.url)).filter(name => /20261015000000_order_emails|20261015000001_dispatch_order|20261015000002_collection_tools|20261015000003_dispatch_tools|checkout_reservations|agent_control_centre|seo_maintenance_agents|card_promo_queue/.test(name)).sort()) {
+  for (const name of readdirSync(new URL('../supabase/migrations/', import.meta.url)).filter(name => /20261015000000_order_emails|20261015000001_dispatch_order|20261015000002_collection_tools|20261015000003_dispatch_tools|checkout_reservations|agent_control_centre|seo_maintenance_agents|card_promo_queue|automatic_card_promos/.test(name)).sort()) {
     await db.exec(readFileSync(new URL(`../supabase/migrations/${name}`, import.meta.url), 'utf8'));
   }
 });
