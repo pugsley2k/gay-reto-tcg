@@ -12,13 +12,12 @@ import { promoDiscount, MEW_CODE } from '@/lib/promo';
 const MINIMUM_SPEND_PENCE = 30;
 
 export default function CartPage() {
-  const { cart, removeFromCart } = useCart();
+  const { cart, removeFromCart, promoCode, setPromoCode } = useCart();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>('tracked-48');
-  const [codeInput,setCodeInput] = useState('');
-  const [promoCode,setPromoCode] = useState('');
+  const [codeInput,setCodeInput] = useState(promoCode);
   const [promoError,setPromoError] = useState('');
 
   const totalPrice = cart.reduce((total, item) => total + item.price * item.quantity, 0);
@@ -84,6 +83,7 @@ export default function CartPage() {
         <div className={styles.emptyCartContainer}>
           <h1 className={styles.emptyCartTitle}>Your cart is empty</h1>
           <p className={styles.emptyCartText}>Browse the shop to add cards to your cart.</p>
+          {promoCode && <p className={styles.emptyCartText} role="status">MEW5 applied — 5% off cards when you add them. Delivery excluded. <button type="button" onClick={()=>setPromoCode('')}>Remove code</button></p>}
           <button
             onClick={() => router.push("/shop")}
             className={styles.goToShopButton}

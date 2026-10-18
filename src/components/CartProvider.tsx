@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { MEW_CODE } from '@/lib/promo';
 
 interface Product {
   id: string;
@@ -15,6 +16,8 @@ interface CartItem extends Product {
 }
 
 interface CartContextType {
+  promoCode: string;
+  setPromoCode: React.Dispatch<React.SetStateAction<string>>;
   cart: CartItem[];
   addToCart: (item: Product) => void;
   removeFromCart: (id: string) => void;
@@ -37,10 +40,12 @@ export function useCart() {
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const [promoCode, setPromoCode] = useState('');
 
   // Load from localStorage on mount
   useEffect(() => {
     try {
+      if(localStorage.getItem('cart-promo')===MEW_CODE)setPromoCode(MEW_CODE);
       const existingCartJson = localStorage.getItem("cart");
       if (existingCartJson) {
         const loadedCart = JSON.parse(existingCartJson);
@@ -62,8 +67,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (hydrated) {
       localStorage.setItem("cart", JSON.stringify(cart));
+      if(promoCode)localStorage.setItem('cart-promo',promoCode);else localStorage.removeItem('cart-promo');
     }
-  }, [cart, hydrated]);
+  }, [cart, hydrated, promoCode]);
 
   // 🔁 Remove unavailable cards from cart — runs once after hydration only
   useEffect(() => {
@@ -134,6 +140,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   function clearCart() {
     setCart([]);
+    setPromoCode('');
   }
 
   function getTotalPrice() {
@@ -144,6 +151,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     <CartContext.Provider
       value={{
         cart,
+        promoCode,
+        setPromoCode,
         addToCart,
         removeFromCart,
         updateQuantity,
