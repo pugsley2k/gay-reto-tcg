@@ -41,7 +41,6 @@ export default function PhoneScanner() {
   const [stage, setStage] = useState<'capture' | 'scanning' | 'review' | 'saving' | 'saved'>('capture');
   const [error, setError] = useState('');
   const [published, setPublished] = useState(false);
-  const [usePhoto, setUsePhoto] = useState(false);
   const [enrichment, setEnrichment] = useState<Enrichment | null>(null);
   const [originalName, setOriginalName] = useState('');
   const [printedTotal,setPrintedTotal]=useState('');
@@ -68,7 +67,7 @@ export default function PhoneScanner() {
   }
   function applyMetadata(data: Enrichment) {
     setGrading(prev=>prev?{...prev,confirmed:false}:null);
-    setEnrichment(data); setUsePhoto(false);
+    setEnrichment(data);
     if (data.matched) setDetails(prev => ({ ...prev, edition: data.edition === undefined ? prev.edition : data.edition || '', name: data.name || prev.name, set: data.set || '', rarity: data.rarity || '', holo_type: data.holo_type || prev.holo_type, price: scannerPriceAfterLookup(prev.price,!!data.matched,data.pricing) }));
   }
   async function lookup(catalog_id?: string) {
@@ -121,7 +120,7 @@ export default function PhoneScanner() {
       }
       if (!upload?.url) throw new Error('The photo upload did not finish. Please try again.');
       let uploadedBack=backUpload;if(backPhoto&&!uploadedBack){const body=new FormData();body.append('file',backPhoto);uploadedBack=await readResponse(await fetch('/api/upload',{method:'POST',body}));setBackUpload(uploadedBack);}
-      await readResponse(await fetch('/api/cards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...details, grading, client_id:clientId.current,front_image_url:upload.url,back_image_url:uploadedBack?.url||null,price, image_url: !grading && !usePhoto && enrichment?.matched && enrichment.image_url ? enrichment.image_url : upload.url, scan_url: upload.public_id, available: published }) }));
+      await readResponse(await fetch('/api/cards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...details, grading, client_id:clientId.current,front_image_url:upload.url,back_image_url:uploadedBack?.url||null,price, image_url: enrichment?.matched && enrichment.image_url ? enrichment.image_url : upload.url, scan_url: upload.public_id, available: published }) }));
       setStage('saved');
     } catch (err) { setError(err instanceof Error ? err.message : 'Could not save this card.'); setStage('review'); }
   }
@@ -147,7 +146,7 @@ export default function PhoneScanner() {
         <fieldset className={styles.reviewFields} disabled={lookingUp||stage==='saving'}><h2>Review your card</h2><p className={styles.note}>AI can misread names and numbers. Check the card, language and finish before publishing. Matched catalogue artwork becomes the listing image; your actual front and any back photos are also included for buyers.</p>
         {enrichment?.notice && <p className={styles.note} role="status">{enrichment.notice}</p>}
         {enrichment?.candidates?.map(candidate => <button className={styles.secondary} type="button" key={candidate.id} disabled={busy} onClick={() => void lookup(candidate.id)}>{candidate.name} · {candidate.set} · #{candidate.number}</button>)}
-        {!grading && enrichment?.matched && enrichment.image_url ? <div><p className={styles.note}>Catalogue artwork — check that it matches your card.</p><img src={enrichment.image_url} alt="Matched catalogue card artwork" width={150} height={206} style={{objectFit:"contain"}} onError={() => setEnrichment(prev => prev ? {...prev,image_url:null} : prev)} /><label className={styles.check}><input type="checkbox" checked={usePhoto} onChange={e => setUsePhoto(e.target.checked)} />Use my photo instead</label></div> : <p className={styles.note}>Your actual card or slab photo will be used.</p>}
+        {enrichment?.matched && enrichment.image_url ? <div><p className={styles.note}>Catalogue artwork — check that it matches your card.</p><img src={enrichment.image_url} alt="Matched catalogue card artwork" width={150} height={206} style={{objectFit:"contain"}} onError={() => setEnrichment(prev => prev ? {...prev,image_url:null} : prev)} /><p className={styles.note}>This artwork appears in the shop and promos. Uploaded photos are available through View photos.</p></div> : <p className={styles.note}>No matching catalogue artwork yet. The shop will show a placeholder until you refresh the catalogue image; your photos remain available through View photos.</p>}
         <ScanReview notes={notes} illustrator={enrichment?.illustrator}/>
         <GradingFields value={grading} card={{name:details.name,number:details.number,set:details.set}} onChange={changeGrading}/>
         <label>Card name<input required maxLength={200} value={details.name} onChange={e => field('name', e.target.value)} /></label>

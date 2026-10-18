@@ -9,12 +9,12 @@ const session = 'a'.repeat(64);
 const shipping = { subtotal: 1000, discount: 0, price: 450, total: 1450, country: 'GB' };
 before(async () => {
   await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
-    create table public."Card" (id text primary key,name text,price integer,available boolean default true,"createdAt" timestamp default now(),"updatedAt" timestamp default now(),image_url text,condition text,edition text,holo_type text);
+    create table public."Card" (id text primary key,name text,price integer,available boolean default true,"createdAt" timestamp default now(),"updatedAt" timestamp default now(),image_url text,condition text,edition text,holo_type text,"set" text,number text,grading jsonb);
     create table public.orders(id uuid primary key,items jsonb not null,status text default 'pending',created_at timestamptz default now(),shipping jsonb);
     create table public.rarities(code text); create table public.finishes(code text); create table public.setnames(code text); create table public._prisma_migrations(id text);
     grant usage on schema public to anon,authenticated,service_role;
     grant all on public."Card" to anon,authenticated,service_role;`);
-  for (const name of readdirSync(new URL('../supabase/migrations/', import.meta.url)).filter(name => /20261015000000_order_emails|20261015000001_dispatch_order|20261015000002_collection_tools|20261015000003_dispatch_tools|checkout_reservations|agent_control_centre|seo_maintenance_agents/.test(name)).sort()) {
+  for (const name of readdirSync(new URL('../supabase/migrations/', import.meta.url)).filter(name => /20261015000000_order_emails|20261015000001_dispatch_order|20261015000002_collection_tools|20261015000003_dispatch_tools|checkout_reservations|agent_control_centre|seo_maintenance_agents|card_promo_queue/.test(name)).sort()) {
     await db.exec(readFileSync(new URL(`../supabase/migrations/${name}`, import.meta.url), 'utf8'));
   }
 });

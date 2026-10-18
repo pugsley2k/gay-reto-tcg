@@ -30,7 +30,7 @@ export function validateListing(input: unknown) {
     if (url.protocol !== 'https:' || url.username || url.password) throw new Error('Use a secure photo URL.');
     return value;
   }
-  if (grading && (!photo('front_image_url') || image !== photo('front_image_url'))) throw new Error('Use the actual slab photo as the listing image.');
+  if (grading && !photo('front_image_url')) throw new Error('Add a front photograph of the actual slab.');
   return { grading, edition: edition || null, condition: grading ? null : condition || null, name, image_url: image, price: value.price as number, available: value.available,
     front_image_url: photo('front_image_url'), back_image_url: photo('back_image_url'),
     number: text('number', 40), set: text('set', 160), rarity: text('rarity', 100),

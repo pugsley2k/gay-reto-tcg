@@ -1,8 +1,9 @@
 import { readGrading, type Grading } from './card-grading';
 import { gradedPrice,type PriceComparison } from './graded-pricing';
+import {isCardArtwork} from './card-artwork';
 export type CatalogCard = {
   id: string; name: string; localId: string; rarity?: string; image?: string; illustrator?:string;
-  set: { name: string; cardCount: { official: number } };
+  set: { id?: string; name: string; cardCount: { official: number } };
   variants?: { normal?: boolean; holo?: boolean; reverse?: boolean; firstEdition?: boolean };
   pricing?: { cardmarket?: { updated: string; unit: string; trend?: number; 'trend-holo'?: number; 'trend-reverse'?: number }; tcgplayer?: { unit: string; updated: string; normal?: { marketPrice?: number }; holofoil?: { marketPrice?: number; productId?: number }; reverseHolofoil?: { marketPrice?: number }; [variant: string]: unknown } };
 };
@@ -70,7 +71,19 @@ export function catalogImageUrl(card: CatalogCard, language: string) {
 }
 async function availableImage(card: CatalogCard, language: string) {
   const url = catalogImageUrl(card, language);
-  if (!url) return null;
+  if (!url) {
+    // Some e-reader holos have metadata but no TCGdex artwork. Require a
+    // second catalogue's exact identity and set before using its returned URL.
+    if(language!=='English'||card.variants?.firstEdition||!card.set.id)return null;
+    try{
+      const response=await fetch(`https://api.pokemontcg.io/v2/cards/${encodeURIComponent(card.id)}`,{next:{revalidate:86400},signal:AbortSignal.timeout(6000)});
+      if(!response.ok)return null;
+      const other=(await response.json()).data;
+      if(other?.id!==card.id||normaliseName(other.name||'')!==normaliseName(card.name)||normaliseNumber(other.number||'')!==normaliseNumber(card.localId)||other.set?.id!==card.set.id||normaliseName(other.set?.name||'')!==normaliseName(card.set.name)||!isCardArtwork(other.images?.large))return null;
+      const image=await fetch(other.images.large,{method:'HEAD',redirect:'error',next:{revalidate:86400},signal:AbortSignal.timeout(3000)});
+      return image.ok&&image.headers.get('content-type')?.startsWith('image/')?other.images.large:null;
+    }catch{return null;}
+  }
   try {
     const response = await fetch(url, { method: 'HEAD', redirect: 'error', next: { revalidate: 3600 }, signal: AbortSignal.timeout(3000) });
     return response.ok && response.headers.get('content-type')?.startsWith('image/') ? url : null;
@@ -102,7 +115,6 @@ export async function enrichCard(scan: ScanIdentity, selectedId?: string) {
   if (card.id === 'base1-4' && result.edition === 'Unlimited') result.notice += ' Unlimited pricing refers to the standard shadowed printing, not Shadowless or 1999–2000 variants.';
   const grading = readGrading(scan.grading);
   if (grading) {
-    result.image_url = null;
     const graded = await gradedPrice({name:result.name,number:card.localId,set:result.set,language:scan.language,edition:result.edition||'',finish:result.holo_type||''},grading);
     const comparisons:PriceComparison[]=[...(graded.comparisons||[])];
     if(!comparisons.some(item=>item.url===`https://api.tcgdex.net/v2/${lang}/cards/${encodeURIComponent(card.id)}`)){

@@ -6,6 +6,7 @@ import ListingBanner from '@/components/ListingBanner';
 import SiteFooter from '@/components/SiteFooter';
 import styles from './styles/HomePage.module.css';
 import { pageMetadata } from '@/lib/page-metadata';
+import {listingArtwork} from '@/lib/card-artwork';
 export const generateMetadata = () => pageMetadata('/');
 export const dynamic = 'force-dynamic';
 async function getArrivals() {
@@ -14,7 +15,7 @@ async function getArrivals() {
   if (!url || !key) return { cards: [], failed: true };
   try {
     const { data, error } = await createClient(url, key).from('Card').select('id,name,image_url,price,set,language').eq('available', true).not('image_url', 'is', null).order('createdAt', { ascending: false }).limit(12);
-    return { cards: data ?? [], failed: !!error };
+    return { cards: (data ?? []).map(card=>({...card,image_url:listingArtwork(card)})), failed: !!error };
   } catch { return { cards: [], failed: true }; }
 }
 export default async function HomePage() {

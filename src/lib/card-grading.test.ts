@@ -18,8 +18,9 @@ test('slab reading preserves leading zeroes, full grade qualifiers and missing f
 });
 test('publishing requires a complete confirmed slab label and the actual slab photo',()=>{
  assert.deepEqual(validateListing(card).grading,grading);
+ assert.equal(validateListing({...card,image_url:'https://assets.tcgdex.net/en/base/base1/4/high.webp'}).front_image_url,card.front_image_url);
  assert.equal(validateListing({...card,condition:'Near Mint'}).condition,null);
- for(const patch of [{grading:{...grading,confirmed:false}},{grading:{...grading,cert_number:''}},{image_url:'https://example.com/catalogue.jpg'},{front_image_url:null}])assert.throws(()=>validateListing({...card,...patch}));
+ for(const patch of [{grading:{...grading,confirmed:false}},{grading:{...grading,cert_number:''}},{front_image_url:null}])assert.throws(()=>validateListing({...card,...patch}));
  assert.equal(sameListing({grading:{grade:'10',company:'PSA',confirmed:true,cert_number:'00123456'}},{grading}),true);
  assert.equal(sameListing({grading:{...grading,grade:'9'}},{grading}),false);
 });

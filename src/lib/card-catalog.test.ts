@@ -47,6 +47,17 @@ for(const status of [200,404])test('matched catalogue image availability: '+stat
  assert.equal('image_url' in result?result.image_url:null,status===200?'https://assets.tcgdex.net/en/sv/sv01/245/high.webp':null);
 });
 
+for(const mismatch of [false,true])test('missing artwork uses a second catalogue only for the exact printing: '+mismatch,async(t)=>{
+ const original={...card,id:'ecard2-H26',name:'Tentacruel',localId:'H26',image:undefined,pricing:undefined,set:{id:'ecard2',name:'Aquapolis',cardCount:{official:147}},variants:{holo:true,firstEdition:false}};
+ t.mock.method(globalThis,'fetch',async(input:unknown,init?:RequestInit)=>{
+  if(init?.method==='HEAD')return new Response(null,{headers:{'content-type':'image/png'}});
+  if(String(input).includes('api.pokemontcg.io'))return Response.json({data:{id:original.id,name:original.name,number:mismatch?'H27':'H26',set:{id:'ecard2',name:'Aquapolis'},images:{large:'https://images.pokemontcg.io/ecard2/H26_hires.png'}}});
+  return Response.json(original);
+ });
+ const result=await enrichCard({name:'Tentacruel',number:'H26',language:'English'},original.id);
+ assert.equal('image_url' in result?result.image_url:null,mismatch?null:'https://images.pokemontcg.io/ecard2/H26_hires.png');
+});
+
 
 test('vintage prices require the correct edition and never use a general market quote',()=>{
  const vintage={...card,variants:{holo:true,firstEdition:true}};

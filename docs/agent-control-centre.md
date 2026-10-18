@@ -20,25 +20,11 @@ Cancelled/expired unpaid reservations can be released or reclaimed. Capturing/re
 
 Anonymous and ordinary authenticated clients can read storefront listings and catalogue lookups but cannot change them. Inventory changes use admin server routes; reserved and sold stock has additional database checks. Old standalone maintenance scripts that use the anonymous Supabase key are no longer write-capable and are not used by agents.
 
-## TikTok through the existing Suno uploader
+## Card promo studio
 
-1. Choose a card in the control centre and download its draft pack.
-2. Record an MP4 of that actual card. The helper supports files up to 64 MB, matching the existing bridge limit.
-3. Validate the pack and current stock without uploading:
+The active workflow now automatically queues new listings and prepares an animated card advertisement from matching catalogue artwork, current price and the shop logo. Preview and export the MP4 in Seller Studio, then finish publishing in TikTok. It is independent of Suno. See [Card promo studio](card-promos.md) for the workflow and verification.
 
-   ```powershell
-   node scripts/tiktok-draft.cjs --pack "C:\path\draft.json" --video "C:\path\card.mp4"
-   ```
-
-4. After confirming that the account currently connected to Suno is the intended shop account, send to its TikTok inbox:
-
-   ```powershell
-   node scripts/tiktok-draft.cjs --pack "C:\path\draft.json" --video "C:\path\card.mp4" --send --confirm-suno-account
-   ```
-
-The helper locates the existing `SunoPromo/tiktok_bridge.js` installation, or accepts `--bridge` with its exact path. Existing credentials remain in the desktop uploader. Its video-hash ledger prevents duplicate uploads. The helper checks stock and price immediately before invoking it; publishing later still requires checking availability. Packs expire after 24 hours.
-
-This connection has `video.upload` inbox scope. Finish the post in TikTok. It does not provide unattended public posting, and no changes are made to Suno's music schedule. No content has been uploaded as part of this implementation.
+The older Suno draft-pack helper remains a legacy standalone utility and is no longer presented in the control centre.
 
 ## Release and verification
 

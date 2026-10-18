@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import {listingArtwork} from '@/lib/card-artwork';
 import {cache} from 'react';
 import { notFound } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
@@ -15,7 +16,7 @@ const getCard=cache(async (id:string) => {
 });
 export async function generateMetadata({params}:{params:Promise<{id:string}>}) {
   const card=await getCard((await params).id);
-  return {title:`${card.name} | Gay Retro TCG`,description:`${card.name}, ${card.set||'Pokémon TCG'}${card.condition?`, ${card.condition}`:''}. £${(card.price/100).toFixed(2)}.`,alternates:{canonical:`/cards/${encodeURIComponent(card.id)}`},openGraph:{title:card.name,images:card.image_url?[card.image_url]:[]}};
+  return {title:`${card.name} | Gay Retro TCG`,description:`${card.name}, ${card.set||'Pokémon TCG'}${card.condition?`, ${card.condition}`:''}. £${(card.price/100).toFixed(2)}.`,alternates:{canonical:`/cards/${encodeURIComponent(card.id)}`},openGraph:{title:card.name,images:[listingArtwork(card)]}};
 }
 export default async function CardPage({params}:{params:Promise<{id:string}>}) {
   const card=await getCard((await params).id);
