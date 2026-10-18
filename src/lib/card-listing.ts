@@ -1,5 +1,6 @@
 import { isCardEdition } from './card-edition';
 import { isCardCondition } from './card-condition';
+import { readGrading, completeGrading } from './card-grading';
 export function validateListing(input: unknown) {
   if (!input || typeof input !== 'object') throw new Error('Invalid card details.');
   const value = input as Record<string, unknown>;
@@ -10,6 +11,8 @@ export function validateListing(input: unknown) {
     return field.trim();
   }
   const name = text('name', 200, true);
+  const grading = readGrading(value.grading);
+  if (value.grading != null && (!grading || !completeGrading(grading) || !grading.confirmed)) throw new Error('Check and confirm the grading company, full grade and certification number.');
   const image = text('image_url', 2048, true)!;
   const imageUrl = new URL(image);
   if (imageUrl.protocol !== 'https:' || imageUrl.username || imageUrl.password) throw new Error('Use a secure image URL.');
@@ -27,7 +30,8 @@ export function validateListing(input: unknown) {
     if (url.protocol !== 'https:' || url.username || url.password) throw new Error('Use a secure photo URL.');
     return value;
   }
-  return { edition: edition || null, condition: condition || null, name, image_url: image, price: value.price as number, available: value.available,
+  if (grading && (!photo('front_image_url') || image !== photo('front_image_url'))) throw new Error('Use the actual slab photo as the listing image.');
+  return { grading, edition: edition || null, condition: grading ? null : condition || null, name, image_url: image, price: value.price as number, available: value.available,
     front_image_url: photo('front_image_url'), back_image_url: photo('back_image_url'),
     number: text('number', 40), set: text('set', 160), rarity: text('rarity', 100),
     scan_url: text('scan_url', 2048), language: value.language as string, holo_type: text('holo_type', 100) };

@@ -1,10 +1,12 @@
+import { readGrading, type Grading } from './card-grading';
+import { gradedPrice } from './graded-pricing';
 export type CatalogCard = {
   id: string; name: string; localId: string; rarity?: string; image?: string;
   set: { name: string; cardCount: { official: number } };
   variants?: { normal?: boolean; holo?: boolean; reverse?: boolean; firstEdition?: boolean };
   pricing?: { cardmarket?: { updated: string; unit: string; trend?: number; 'trend-holo'?: number; 'trend-reverse'?: number }; tcgplayer?: { unit: string; updated: string; normal?: { marketPrice?: number }; holofoil?: { marketPrice?: number; productId?: number }; reverseHolofoil?: { marketPrice?: number }; [variant: string]: unknown } };
 };
-export type ScanIdentity = { name: string; original_name?: string; number: string; total?: string; language: string; finish?: string | null; edition?: string | null };
+export type ScanIdentity = { name: string; original_name?: string; number: string; total?: string; language: string; finish?: string | null; edition?: string | null; grading?: Grading | null };
 export const normaliseName = (value: string) => value.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
 export const normaliseNumber = (value: string) => value.toUpperCase().replace(/^0+(?=\d)/, '');
 const familyName = (value: string) => value.replace(/\s*(?:ex|gx|vmax|vstar|v|break)\s*$/i, '').trim();
@@ -88,6 +90,12 @@ export async function enrichCard(scan: ScanIdentity, selectedId?: string) {
   const result = { matched: true, image_url: card.variants?.firstEdition || scan.edition === '1st Edition' ? null : await availableImage(card, scan.language), edition: card.variants?.firstEdition && scan.edition === 'Not applicable' ? null : scan.edition || null, name: scan.language === 'English' ? card.name : scan.name, catalog_id: card.id, set: card.set.name, rarity, holo_type: holo, pricing: null as null | { gbp: string; source: string; updated: string; original: number; currency: string; rate: number; rate_date: string }, notice: finish ? 'Catalogue match found. Check the artwork and condition before publishing.' : 'Set and rarity found. Confirm the finish before requesting a price.' };
   if (card.variants?.firstEdition || scan.edition === '1st Edition') result.notice += result.edition === '1st Edition' || result.edition === 'Unlimited' ? ` Edition: ${result.edition}. Your photo will be used to show the actual printing.` : ' Choose 1st Edition or Unlimited before requesting a price.';
   if (card.id === 'base1-4' && result.edition === 'Unlimited') result.notice += ' Unlimited pricing refers to the standard shadowed printing, not Shadowless or 1999–2000 variants.';
+  const grading = readGrading(scan.grading);
+  if (grading) {
+    result.image_url = null;
+    const graded = await gradedPrice({name:result.name,number:card.localId,set:result.set,language:scan.language,edition:result.edition||'',finish:result.holo_type||''},grading);
+    return {...result,...graded};
+  }
   const quote = marketQuote(card, finish, result.edition);
   if (!quote) { result.notice += ' No reliable price is available for this printing and edition.'; return result; }
   const age = Date.now() - Date.parse(quote.updated);

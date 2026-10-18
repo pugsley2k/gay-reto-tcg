@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isAdmin } from '@/lib/admin';
 import { isCardEdition } from '@/lib/card-edition';
 import { enrichCard } from '@/lib/card-catalog';
-export const maxDuration = 30;
+import {readGrading} from '@/lib/card-grading';
+export const maxDuration = 120;
 export async function POST(request: NextRequest) {
   if (!await isAdmin()) return NextResponse.json({ error: 'Admin access required.' }, { status: 403 });
   try {
     const body = await request.json();
+    if(body.grading!=null&&!readGrading(body.grading))return NextResponse.json({error:'Invalid slab details.'},{status:400});
     for (const field of ['name', 'number', 'language']) if (typeof body[field] !== 'string' || !body[field] || body[field].length > 200) return NextResponse.json({ error: 'Add a name, card number and language.' }, { status: 400 });
     if (body.catalog_id && (typeof body.catalog_id !== 'string' || !/^[a-zA-Z0-9.\-]+$/.test(body.catalog_id))) return NextResponse.json({ error: 'Invalid catalogue selection.' }, { status: 400 });
     if (body.edition && !isCardEdition(body.edition)) return NextResponse.json({error:'Choose a supported edition.'},{status:400});

@@ -13,6 +13,7 @@ const supabase = createClient(
 );
 
 interface Card {
+  grading?:import('@/lib/card-grading').Grading|null;
   id: string;
   name: string;
   number: string | null;
@@ -78,7 +79,7 @@ export default function AdminManageCards() {
     setLoading(true);
     const { data } = await supabase
       .from('Card')
-      .select('id, name, number, set, holo_type, language, price, image_url, available, condition, edition')
+      .select('id, name, number, set, holo_type, language, price, image_url, available, condition, edition, grading')
       .order('id', { ascending: false });
     setCards((data as Card[]) ?? []);
     setLoading(false);
@@ -237,7 +238,7 @@ export default function AdminManageCards() {
                     <img src={card.image_url || '/placeholder.png'} alt="" className={legacy.style15} />
                   </td>
                   <td className={legacy.style16}>
-                    <div className={legacy.style17} title={card.name}>{card.name}</div>
+                    <div className={legacy.style17} title={card.name}>{card.name}{card.grading&&<p>{card.grading.company} {card.grading.grade} · Cert {card.grading.cert_number}</p>}</div>
                     {card.number && <div className={legacy.style18}># {card.number}</div>}
                     <label className={legacy.style19}>Edition<select aria-label={`Edition for ${card.name}`} className={legacy.style20} value={card.edition || ''} disabled={saving[card.id]} onChange={async e=>{setSaving(p=>({...p,[card.id]:true}));try{await patchCard(card.id,{edition:e.target.value || null});}catch(error){setFixMsg(p=>({...p,[card.id]:error instanceof Error?error.message:'Could not save edition.'}));}finally{setSaving(p=>({...p,[card.id]:false}));}}}><option value="">Not specified</option>{CARD_EDITIONS.map(v=><option key={v}>{v}</option>)}</select></label>
                     <label className={legacy.style21}>Condition<select aria-label={`Condition for ${card.name}`} className={legacy.style22} value={card.condition || ''} disabled={saving[card.id]} onChange={async e=>{setSaving(p=>({...p,[card.id]:true}));try{await patchCard(card.id,{condition:e.target.value || null});}catch(error){setFixMsg(p=>({...p,[card.id]:error instanceof Error?error.message:'Could not save condition.'}));}finally{setSaving(p=>({...p,[card.id]:false}));}}}><option value="">Not specified</option>{CARD_CONDITIONS.map(c=><option key={c.value}>{c.value}</option>)}</select></label>

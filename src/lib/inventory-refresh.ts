@@ -1,5 +1,6 @@
+import type {Grading} from './card-grading';
 import {EXAMPLE_CARD_ID} from './example-listing';
-export type RefreshCard={id:string;name:string;number:string|null;set:string|null;language:string|null;holo_type:string|null;edition:string|null};
+export type RefreshCard={grading?:Grading|null;id:string;name:string;number:string|null;set:string|null;language:string|null;holo_type:string|null;edition:string|null};
 export type RefreshResult={matched:boolean;set?:string;image_url?:string|null;notice?:string;pricing?:{gbp:string;source:string;updated:string}|null;candidates?:{id:string;set:string}[]};
 const normalise=(value:string)=>value.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
 export function inventoryIdentity(card:RefreshCard){
@@ -12,7 +13,7 @@ export function inventoryIdentity(card:RefreshCard){
  const after=marker?name.slice(marker.index+marker[0].length).trim():'';
  if(marker)name=name.slice(0,marker.index).trim();
  const set=card.set?.trim()||after.split(' | ')[0].trim();
- return{name,original_name:name,number:printing.split('/')[0],total:printing.split('/')[1]||undefined,set,language:card.language||'English',finish:card.holo_type,edition:card.edition};
+ return{...(card.grading?{grading:card.grading}:{}),name,original_name:name,number:printing.split('/')[0],total:printing.split('/')[1]||undefined,set,language:card.language||'English',finish:card.holo_type,edition:card.edition};
 }
 export function matchingPrinting(result:RefreshResult,set:string){const candidates=result.candidates?.filter(candidate=>normalise(candidate.set)===normalise(set))||[];return set&&candidates.length===1?candidates[0].id:null;}
 export function inventoryUpdates(result:RefreshResult,set:string){
