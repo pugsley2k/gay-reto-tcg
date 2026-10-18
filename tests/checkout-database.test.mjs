@@ -14,7 +14,7 @@ before(async () => {
     create table public.rarities(code text); create table public.finishes(code text); create table public.setnames(code text); create table public._prisma_migrations(id text);
     grant usage on schema public to anon,authenticated,service_role;
     grant all on public."Card" to anon,authenticated,service_role;`);
-  for (const name of readdirSync(new URL('../supabase/migrations/', import.meta.url)).filter(name => /20261015000000_order_emails|20261015000001_dispatch_order|20261015000002_collection_tools|20261015000003_dispatch_tools|checkout_reservations|agent_control_centre/.test(name)).sort()) {
+  for (const name of readdirSync(new URL('../supabase/migrations/', import.meta.url)).filter(name => /20261015000000_order_emails|20261015000001_dispatch_order|20261015000002_collection_tools|20261015000003_dispatch_tools|checkout_reservations|agent_control_centre|seo_maintenance_agents/.test(name)).sort()) {
     await db.exec(readFileSync(new URL(`../supabase/migrations/${name}`, import.meta.url), 'utf8'));
   }
 });
@@ -128,4 +128,58 @@ test('approval executes once and cannot spend money or hide reserved stock',asyn
   const free=await card();const freeAction=await proposal(free);
   for(let i=0;i<2;i++)assert.equal((await db.query("select public.decide_agent_action($1,'approve','test-owner') as state",[freeAction])).rows[0].state,'executed');
   assert.equal((await db.query("select count(*)::integer as n from public.agent_events where title='Listing hidden with approval' and detail='Review listing'")).rows[0].n,1);
+});
+
+async function webDraft(path='/shop', overrides={}) {
+  const id=randomUUID().replaceAll('-','')+randomUUID().replaceAll('-','');
+  const revision=(await db.query('select revision from public.web_page_metadata where path=$1',[path])).rows[0].revision;
+  await db.query(`insert into public.web_agent_actions(id,scope,kind,path,title,detail,severity,snapshot) values($1,'seo',$2,$3,'Test draft','Review exact text','attention',$4)`,[id,overrides.kind||'seo_metadata',path,JSON.stringify({revision,after:{title:'Approved title',description:'Approved description',canonical:'https://www.gayretrotcg.com'+path},...overrides.snapshot})]);
+  return id;
+}
+test('SEO publish is owner-only, atomic, exact and idempotent',async()=>{
+  const id=await webDraft();
+  await assert.rejects(db.exec(`set role anon; select public.decide_web_agent_action('${id}','approve','intruder')`),/permission denied/);await db.exec('reset role');
+  await db.query('select public.decide_web_agent_action($1,$2,$3)',[id,'approve','owner']);
+  await db.query('select public.decide_web_agent_action($1,$2,$3)',[id,'approve','owner']);
+  const doc=(await db.query("select title,description,revision from public.web_page_metadata where path='/shop'")).rows[0];
+  assert.deepEqual(doc,{title:'Approved title',description:'Approved description',revision:1});
+  assert.equal((await db.query("select count(*)::int as n from public.agent_events where title='SEO metadata approved'")).rows[0].n,1);
+});
+test('expired SEO approval cannot change the page',async()=>{
+  const id=await webDraft('/contact');await db.query("update public.web_agent_actions set expires_at=now()-interval '1 second' where id=$1",[id]);
+  assert.equal((await db.query("select public.decide_web_agent_action($1,'approve','owner') as state",[id])).rows[0].state,'stale');
+  assert.equal((await db.query("select title from public.web_page_metadata where path='/contact'")).rows[0].title,null);
+});
+test('competing metadata draft becomes stale after another approval',async()=>{
+  const first=await webDraft('/delivery');const second=await webDraft('/delivery');
+  await db.query("select public.decide_web_agent_action($1,'approve','owner')",[first]);
+  assert.equal((await db.query("select public.decide_web_agent_action($1,'approve','owner') as state",[second])).rows[0].state,'stale');
+});
+test('maintenance findings cannot execute code and malformed SEO cannot publish',async()=>{
+  const review=await webDraft('/returns',{kind:'web_review'});
+  await assert.rejects(db.query("select public.decide_web_agent_action($1,'approve','owner')",[review]),/reviewed code change/);
+  const invalid=await webDraft('/returns',{snapshot:{after:{title:'Bad',description:'Bad',canonical:'https://evil.test'}}});
+  await assert.rejects(db.query("select public.decide_web_agent_action($1,'approve','owner')",[invalid]),/Invalid metadata/);
+});
+test('incomplete and old store checks cannot resolve unrelated website findings',async()=>{
+  const id=await webDraft('/');const run=randomUUID();
+  await db.query("insert into public.agent_runs(id,trigger_source,status) values($1,'manual','running')",[run]);
+  await db.query('select public.save_web_agent_findings($1,$2,$3)',[run,'[]','["maintenance:/"]']);
+  assert.equal((await db.query('select state from public.web_agent_actions where id=$1',[id])).rows[0].state,'pending');
+  await db.query('select public.finish_agent_run($1,$2,$3)',[run,'{}','[]']);
+  assert.equal((await db.query('select state from public.web_agent_actions where id=$1',[id])).rows[0].state,'pending');
+});
+test('complete scoped scan resolves old findings but keeps dismissed drafts dismissed',async()=>{
+  const id=await webDraft('/returns');await db.query("select public.decide_web_agent_action($1,'dismiss','owner')",[id]);
+  const run=randomUUID();await db.query("insert into public.agent_runs(id,trigger_source,status) values($1,'manual','running')",[run]);
+  const action=(await db.query('select * from public.web_agent_actions where id=$1',[id])).rows[0];
+  await db.query('select public.save_web_agent_findings($1,$2,$3)',[run,JSON.stringify([action]),'["seo:/returns"]']);
+  assert.equal((await db.query('select state from public.web_agent_actions where id=$1',[id])).rows[0].state,'dismissed');
+  assert.equal((await db.query("select count(*)::int as n from public.web_agent_actions where path='/returns' and state='pending'")).rows[0].n,0);
+});
+test('restore is revision-bound and cannot undo a newer owner decision',async()=>{
+  assert.equal((await db.query("select public.restore_page_metadata('/shop',0,'owner') as state")).rows[0].state,'stale');
+  assert.equal((await db.query("select public.restore_page_metadata('/shop',1,'owner') as state")).rows[0].state,'restored');
+  const row=(await db.query("select title,revision from public.web_page_metadata where path='/shop'")).rows[0];assert.deepEqual(row,{title:null,revision:2});
+  await assert.rejects(db.exec('set role anon; select * from public.web_page_metadata'),/permission denied/);await db.exec('reset role');
 });

@@ -48,4 +48,22 @@ No new environment variables are required. Existing server-only Supabase, PayPal
 
 Run `node --import tsx --test src/lib/*.test.ts`, `node --test tests/checkout-database.test.mjs`, and `npm run build`. Database tests use the free local PGlite PostgreSQL engine and cover reservation contention, expiry, uncertain captures, duplicate settlement, permissions, approval freshness and spending restrictions. PGlite serialises queries; true simultaneous production-session load testing is not claimed. Browser interaction tests use mock control-centre data, without live stock changes or a real PayPal charge.
 
-SEO publishing, autonomous code changes, generated video and paid campaigns are later phases, not enabled agents in this release.
+Autonomous code changes, generated video and paid campaigns remain later phases. SEO and maintenance extend this release below.
+
+## SEO and website maintenance release
+
+The control centre now runs four rule-based agents: inventory, checkout, SEO and website maintenance. They use the existing daily cron (`0 9 * * *`, UTC), database and hosting. No paid model API, advertising, new subscription or extra scheduler is used. Existing infrastructure quotas still apply. Pause stops all routine agent checks; payment protection and order-email retry continue.
+
+SEO checks five core pages and up to three real product pages, rotating the product sample daily. It reads server HTML for titles, descriptions, canonical URLs, noindex, H1 headings and product JSON-LD. It prepares exact title/description/canonical proposals for the five core pages. Approval also updates their social preview text. It does not promise rankings, collect search analytics or invent product claims.
+
+Maintenance checks page responses, robots.txt, sitemap.xml and up to six whitelisted linked resources. It does not follow redirects, fetch external hosts, call checkout/admin endpoints, execute page JavaScript or inspect private customer data. Four requests run at a time, with a five-second request timeout, an eighteen-second crawl budget and a 512 KiB text limit. This is a sampled HTTP/HTML check, not an exhaustive crawl, browser performance test or security audit. Timeout findings explicitly ask for a retry before diagnosing downtime.
+
+The generated sitemap updates with inventory and includes only public core pages and real available/sold products. Demo and unpublished products are excluded. Robots rules exclude application/private paths; robots.txt is not an access-control mechanism.
+
+`web_agent_actions` is separate from inventory actions. Findings resolve only when that scope and page were successfully inspected. Failed SEO fetches and unsampled products keep earlier SEO findings. Dismissed identical proposals remain dismissed. The latest run stores coverage and failure status in `summary.web`.
+
+Only an authenticated Clerk admin with a same-origin POST can decide actions. SEO approval re-reads live metadata, then a service-role-only SQL function locks the proposal and metadata row, checks the 24-hour expiry and revision, and publishes only the reviewed values. Repeat approvals are idempotent. The database validates page allowlists, fixed canonical origin and text lengths. Private tables have RLS and no anonymous/authenticated grants. No browser receives a service key.
+
+The Published SEO metadata section offers a revision-bound restore to original metadata, with explicit confirmation and an activity entry. Restore removes that page's approved overrides; it does not change visible content. Maintenance findings are review requests, not executable deployment commands. Code, dependencies, design, URL redirects, database upgrades and paid work require a separately reviewed change. There is no automatic dependency updater or code-writing model in this release.
+
+Validation: `npm run test:agents`, `node --import tsx --test src/lib/*.test.ts`, `npm run build`, then desktop/mobile control-centre review and an authenticated live check. The new migration is `20261018201035_seo_maintenance_agents.sql`; install it before deploying this release. The previous release remains compatible with these additive tables.

@@ -1,6 +1,8 @@
 import SiteFooter from '@/components/SiteFooter';
 import styles from '../styles/InformationPage.module.css';
-export const metadata = { title: 'Delivery | Gay Retro TCG' };
+import { pageMetadata } from '@/lib/page-metadata';
+export const dynamic = 'force-dynamic';
+export const generateMetadata = () => pageMetadata('/delivery');
 export default function DeliveryPage() {
   return <main id="main-content" className={styles.page}><p className={styles.eyebrow}>CUSTOMER INFORMATION</p><h1>UK delivery</h1><div className={styles.content}>
     <p>We dispatch from the UK within 3–5 working days of payment. Working days exclude weekends and bank holidays. Delivery time is additional to dispatch time.</p>

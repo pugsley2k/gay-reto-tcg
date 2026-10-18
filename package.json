@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "test:agents": "tsx --test src/lib/agent-checks.test.ts src/lib/web-agent-checks.test.ts && node --test tests/checkout-database.test.mjs",
     "test:checkout": "tsx --test src/lib/checkout.test.ts src/lib/capture-order.test.ts src/lib/agent-checks.test.ts && node --test tests/checkout-database.test.mjs",
     "dev": "next dev",
     "build": "next build",

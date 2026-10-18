@@ -1,5 +1,8 @@
 // app/shop/layout.tsx
 import React from 'react';
+import { pageMetadata } from '@/lib/page-metadata';
+export const dynamic = 'force-dynamic';
+export const generateMetadata = () => pageMetadata('/shop');
 
 
 

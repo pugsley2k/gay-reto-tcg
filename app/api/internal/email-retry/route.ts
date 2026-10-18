@@ -8,6 +8,13 @@ export const maxDuration=60;
 export async function GET(req: NextRequest) {
   if (!process.env.CRON_SECRET || req.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   await serverDb().rpc('expire_checkouts');
-  let checks;try{checks=await runStoreChecks('daily');}catch{checks={error:'Store checks failed; open the control centre.'};}
-  let postage;try{postage=await syncCarrierTracking();}catch{postage={error:'Tracking sync failed; retry in Seller Studio.'};}return NextResponse.json({checks,postage,...await flushEmails()});
+  const [checks, fulfilment] = await Promise.all([
+    runStoreChecks('daily').catch(() => ({ error: 'Store checks failed; open the control centre.' })),
+    (async () => {
+      const postage = await syncCarrierTracking().catch(() => ({ error: 'Tracking sync failed; retry in Seller Studio.' }));
+      // Tracking sync queues emails; flush only after it finishes.
+      return { postage, ...await flushEmails() };
+    })(),
+  ]);
+  return NextResponse.json({checks,...fulfilment});
 }

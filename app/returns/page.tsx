@@ -1,6 +1,8 @@
 import SiteFooter from '@/components/SiteFooter';
 import styles from '../styles/InformationPage.module.css';
-export const metadata = { title: 'Returns | Gay Retro TCG' };
+import { pageMetadata } from '@/lib/page-metadata';
+export const dynamic = 'force-dynamic';
+export const generateMetadata = () => pageMetadata('/returns');
 export default function ReturnsPage() {
   return <main id="main-content" className={styles.page}><p className={styles.eyebrow}>CUSTOMER INFORMATION</p><h1>Returns</h1><div className={styles.content}>
     <p>Email <a href="mailto:gayretrotcg@gmail.com?subject=Return%20request">gayretrotcg@gmail.com</a> with your order reference and the cards you wish to return.</p>

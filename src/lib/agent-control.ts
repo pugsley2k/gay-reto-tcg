@@ -1,5 +1,6 @@
 import { serverDb } from './server-db';
 import { inspectStore, type CheckCard, type CheckOrder } from './agent-checks';
+import { runWebChecks } from './web-agent-runner';
 export async function runStoreChecks(source: 'manual' | 'daily') {
   const db = serverDb();
   const claim = await db.rpc('start_agent_run', { p_source: source });
@@ -24,9 +25,13 @@ export async function runStoreChecks(source: 'manual' | 'daily') {
       if (page === 19) throw new Error('Order history needs a larger check window. No findings were automatically resolved.');
     }
     const result = inspectStore(cards, orders);
-    const saved = await db.rpc('finish_agent_run', { p_id: id, p_summary: result.summary, p_actions: result.actions });
+    let web;
+    try { web = await runWebChecks(id, cards); }
+    catch (error) { web = { status: 'failed', error: error instanceof Error ? error.message : 'Website checks could not finish. Earlier findings have been kept.' }; }
+    const summary = { ...result.summary, web, findings: result.summary.findings + ('seoFindings' in web ? (web.seoFindings ?? 0) + (web.maintenanceFindings ?? 0) : 0) };
+    const saved = await db.rpc('finish_agent_run', { p_id: id, p_summary: summary, p_actions: result.actions });
     if (saved.error) throw new Error('Could not save the check results.');
-    return { skipped: false, summary: result.summary };
+    return { skipped: false, summary, message: web.status === 'failed' ? 'Store checks completed; website checks need attention. Earlier website findings were kept.' : 'Store, SEO and website checks completed. Review findings below.' };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Check failed.';
     await db.from('agent_runs').update({ status: 'failed', finished_at: new Date().toISOString(), error: message }).eq('id', id).eq('status', 'running');

@@ -5,6 +5,8 @@ import WelcomeHeader from '@/components/WelcomeHeader';
 import ListingBanner from '@/components/ListingBanner';
 import SiteFooter from '@/components/SiteFooter';
 import styles from './styles/HomePage.module.css';
+import { pageMetadata } from '@/lib/page-metadata';
+export const generateMetadata = () => pageMetadata('/');
 export const dynamic = 'force-dynamic';
 async function getArrivals() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

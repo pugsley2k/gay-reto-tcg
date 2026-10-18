@@ -1,6 +1,8 @@
 import SiteFooter from '@/components/SiteFooter';
 import styles from '../styles/InformationPage.module.css';
-export const metadata = { title: 'Contact | Gay Retro TCG' };
+import { pageMetadata } from '@/lib/page-metadata';
+export const dynamic = 'force-dynamic';
+export const generateMetadata = () => pageMetadata('/contact');
 export default function ContactPage() {
   return <main id="main-content" className={styles.page}><p className={styles.eyebrow}>CUSTOMER INFORMATION</p><h1>Contact</h1><div className={styles.content}>
     <p>For card questions, orders or returns, email <a href="mailto:gayretrotcg@gmail.com">gayretrotcg@gmail.com</a>. Include your order reference if you have one.</p>
