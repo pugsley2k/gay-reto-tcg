@@ -14,6 +14,6 @@ if($Initialize){
  $hash=[System.Security.Cryptography.SHA256]::Create().ComputeHash([Text.Encoding]::UTF8.GetBytes($key))
  @{workerId=$workerId;tokenHash=([BitConverter]::ToString($hash)).Replace('-','').ToLowerInvariant()}|ConvertTo-Json -Compress
 }else{
- $secure=Get-Content -LiteralPath $promoSecret -Raw|ConvertTo-SecureString
+ $secure=(Get-Content -LiteralPath $promoSecret -Raw).Trim()|ConvertTo-SecureString
  [System.Net.NetworkCredential]::new('',$secure).Password
 }
