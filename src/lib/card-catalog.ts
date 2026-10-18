@@ -1,7 +1,7 @@
 import { readGrading, type Grading } from './card-grading';
 import { gradedPrice } from './graded-pricing';
 export type CatalogCard = {
-  id: string; name: string; localId: string; rarity?: string; image?: string;
+  id: string; name: string; localId: string; rarity?: string; image?: string; illustrator?:string;
   set: { name: string; cardCount: { official: number } };
   variants?: { normal?: boolean; holo?: boolean; reverse?: boolean; firstEdition?: boolean };
   pricing?: { cardmarket?: { updated: string; unit: string; trend?: number; 'trend-holo'?: number; 'trend-reverse'?: number }; tcgplayer?: { unit: string; updated: string; normal?: { marketPrice?: number }; holofoil?: { marketPrice?: number; productId?: number }; reverseHolofoil?: { marketPrice?: number }; [variant: string]: unknown } };
@@ -89,7 +89,7 @@ export async function enrichCard(scan: ScanIdentity, selectedId?: string) {
   const finish = resolveFinish(card, scan.finish);
   const rarity = card.rarity || '';
   const holo = /illustration|ultra|double|hyper|shiny|radiant/i.test(rarity) ? rarity.replace(/\b\w/g, c=>c.toUpperCase()) : finish;
-  const result = { matched: true, image_url: card.variants?.firstEdition || scan.edition === '1st Edition' ? null : await availableImage(card, scan.language), edition: card.variants?.firstEdition && scan.edition === 'Not applicable' ? null : scan.edition || null, name: scan.language === 'English' ? card.name : scan.name, catalog_id: card.id, set: card.set.name, rarity, holo_type: holo, pricing: null as null | { gbp: string; source: string; updated: string; original: number; currency: string; rate: number; rate_date: string }, notice: finish ? 'Catalogue match found. Check the artwork and condition before publishing.' : 'Set and rarity found. Confirm the finish before requesting a price.' };
+  const result = { matched: true, image_url: card.variants?.firstEdition || scan.edition === '1st Edition' ? null : await availableImage(card, scan.language), edition: card.variants?.firstEdition && scan.edition === 'Not applicable' ? null : scan.edition || null, name: scan.language === 'English' ? card.name : scan.name, catalog_id: card.id, illustrator:card.illustrator||null, set: card.set.name, rarity, holo_type: holo, pricing: null as null | { gbp: string; source: string; updated: string; original: number; currency: string; rate: number; rate_date: string }, notice: finish ? 'Catalogue match found. Check the artwork and condition before publishing.' : 'Set and rarity found. Confirm the finish before requesting a price.' };
   if (card.variants?.firstEdition || scan.edition === '1st Edition') result.notice += result.edition === '1st Edition' || result.edition === 'Unlimited' ? ` Edition: ${result.edition}. Your photo will be used to show the actual printing.` : ' Choose 1st Edition or Unlimited before requesting a price.';
   if (card.id === 'base1-4' && result.edition === 'Unlimited') result.notice += ' Unlimited pricing refers to the standard shadowed printing, not Shadowless or 1999–2000 variants.';
   const grading = readGrading(scan.grading);

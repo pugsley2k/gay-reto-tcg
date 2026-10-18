@@ -9,12 +9,14 @@ import ConditionSuggestion from './ConditionSuggestion';
 import { CARD_EDITIONS, isCardEdition } from '@/lib/card-edition';
 import { isCardCondition } from '@/lib/card-condition';
 import styles from './BatchScanner.module.css';
+import ScanReview from './ScanReview';
+import {printedCardNumber,type ScanNotes} from '@/lib/scan-notes';
 import GradingFields from './GradingFields';
 import {completeGrading,type Grading} from '@/lib/card-grading';
 
 type Fields = { grading:Grading|null; name: string; number: string; set: string; rarity: string; language: string; holo_type: string; price: string; condition: string; edition: string };
-type Metadata = { edition?: string | null; image_url?: string | null; name?: string; matched?: boolean; set?: string; rarity?: string; holo_type?: string; notice?: string; candidates?: {id:string;name:string;set:string;number:string}[]; pricing?: {gbp:string;source:string;updated:string;url?:string} };
-type Item = { fingerprint?:string; back?:File|null; backUpload?:{url:string;public_id:string}; id: string; file: File; preview: string; status: 'queued'|'scanning'|'review'|'error'|'publishing'|'published'; fields: Fields; included: boolean; reviewed: boolean; savedAsDraft?: boolean; usePhoto?: boolean; error: string; original: string; total: string; metadata?: Metadata; uploaded?: {url:string;public_id:string} };
+type Metadata = { illustrator?:string|null; edition?: string | null; image_url?: string | null; name?: string; matched?: boolean; set?: string; rarity?: string; holo_type?: string; notice?: string; candidates?: {id:string;name:string;set:string;number:string}[]; pricing?: {gbp:string;source:string;updated:string;url?:string} };
+type Item = { notes?:ScanNotes|null; fingerprint?:string; back?:File|null; backUpload?:{url:string;public_id:string}; id: string; file: File; preview: string; status: 'queued'|'scanning'|'review'|'error'|'publishing'|'published'; fields: Fields; included: boolean; reviewed: boolean; savedAsDraft?: boolean; usePhoto?: boolean; error: string; original: string; total: string; metadata?: Metadata; uploaded?: {url:string;public_id:string} };
 const empty: Fields = {grading:null,name:'',number:'',set:'',rarity:'',language:'English',holo_type:'',price:'',condition:'',edition:''};
 async function responseData(response: Response) {
  const data = await response.json().catch(()=>({}));
@@ -57,8 +59,8 @@ export default function BatchScanner() {
    const body=new FormData();body.append('image',file);
    const result=await responseData(await fetch('/api/scan-card',{method:'POST',body}));
    const defaults=readScannerPreset();
-   const fields={...empty,name:result.english_name||'',number:result.card_number||'',language:result.language||defaults.language,holo_type:defaults.finish,edition:result.edition||'',grading:result.grading||null};
-   update(id,{status:'review',fields:mergeMetadata(fields,result.enrichment||{}),metadata:result.enrichment,usePhoto:false,original:result.original_name||'',total:result.card_total||''});
+   const fields={...empty,name:result.english_name||'',set:result.scan_notes?.label_set||'',number:printedCardNumber(result.card_number,result.card_total),language:result.language||defaults.language,holo_type:defaults.finish,edition:result.edition||'',grading:result.grading||null};
+   update(id,{status:'review',notes:result.scan_notes||null,fields:mergeMetadata(fields,result.enrichment||{}),metadata:result.enrichment,usePhoto:false,original:result.original_name||'',total:result.card_total||''});
   }catch(error){update(id,{status:'error',error:error instanceof Error?error.message:'Scan failed. Retry or enter details manually.'});}
  }
  async function runQueue(ids:string[]) {
@@ -82,13 +84,13 @@ export default function BatchScanner() {
   const item=current.current.find(i=>i.id===id);if(!item)return;
   const identity=['name','number','language'].includes(key);
   const fields={...item.fields,grading:item.fields.grading?{...item.fields.grading,confirmed:false}:null,...(identity?{set:'',rarity:'',holo_type:'',price:''}:{}),...(['set','holo_type','edition'].includes(key)?{price:''}:{}),[key]:value};
-  update(id,{fields,reviewed:false,...(identity?{original:'',total:'',metadata:undefined}:{}),...(['set','holo_type','edition'].includes(key)?{metadata:undefined}:{}),error:''});
+  update(id,{fields,reviewed:false,...(identity?{notes:null,original:'',total:'',metadata:undefined}:{}),...(['set','holo_type','edition'].includes(key)?{metadata:undefined}:{}),error:''});
  }
  async function lookup(id:string,catalog_id?:string) {
   const item=current.current.find(i=>i.id===id);if(!item)return;
   setLookupId(id);update(id,{reviewed:false,error:''});
   try {
-   const metadata=await responseData(await fetch('/api/card-details',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...item.fields,original_name:item.original||item.fields.name,total:item.total,finish:item.fields.holo_type,catalog_id})}));
+   const metadata=await responseData(await fetch('/api/card-details',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...item.fields,number:item.fields.number.split('/')[0],original_name:item.original||item.fields.name,total:item.fields.number.split('/')[1]||item.total,finish:item.fields.holo_type,catalog_id})}));
    const refreshed=mergeMetadata(item.fields,metadata);
    if(refreshed.grading)refreshed.grading={...refreshed.grading,confirmed:false};
    update(id,{metadata,usePhoto:false,fields:refreshed,status:'review'});
@@ -140,6 +142,7 @@ export default function BatchScanner() {
     {!item.fields.grading&&item.metadata?.matched&&item.metadata.image_url?<div><p className={styles.note}>Catalogue artwork — check that it matches your card.</p><img src={item.metadata.image_url} alt={`Catalogue artwork for card ${index+1}`} width={120} height={165} style={{objectFit:'contain'}} onError={()=>update(item.id,{metadata:{...item.metadata,image_url:null},reviewed:false})}/><label className={styles.check}><input type="checkbox" checked={!!item.usePhoto} onChange={e=>update(item.id,{usePhoto:e.target.checked,reviewed:false})}/>Use my photo instead</label></div>:<p className={styles.note}>No catalogue image available. Your photo will be used.</p>}
     {item.metadata?.notice&&<p className={styles.note}>{item.metadata.notice}</p>}
     {item.metadata?.candidates?.map(c=><button type="button" className={styles.secondary} key={c.id} onClick={()=>void lookup(item.id,c.id)}>{c.set} · {c.name} #{c.number}</button>)}
+    <ScanReview notes={item.notes||null} illustrator={item.metadata?.illustrator}/>
     <GradingFields card={{name:item.fields.name,number:item.fields.number,set:item.fields.set}} value={item.fields.grading} onChange={grading=>{const old=item.fields.grading;const changed=grading?.company!==old?.company||grading?.grade!==old?.grade||grading?.cert_number!==old?.cert_number||!!grading!==!!old;update(item.id,{fields:{...item.fields,grading,...(changed?{price:''}:{})},reviewed:false,...(changed?{metadata:undefined}:{} )});}}/>
     {(['name','number','set','rarity'] as const).map(key=><label key={key}>{({name:'Card name',number:'Card number',set:'Set',rarity:'Rarity'})[key]}<input maxLength={key==='name'?200:key==='number'?40:key==='set'?160:100} value={item.fields[key]} onChange={e=>edit(item.id,key,e.target.value)}/></label>)}
     <div className={styles.fields}><label>Language<select value={item.fields.language} onChange={e=>edit(item.id,'language',e.target.value)}>{['English','Japanese','Korean'].map(l=><option key={l}>{l}</option>)}</select></label><label>Finish<select value={item.fields.holo_type} onChange={e=>edit(item.id,'holo_type',e.target.value)}><option value="">Confirm finish</option>{[...new Set([item.fields.holo_type,'Normal','Reverse Holo','Holo Rare','Double Rare','Ultra Rare','Full Art','Alt Art','Illustration Rare','Special Illustration Rare','Hyper Rare','Shiny Rare','Shiny Ultra Rare','Radiant Rare','Pokeball Holo','Master Ball Holo','Cosmos Holo','Promo'])].filter(Boolean).map(v=><option key={v}>{v}</option>)}</select></label></div>

@@ -12,11 +12,13 @@ import styles from './PhoneScanner.module.css';
 import {scannerLookupPayload,scannerPriceAfterLookup} from '@/lib/scanner-lookup';
 import {matchingPrinting} from '@/lib/inventory-refresh';
 import { prepareCardPhoto } from '@/lib/card-photo';
+import ScanReview from './ScanReview';
+import {printedCardNumber,type ScanNotes} from '@/lib/scan-notes';
 import GradingFields from './GradingFields';
 import { completeGrading, type Grading } from '@/lib/card-grading';
 
 type Details = { name: string; number: string; set: string; rarity: string; language: string; holo_type: string; price: string; condition: string; edition: string };
-type Enrichment = { edition?: string | null; image_url?: string | null; name?: string; matched?: boolean; catalog_id?: string; set?: string; rarity?: string; holo_type?: string | null; notice?: string; candidates?: { id: string; name: string; set: string; number: string; rarity?: string }[]; pricing?: { gbp: string; source: string; updated: string; original: number; currency: string; rate_date: string; url?: string } | null };
+type Enrichment = { illustrator?:string|null; edition?: string | null; image_url?: string | null; name?: string; matched?: boolean; catalog_id?: string; set?: string; rarity?: string; holo_type?: string | null; notice?: string; candidates?: { id: string; name: string; set: string; number: string; rarity?: string }[]; pricing?: { gbp: string; source: string; updated: string; original: number; currency: string; rate_date: string; url?: string } | null };
 const blank: Details = { name: '', number: '', set: '', rarity: '', language: 'English', holo_type: '', price: '', condition: '', edition: '' };
 async function readResponse(response: Response) {
   const data = await response.json().catch(() => ({}));
@@ -31,6 +33,7 @@ export default function PhoneScanner() {
   const [backUpload,setBackUpload]=useState<{url:string;public_id:string}|null>(null);
   const clientId=useRef('');
   const [details, setDetails] = useState<Details>(blank);
+  const [notes,setNotes]=useState<ScanNotes|null>(null);
   const [grading,setGrading]=useState<Grading|null>(null);
   function changeGrading(value:Grading|null){const changed=value?.company!==grading?.company||value?.grade!==grading?.grade||value?.cert_number!==grading?.cert_number||!!value!==!!grading;setGrading(value);if(changed){setDetails(prev=>({...prev,price:''}));setEnrichment(prev=>prev?{...prev,pricing:null}:null);setLookupMessage('');}}
   const [stage, setStage] = useState<'capture' | 'scanning' | 'review' | 'saving' | 'saved'>('capture');
@@ -58,7 +61,7 @@ export default function PhoneScanner() {
     const identityChanged = ['name','number','language'].includes(key);
     setDetails(prev => ({ ...prev, ...(identityChanged ? { set: '', rarity: '', price: '', holo_type: '' } : {}), ...(['set','holo_type','edition'].includes(key) ? { price: '' } : {}), [key]: value }));
     setLookupMessage('');setLookupError('');
-    if (identityChanged) { setOriginalName(''); setPrintedTotal(''); setEnrichment(null); }
+    if (identityChanged) { setNotes(null);setOriginalName(''); setPrintedTotal(''); setEnrichment(null); }
     else if (['set','holo_type','edition'].includes(key)) setEnrichment(prev => prev ? { ...prev, ...(['set','edition'].includes(key) ? { image_url: null, ...(key==='set'?{catalog_id:undefined}:{}) } : {}), pricing: null, notice: 'Details changed. Look up the card again to refresh its suggested price.' } : null);
   }
   function applyMetadata(data: Enrichment) {
@@ -80,7 +83,7 @@ export default function PhoneScanner() {
   }
   async function scan(photo: File | undefined) {
     if (!photo || busy) return;
-    setError('');setGrading(null);setPrintedTotal('');setLookupMessage('');setLookupError('');
+    setError('');setNotes(null);setGrading(null);setPrintedTotal('');setLookupMessage('');setLookupError('');
     clientId.current=crypto.randomUUID();setBackPhoto(null);setBackUpload(null);setFile(null); setUploadedPhoto(null); setDetails(blank); setEnrichment(null); setOriginalName(''); setStage('scanning');
     let preparedPhoto: File | null = null;
     try {
@@ -89,8 +92,8 @@ export default function PhoneScanner() {
       setFile(prepared);
       const body = new FormData(); body.append('image', prepared);
       const result = await readResponse(await fetch('/api/scan-card', { method: 'POST', body }));
-      setGrading(result.grading||null);
-      setDetails({ ...blank, name: result.english_name || '', number: result.card_number || '', language: result.language || readScannerPreset().language, holo_type:readScannerPreset().finish, edition: result.edition || '' });
+      setGrading(result.grading||null);setNotes(result.scan_notes||null);
+      setDetails({ ...blank, name: result.english_name || '', set:result.scan_notes?.label_set||'', number: printedCardNumber(result.card_number,result.card_total), language: result.language || readScannerPreset().language, holo_type:readScannerPreset().finish, edition: result.edition || '' });
       setOriginalName(result.original_name || '');
       setPrintedTotal(result.card_total||'');
       applyMetadata(result.enrichment || {});
@@ -120,7 +123,7 @@ export default function PhoneScanner() {
       setStage('saved');
     } catch (err) { setError(err instanceof Error ? err.message : 'Could not save this card.'); setStage('review'); }
   }
-  function reset() { setGrading(null);setFile(null); setUploadedPhoto(null); setDetails(blank); setEnrichment(null); setOriginalName(''); setStage('capture'); setPrintedTotal('');setLookupMessage('');setLookupError('');setError(''); setPublished(false); }
+  function reset() { setNotes(null);setGrading(null);setFile(null); setUploadedPhoto(null); setDetails(blank); setEnrichment(null); setOriginalName(''); setStage('capture'); setPrintedTotal('');setLookupMessage('');setLookupError('');setError(''); setPublished(false); }
   return <main className={styles.page}>
     <header className={styles.header}><Link href="/admin">← Seller studio</Link><span>GAY RETRO / SCANNER</span></header>
     <p className={styles.eyebrow}>From camera to collection</p><h1>Meet your next<br /><em>listing.</em></h1>
@@ -143,6 +146,7 @@ export default function PhoneScanner() {
         {enrichment?.notice && <p className={styles.note} role="status">{enrichment.notice}</p>}
         {enrichment?.candidates?.map(candidate => <button className={styles.secondary} type="button" key={candidate.id} disabled={busy} onClick={() => void lookup(candidate.id)}>{candidate.name} · {candidate.set} · #{candidate.number}</button>)}
         {!grading && enrichment?.matched && enrichment.image_url ? <div><p className={styles.note}>Catalogue artwork — check that it matches your card.</p><img src={enrichment.image_url} alt="Matched catalogue card artwork" width={150} height={206} style={{objectFit:"contain"}} onError={() => setEnrichment(prev => prev ? {...prev,image_url:null} : prev)} /><label className={styles.check}><input type="checkbox" checked={usePhoto} onChange={e => setUsePhoto(e.target.checked)} />Use my photo instead</label></div> : <p className={styles.note}>Your actual card or slab photo will be used.</p>}
+        <ScanReview notes={notes} illustrator={enrichment?.illustrator}/>
         <GradingFields value={grading} card={{name:details.name,number:details.number,set:details.set}} onChange={changeGrading}/>
         <label>Card name<input required maxLength={200} value={details.name} onChange={e => field('name', e.target.value)} /></label>
         <div className={styles.fields}><label>Card number<input required maxLength={40} value={details.number} onChange={e => field('number', e.target.value)} /></label><label>Price (£)<input required type="number" inputMode="decimal" min="0.01" max="100000" step="0.01" value={details.price} onChange={e => field('price', e.target.value)} /></label></div>
