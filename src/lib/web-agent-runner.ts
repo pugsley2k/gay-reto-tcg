@@ -31,6 +31,13 @@ export async function runWebChecks(runId: string, cards: CheckCard[]) {
   const db = serverDb();
   const documents = await db.from('web_page_metadata').select('path,title,description,revision');
   if (documents.error || documents.data.length !== Object.keys(SEO_PAGES).length) throw new Error('SEO approval storage is not ready. Earlier website findings have been kept.');
+  const result = await auditWebsite(cards, documents.data as SeoDocument[]);
+  const saved = await db.rpc('save_web_agent_findings', { p_run: runId, p_actions: result.actions, p_checked: result.checked });
+  if (saved.error) throw new Error('Website findings could not be saved. Earlier findings have been kept.');
+  return result.summary;
+}
+
+export async function auditWebsite(cards: CheckCard[], documents: SeoDocument[]) {
   const products = cards.filter(c => c.id !== EXAMPLE_CARD_ID && (c.available || c.sold_at)).map(c => `/cards/${encodeURIComponent(c.id)}`);
   // Rotate a three-product sample daily, while retaining unsampled findings.
   const offset = products.length ? Math.floor(Date.now() / 86400000) * 3 % products.length : 0;
@@ -40,7 +47,7 @@ export async function runWebChecks(runId: string, cards: CheckCard[]) {
   const pages = await mapLimited(paths, path => fetchPublicPage(path, signal));
   const actions: WebAction[] = []; const checked: string[] = []; const linked = new Set<string>(); const allowedProducts = new Set(products);
   for (const page of pages) {
-    const result = inspectPage(page, (documents.data as SeoDocument[]).find(d => d.path === page.path));
+    const result = inspectPage(page, documents.find(d => d.path === page.path));
     actions.push(...result.actions); checked.push(...result.checked);
     for (const link of result.links) { const safe = safeAuditPath(link, allowedProducts); if (safe && !paths.includes(safe)) linked.add(safe); }
   }
@@ -50,9 +57,7 @@ export async function runWebChecks(runId: string, cards: CheckCard[]) {
     checked.push(`maintenance:${resource.path}`);
     if (resource.error || resource.status !== 200) actions.push(webAction({ scope: 'maintenance', kind: 'web_review', path: resource.path, title: `Check linked resource: ${resource.path}`, detail: resource.error || `A linked public resource returned HTTP ${resource.status}. Review the link or asset before changing it.`, severity: 'warning', snapshot: { status: resource.status } }));
   }
-  const saved = await db.rpc('save_web_agent_findings', { p_run: runId, p_actions: actions, p_checked: checked });
-  if (saved.error) throw new Error('Website findings could not be saved. Earlier findings have been kept.');
-  return { status: pages.some(p => p.error || p.status !== 200) || resources.some(p => p.error || p.status !== 200) ? 'attention' : 'completed',
+  return { actions, checked, summary: { status: pages.some(p => p.error || p.status !== 200) || resources.some(p => p.error || p.status !== 200) ? 'attention' : 'completed',
     pages: pages.length - 2, products: sample.length, totalProducts: products.length, resources: resources.length + 2, seoFindings: actions.filter(a => a.scope === 'seo').length, maintenanceFindings: actions.filter(a => a.scope === 'maintenance').length,
-    checkedAt: new Date().toISOString(), coverage: 'Five core pages, up to three rotating products, crawler files and up to six linked resources. External links and images are not fetched. No browser speed or security scan.' };
+    checkedAt: new Date().toISOString(), coverage: 'Five core pages, up to three rotating products, crawler files and up to six linked resources. External links and images are not fetched. No browser speed or security scan.' } };
 }
