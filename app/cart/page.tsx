@@ -12,6 +12,18 @@ import { promoDiscount, MEW_CODE } from '@/lib/promo';
 const MINIMUM_SPEND_PENCE = 30;
 
 export default function CartPage() {
+  const { isReady } = useCart();
+  if (!isReady) return <main id="main-content" className={styles.pageContainer}>
+    <h1 className={styles.pageTitle}>Your cart</h1>
+    <p role="status">Loading your saved cart…</p>
+    <noscript>Enable JavaScript to use the cart and checkout.</noscript>
+    <p><Link href="/shop">Browse cards</Link></p>
+    <SiteFooter />
+  </main>;
+  return <CartContents />;
+}
+
+function CartContents() {
   const { cart, removeFromCart, promoCode, setPromoCode } = useCart();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);

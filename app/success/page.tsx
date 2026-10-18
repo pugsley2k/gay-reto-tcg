@@ -18,9 +18,11 @@ function SuccessContent() {
   const [pending, setPending] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
 
-  const { clearCart } = useCart();
+  const { clearCart, isReady } = useCart();
 
   useEffect(() => {
+    // Do not let an early capture response clear the cart before restoration.
+    if (!isReady) return;
     let active = true;
     if (!token) {
       setError("Missing PayPal token.");
@@ -52,7 +54,7 @@ function SuccessContent() {
 
     finalizeCapture();
     return () => { active = false; };
-  }, [token, clearCart, attempt]);
+  }, [isReady, token, clearCart, attempt]);
 
   if (isLoading) {
     return (

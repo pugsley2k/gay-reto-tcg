@@ -1,21 +1,10 @@
 "use client";
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { MEW_CODE } from '@/lib/promo';
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  imageUrl: string;
-  condition?: string | null;
-  edition?: string | null;
-}
-
-interface CartItem extends Product {
-  quantity: number;
-}
+import { parseSavedCart, type CartProduct as Product, type CartItem } from '@/lib/saved-cart';
 
 interface CartContextType {
+  isReady: boolean;
   promoCode: string;
   setPromoCode: React.Dispatch<React.SetStateAction<string>>;
   cart: CartItem[];
@@ -42,45 +31,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const [promoCode, setPromoCode] = useState('');
 
-  // Load from localStorage on mount
+  // Render children on the server and on the first client pass using the same
+  // empty state. Only cart-dependent controls wait for the browser's saved cart.
   useEffect(() => {
+    let restored: CartItem[] = [];
+    let savedPromo = '';
+    const controller = new AbortController();
     try {
-      if(localStorage.getItem('cart-promo')===MEW_CODE)setPromoCode(MEW_CODE);
-      const existingCartJson = localStorage.getItem("cart");
-      if (existingCartJson) {
-        const loadedCart = JSON.parse(existingCartJson);
-        if (Array.isArray(loadedCart) && loadedCart.every(item => 'id' in item && 'quantity' in item)) {
-          setCart(loadedCart);
-        } else {
-          console.warn("Invalid cart data found in localStorage.");
-          localStorage.removeItem("cart");
-        }
-      }
-    } catch (error) {
-      console.error("Failed to parse cart from localStorage:", error);
-      localStorage.removeItem("cart");
-    }
+      restored = parseSavedCart(localStorage.getItem('cart'));
+      if (localStorage.getItem('cart-promo') === MEW_CODE) savedPromo = MEW_CODE;
+    } catch { /* Storage can be blocked. The cart still works in memory. */ }
+    setCart(restored);
+    setPromoCode(savedPromo);
     setHydrated(true);
-  }, []);
-
-  // Save cart to localStorage on change
-  useEffect(() => {
-    if (hydrated) {
-      localStorage.setItem("cart", JSON.stringify(cart));
-      if(promoCode)localStorage.setItem('cart-promo',promoCode);else localStorage.removeItem('cart-promo');
-    }
-  }, [cart, hydrated, promoCode]);
-
-  // 🔁 Remove unavailable cards from cart — runs once after hydration only
-  useEffect(() => {
-    if (!hydrated) return;
 
     async function removeUnavailableFromCart(currentCart: CartItem[]) {
       if (currentCart.length === 0) return;
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/Card?id=in.(${currentCart.map(i => `"${i.id}"`).join(",")})&select=id,available`,
+          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/Card?${new URLSearchParams({ id: `in.(${currentCart.map(i => JSON.stringify(i.id)).join(',')})`, select: 'id,available' })}`,
           {
+            signal: controller.signal,
             headers: {
               apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
               Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
@@ -90,35 +61,39 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
         if (!res.ok) return; // don't clear cart on API errors
         const data = await res.json();
-        if (!Array.isArray(data)) return; // guard against unexpected response
-        const stillAvailableIds = new Set(data.filter((d: any) => d.available).map((d: any) => d.id));
+        if (controller.signal.aborted || !Array.isArray(data) || !data.every(d => d && typeof d.id === 'string' && typeof d.available === 'boolean')) return;
+        const checkedIds = new Set(currentCart.map(item => item.id));
+        const stillAvailableIds = new Set(data.filter(d => d.available).map(d => d.id));
         setCart(prev => {
-          const updated = prev.filter(item => stillAvailableIds.has(item.id));
+          // A delayed response must not remove a card added after this request.
+          const updated = prev.filter(item => !checkedIds.has(item.id) || stillAvailableIds.has(item.id));
           if (updated.length !== prev.length) {
-            console.log("🧹 Removing unavailable items from cart");
             return updated;
           }
           return prev;
         });
-      } catch (err) {
-        console.error("❌ Failed to clean cart from unavailable items:", err);
-      }
+      } catch { /* Keep the cart on network failure. Checkout rechecks stock. */ }
     }
 
-    // Capture cart value at hydration time — don't re-run on every cart change
-    setCart(current => { removeUnavailableFromCart(current); return current; });
-  }, [hydrated]); // intentionally only runs once on hydration
+    void removeUnavailableFromCart(restored);
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem('cart', JSON.stringify(cart));
+      if (promoCode) localStorage.setItem('cart-promo', promoCode); else localStorage.removeItem('cart-promo');
+    } catch { /* Storage is optional; never interrupt shopping or payment. */ }
+  }, [cart, hydrated, promoCode]);
 
   const clearCart = useCallback(() => {
     setCart([]);
     setPromoCode('');
   }, []);
 
-  if (!hydrated) {
-    return null;
-  }
-
   function addToCart(item: Product) {
+    if (!hydrated) return;
     setCart((prevCart) => {
       const exists = prevCart.find(i => i.id === item.id);
       if (exists) {
@@ -150,6 +125,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   return (
     <CartContext.Provider
       value={{
+        isReady: hydrated,
         cart,
         promoCode,
         setPromoCode,

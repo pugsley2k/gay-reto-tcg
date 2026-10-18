@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useCart } from "./CartProvider";
 
 export default function CardItem({ card }: { card: any }) {
-  const { addToCart, cart } = useCart();
+  const { addToCart, cart, isReady } = useCart();
   const [added, setAdded] = useState(false);
   const [alreadyInCart, setAlreadyInCart] = useState(false);
 
@@ -12,7 +12,7 @@ export default function CardItem({ card }: { card: any }) {
   }, [cart, card.id]);
 
   function handleAddToCart() {
-    if (alreadyInCart) return;
+    if (!isReady || alreadyInCart) return;
     addToCart({ ...card, cardId: card.id });
     setAdded(true);
     setTimeout(() => setAdded(false), 900);
@@ -34,7 +34,7 @@ export default function CardItem({ card }: { card: any }) {
             ? "bg-gray-500 text-white cursor-not-allowed"
             : "bg-neonGreen text-black hover:bg-neonPink hover:text-white border-neonCyan"
         }`}
-        disabled={alreadyInCart}
+        disabled={!isReady || alreadyInCart}
       >
         {alreadyInCart ? "In Cart" : added ? "Added!" : "Add to Cart"}
       </button>

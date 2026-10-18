@@ -9,7 +9,7 @@ import { MEW_CODE } from '@/lib/promo';
 export default function FloatingMew() {
   const root = useRef<HTMLDivElement>(null);
   const bubble = useRef<HTMLButtonElement>(null);
-  const { setPromoCode } = useCart();
+  const { setPromoCode, isReady } = useCart();
   const curveId = `mew-gift-${useId().replace(/:/g, '')}`;
   const [paused, setPaused] = useState(false);
   const [reduced, setReduced] = useState(true);
@@ -17,7 +17,7 @@ export default function FloatingMew() {
   const [hidden, setHidden] = useState(false);
   const [applied,setApplied] = useState(false);
   const [focused,setFocused] = useState(false);
-  const applyGift = useCallback(()=>{setPromoCode(MEW_CODE);setApplied(true);},[setPromoCode]);
+  const applyGift = useCallback(()=>{if(!isReady)return;setPromoCode(MEW_CODE);setApplied(true);},[setPromoCode,isReady]);
   useEffect(()=>{if(!applied)return;const timer=setTimeout(()=>setApplied(false),6000);return()=>clearTimeout(timer);},[applied]);
   useEffect(()=>{
     // The artwork stays behind the page. Recognise clicks on its visible area
@@ -51,7 +51,7 @@ export default function FloatingMew() {
   const running = !paused && !focused && !reduced && visible && !hidden;
   return <><div ref={root} className={styles.background} data-running={running}>
     <div className={styles.horizontal}><div className={styles.vertical}>
-      <button ref={bubble} type="button" className={styles.mewButton} aria-label="Apply MEW5 for 5% off cards in your cart" onClick={applyGift} onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)}>
+      <button ref={bubble} type="button" disabled={!isReady} className={styles.mewButton} aria-label="Apply MEW5 for 5% off cards in your cart" onClick={applyGift} onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)}>
       <img src={running ? '/mew-floating-padded.webp' : '/mew-floating-padded-still.png'} width="192" height="192" alt="" className={styles.mew} />
       <svg className={styles.gift} viewBox="0 0 145 165" focusable="false" aria-hidden="true">
         <defs><path id={curveId} d="M 12 92 Q 72.5 184 133 92" /></defs>

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "test:cart:browser": "node --test --test-concurrency=1 tests/cart-browser.test.mjs",
     "test:agents": "tsx --test src/lib/agent-checks.test.ts src/lib/web-agent-checks.test.ts && node --test tests/checkout-database.test.mjs",
     "test:checkout": "tsx --test src/lib/checkout.test.ts src/lib/capture-order.test.ts src/lib/agent-checks.test.ts && node --test tests/checkout-database.test.mjs",
     "dev": "next dev",
@@ -54,6 +55,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.3.2",
+    "playwright": "^1.62.1",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3"
