@@ -12,13 +12,15 @@ import styles from './PhoneScanner.module.css';
 import {scannerLookupPayload,scannerPriceAfterLookup} from '@/lib/scanner-lookup';
 import {matchingPrinting} from '@/lib/inventory-refresh';
 import { prepareCardPhoto } from '@/lib/card-photo';
+import PriceComparisons from './PriceComparisons';
+import type {PriceComparison} from '@/lib/graded-pricing';
 import ScanReview from './ScanReview';
 import {printedCardNumber,type ScanNotes} from '@/lib/scan-notes';
 import GradingFields from './GradingFields';
 import { completeGrading, type Grading } from '@/lib/card-grading';
 
 type Details = { name: string; number: string; set: string; rarity: string; language: string; holo_type: string; price: string; condition: string; edition: string };
-type Enrichment = { illustrator?:string|null; edition?: string | null; image_url?: string | null; name?: string; matched?: boolean; catalog_id?: string; set?: string; rarity?: string; holo_type?: string | null; notice?: string; candidates?: { id: string; name: string; set: string; number: string; rarity?: string }[]; pricing?: { gbp: string; source: string; updated: string; original: number; currency: string; rate_date: string; url?: string } | null };
+type Enrichment = { comparisons?:PriceComparison[]; illustrator?:string|null; edition?: string | null; image_url?: string | null; name?: string; matched?: boolean; catalog_id?: string; set?: string; rarity?: string; holo_type?: string | null; notice?: string; candidates?: { id: string; name: string; set: string; number: string; rarity?: string }[]; pricing?: { gbp: string; source: string; updated: string; original: number; currency: string; rate_date: string; url?: string } | null };
 const blank: Details = { name: '', number: '', set: '', rarity: '', language: 'English', holo_type: '', price: '', condition: '', edition: '' };
 async function readResponse(response: Response) {
   const data = await response.json().catch(() => ({}));
@@ -35,7 +37,7 @@ export default function PhoneScanner() {
   const [details, setDetails] = useState<Details>(blank);
   const [notes,setNotes]=useState<ScanNotes|null>(null);
   const [grading,setGrading]=useState<Grading|null>(null);
-  function changeGrading(value:Grading|null){const changed=value?.company!==grading?.company||value?.grade!==grading?.grade||value?.cert_number!==grading?.cert_number||!!value!==!!grading;setGrading(value);if(changed){setDetails(prev=>({...prev,price:''}));setEnrichment(prev=>prev?{...prev,pricing:null}:null);setLookupMessage('');}}
+  function changeGrading(value:Grading|null){const changed=value?.company!==grading?.company||value?.grade!==grading?.grade||!!value!==!!grading;setGrading(value);if(changed){setDetails(prev=>({...prev,price:''}));setEnrichment(prev=>prev?{...prev,pricing:null,comparisons:[]}:null);setLookupMessage('');}}
   const [stage, setStage] = useState<'capture' | 'scanning' | 'review' | 'saving' | 'saved'>('capture');
   const [error, setError] = useState('');
   const [published, setPublished] = useState(false);
@@ -62,7 +64,7 @@ export default function PhoneScanner() {
     setDetails(prev => ({ ...prev, ...(identityChanged ? { set: '', rarity: '', price: '', holo_type: '' } : {}), ...(['set','holo_type','edition'].includes(key) ? { price: '' } : {}), [key]: value }));
     setLookupMessage('');setLookupError('');
     if (identityChanged) { setNotes(null);setOriginalName(''); setPrintedTotal(''); setEnrichment(null); }
-    else if (['set','holo_type','edition'].includes(key)) setEnrichment(prev => prev ? { ...prev, ...(['set','edition'].includes(key) ? { image_url: null, ...(key==='set'?{catalog_id:undefined}:{}) } : {}), pricing: null, notice: 'Details changed. Look up the card again to refresh its suggested price.' } : null);
+    else if (['set','holo_type','edition'].includes(key)) setEnrichment(prev => prev ? { ...prev, ...(['set','edition'].includes(key) ? { image_url: null, ...(key==='set'?{catalog_id:undefined}:{}) } : {}), pricing: null, comparisons:[], notice: 'Details changed. Look up the card again to refresh its suggested price.' } : null);
   }
   function applyMetadata(data: Enrichment) {
     setGrading(prev=>prev?{...prev,confirmed:false}:null);
@@ -156,6 +158,7 @@ export default function PhoneScanner() {
         <div className={styles.lookupResult} aria-live="polite">{lookingUp?<p role="status">Looking up the matching printing and price…</p>:lookupError?<p role="alert">{lookupError} Your details are still here; try again.</p>:lookupMessage?<p role="status">{lookupMessage}</p>:null}</div>
         {enrichment?.pricing && <p className={styles.note}><strong>Suggested £{enrichment.pricing.gbp}</strong> · {enrichment.pricing.source}<br />Market data: {enrichment.pricing.updated.slice(0,10)}{(!grading||enrichment.pricing.currency!=='GBP')&&<> · {enrichment.pricing.original} {enrichment.pricing.currency} converted to GBP using rates dated {enrichment.pricing.rate_date}.</>}<br />{grading?'Evidence for this exact grader and full grade. Check the source and choose your listing price.':'Market guide for this variant. Adjust for wear before listing.'}{enrichment.pricing.url&&<> <a href={enrichment.pricing.url} target="_blank" rel="noopener noreferrer">View price source ↗</a></>}</p>}
         <div className={styles.fields}><label>Language<select value={details.language} onChange={e => field('language', e.target.value)}>{['English','Japanese','Korean'].map(v => <option key={v}>{v}</option>)}</select></label><label>Finish<select value={details.holo_type} onChange={e => field('holo_type', e.target.value)}><option value="">Confirm finish</option>{[...new Set([details.holo_type,'Normal','Reverse Holo','Holo Rare','Rare Holo EX','Rare Holo GX','Double Rare','Ultra Rare','Full Art','Alt Art','Illustration Rare','Special Illustration Rare','Hyper Rare','Shiny Rare','Shiny Ultra Rare','Radiant Rare','Pokeball Holo','Master Ball Holo','Cosmos Holo','Promo'])].filter(Boolean).map(v => <option key={v}>{v}</option>)}</select></label></div>
+        <PriceComparisons items={enrichment?.comparisons} onUse={price=>field('price',price)}/>
         <label>Edition<select required value={details.edition} onChange={e=>field('edition',e.target.value)}><option value="">Check edition</option>{CARD_EDITIONS.map(v=><option key={v}>{v}</option>)}</select></label>
         {!grading && file && <><DuplicateCheck name={details.name} number={details.number} set={details.set} language={details.language}/><ConditionSuggestion onBackPhoto={photo=>{setBackPhoto(photo);setBackUpload(null);}} key={preview} front={file} disabled={busy} onBusy={setConditionBusy} onInvalidate={() => field('condition', '')} onConfirm={value => field('condition', value)} /></>}
         {!grading && <CardCondition value={details.condition} onChange={value => field('condition', value)} disabled={busy} />}

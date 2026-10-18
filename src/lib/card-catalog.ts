@@ -1,5 +1,5 @@
 import { readGrading, type Grading } from './card-grading';
-import { gradedPrice } from './graded-pricing';
+import { gradedPrice,type PriceComparison } from './graded-pricing';
 export type CatalogCard = {
   id: string; name: string; localId: string; rarity?: string; image?: string; illustrator?:string;
   set: { name: string; cardCount: { official: number } };
@@ -30,6 +30,13 @@ export function resolveFinish(card: CatalogCard, detected?: string | null) {
   if (detected === 'Holo Rare' && variants?.holo) return 'Holo Rare';
   return null;
 }
+export function resolveCatalogEdition(card:CatalogCard,scan:Pick<ScanIdentity,'edition'|'language'>){
+ if(card.variants?.firstEdition&&scan.edition==='Not applicable')return null;
+ // English e-reader sets have no 1st Edition variant. This is catalogue-backed,
+ // not an inference from glare or an unreadable stamp area in a photo.
+ if(!scan.edition&&scan.language==='English'&&/^ecard[123]-/.test(card.id)&&card.variants?.firstEdition===false)return 'Not applicable';
+ return scan.edition||null;
+}
 export function marketQuote(card: CatalogCard, finish: string | null, edition?: string | null) {
   if (!finish) return null;
   const tcg = card.pricing?.tcgplayer;
@@ -44,8 +51,9 @@ export function marketQuote(card: CatalogCard, finish: string | null, edition?: 
   if (tcg?.unit === 'USD' && Number.isFinite(variant?.marketPrice) && variant!.marketPrice! > 0) return { amount: variant!.marketPrice!, currency: 'USD', source: 'TCGplayer market via TCGdex', updated: tcg.updated };
   if (editionSensitive) return null; // General trends do not establish the edition.
   const cm = card.pricing?.cardmarket;
-  // Cardmarket's general trend is not a reliable reverse-holo quote.
-  const amount = finish === 'Reverse Holo' ? cm?.['trend-reverse'] : cm?.trend;
+  // The general trend can describe the non-holo even on an H-numbered page.
+  // Require the finish-specific field for both holo and reverse-holo quotes.
+  const amount = finish === 'Reverse Holo' ? cm?.['trend-reverse'] : finish === 'Normal' ? cm?.trend : cm?.['trend-holo'];
   if (cm?.unit === 'EUR' && Number.isFinite(amount) && amount! > 0) return { amount: amount!, currency: 'EUR', source: 'Cardmarket trend via TCGdex', updated: cm.updated };
   return null;
 }
@@ -89,14 +97,22 @@ export async function enrichCard(scan: ScanIdentity, selectedId?: string) {
   const finish = resolveFinish(card, scan.finish);
   const rarity = card.rarity || '';
   const holo = /illustration|ultra|double|hyper|shiny|radiant/i.test(rarity) ? rarity.replace(/\b\w/g, c=>c.toUpperCase()) : finish;
-  const result = { matched: true, image_url: card.variants?.firstEdition || scan.edition === '1st Edition' ? null : await availableImage(card, scan.language), edition: card.variants?.firstEdition && scan.edition === 'Not applicable' ? null : scan.edition || null, name: scan.language === 'English' ? card.name : scan.name, catalog_id: card.id, illustrator:card.illustrator||null, set: card.set.name, rarity, holo_type: holo, pricing: null as null | { gbp: string; source: string; updated: string; original: number; currency: string; rate: number; rate_date: string }, notice: finish ? 'Catalogue match found. Check the artwork and condition before publishing.' : 'Set and rarity found. Confirm the finish before requesting a price.' };
+  const result = { matched: true, image_url: card.variants?.firstEdition || scan.edition === '1st Edition' ? null : await availableImage(card, scan.language), edition: resolveCatalogEdition(card,scan), name: scan.language === 'English' ? card.name : scan.name, catalog_id: card.id, illustrator:card.illustrator||null, set: card.set.name, rarity, holo_type: holo, pricing: null as null | { gbp: string; source: string; updated: string; original: number; currency: string; rate: number; rate_date: string }, notice: finish ? 'Catalogue match found. Check the artwork and condition before publishing.' : 'Set and rarity found. Confirm the finish before requesting a price.' };
   if (card.variants?.firstEdition || scan.edition === '1st Edition') result.notice += result.edition === '1st Edition' || result.edition === 'Unlimited' ? ` Edition: ${result.edition}. Your photo will be used to show the actual printing.` : ' Choose 1st Edition or Unlimited before requesting a price.';
   if (card.id === 'base1-4' && result.edition === 'Unlimited') result.notice += ' Unlimited pricing refers to the standard shadowed printing, not Shadowless or 1999–2000 variants.';
   const grading = readGrading(scan.grading);
   if (grading) {
     result.image_url = null;
     const graded = await gradedPrice({name:result.name,number:card.localId,set:result.set,language:scan.language,edition:result.edition||'',finish:result.holo_type||''},grading);
-    return {...result,...graded};
+    const comparisons:PriceComparison[]=[...(graded.comparisons||[])];
+    if(!comparisons.some(item=>item.url===`https://api.tcgdex.net/v2/${lang}/cards/${encodeURIComponent(card.id)}`)){
+     const raw=marketQuote(card,finish,result.edition);const age=raw?Date.now()-Date.parse(raw.updated):Infinity;
+     if(raw&&Number.isFinite(age)&&age>= -86400000&&age<=30*86400000)try{
+      const response=await fetch(`https://api.frankfurter.dev/v1/latest?base=${raw.currency}&symbols=GBP`,{next:{revalidate:86400},signal:AbortSignal.timeout(6000)});
+      if(response.ok){const fx=await response.json();const age=Date.now()-Date.parse(fx.date);if(Number.isFinite(fx.rates?.GBP)&&fx.rates.GBP>0&&Number.isFinite(age)&&age<=7*86400000&&age>= -86400000)comparisons.push({gbp:(Math.round(raw.amount*fx.rates.GBP*100)/100).toFixed(2),source:`Ungraded reference · ${raw.source}`,updated:raw.updated,original:raw.amount,currency:raw.currency,rate_date:fx.date,url:`https://api.tcgdex.net/v2/${lang}/cards/${encodeURIComponent(card.id)}`,company:'Ungraded',grade:'ungraded',basis:'guide'});}
+     }catch{/* A missing raw benchmark must not block a slab listing. */}
+    }
+    return {...result,...graded,comparisons};
   }
   const quote = marketQuote(card, finish, result.edition);
   if (!quote) { result.notice += ' No reliable price is available for this printing and edition.'; return result; }

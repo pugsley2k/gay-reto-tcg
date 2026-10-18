@@ -11,3 +11,6 @@ export function completeGrading(value: Grading | null) {
   return !!value && !!value.company && !!value.grade && /^[A-Za-z0-9 -]{3,80}$/.test(value.cert_number);
 }
 export function gradingLabel(value: Grading | null | undefined) { return value ? `${value.company} ${value.grade}`.trim() : ''; }
+// Descriptive condition words do not change a numeric grade. Preserve special
+// designations and qualifiers (Pristine, Black Label, OC, +, etc.).
+export function pricingGrade(value:string){return value.normalize('NFKC').toLowerCase().replace(/\b(?:excellent|very good|good|poor|fair|near mint|gem mint|mint|gem|nm|ex|vg)\b/g,'').replace(/\s+/g,'').trim();}

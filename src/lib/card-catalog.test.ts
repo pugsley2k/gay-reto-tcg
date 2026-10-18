@@ -17,6 +17,12 @@ test('ambiguous finishes do not receive a guessed market price',()=>{
 test('single-variant cards use the matching market quote',()=>{
  assert.equal(resolveFinish(card),'Holo Rare');assert.equal(marketQuote(card,'Holo Rare')?.amount,68.5);
 });
+test('holo Cardmarket references use the holo trend, never the generic non-holo trend',()=>{
+ const holo={...card,pricing:{cardmarket:{unit:'EUR',updated:new Date().toISOString(),trend:5.75,'trend-holo':42.51}}};
+ assert.equal(marketQuote(holo,'Holo Rare','Not applicable')?.amount,42.51);
+ assert.equal(marketQuote({...holo,pricing:{cardmarket:{unit:'EUR',updated:new Date().toISOString(),trend:5.75}}},'Holo Rare','Not applicable'),null);
+ assert.equal(marketQuote(holo,'Normal','Not applicable')?.amount,5.75);
+});
 test('suffix OCR errors are corrected only with a matching printed total',()=>{
  assert.equal(matchesCard(card,{name:'Gardevoir GX',number:'245',total:'198',language:'English'}),true);
  assert.equal(matchesCard(card,{name:'Gardevoir GX',number:'245',language:'English'}),false);

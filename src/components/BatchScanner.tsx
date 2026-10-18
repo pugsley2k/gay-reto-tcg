@@ -9,13 +9,15 @@ import ConditionSuggestion from './ConditionSuggestion';
 import { CARD_EDITIONS, isCardEdition } from '@/lib/card-edition';
 import { isCardCondition } from '@/lib/card-condition';
 import styles from './BatchScanner.module.css';
+import PriceComparisons from './PriceComparisons';
+import type {PriceComparison} from '@/lib/graded-pricing';
 import ScanReview from './ScanReview';
 import {printedCardNumber,type ScanNotes} from '@/lib/scan-notes';
 import GradingFields from './GradingFields';
 import {completeGrading,type Grading} from '@/lib/card-grading';
 
 type Fields = { grading:Grading|null; name: string; number: string; set: string; rarity: string; language: string; holo_type: string; price: string; condition: string; edition: string };
-type Metadata = { illustrator?:string|null; edition?: string | null; image_url?: string | null; name?: string; matched?: boolean; set?: string; rarity?: string; holo_type?: string; notice?: string; candidates?: {id:string;name:string;set:string;number:string}[]; pricing?: {gbp:string;source:string;updated:string;url?:string} };
+type Metadata = { comparisons?:PriceComparison[]; illustrator?:string|null; edition?: string | null; image_url?: string | null; name?: string; matched?: boolean; set?: string; rarity?: string; holo_type?: string; notice?: string; candidates?: {id:string;name:string;set:string;number:string}[]; pricing?: {gbp:string;source:string;updated:string;url?:string} };
 type Item = { notes?:ScanNotes|null; fingerprint?:string; back?:File|null; backUpload?:{url:string;public_id:string}; id: string; file: File; preview: string; status: 'queued'|'scanning'|'review'|'error'|'publishing'|'published'; fields: Fields; included: boolean; reviewed: boolean; savedAsDraft?: boolean; usePhoto?: boolean; error: string; original: string; total: string; metadata?: Metadata; uploaded?: {url:string;public_id:string} };
 const empty: Fields = {grading:null,name:'',number:'',set:'',rarity:'',language:'English',holo_type:'',price:'',condition:'',edition:''};
 async function responseData(response: Response) {
@@ -25,7 +27,7 @@ async function responseData(response: Response) {
 }
 function valid(item: Item) { const p=Number(item.fields.price); return isCardEdition(item.fields.edition) && (item.fields.grading ? completeGrading(item.fields.grading)&&item.fields.grading.confirmed : isCardCondition(item.fields.condition)) && !!item.preview && !!item.fields.name.trim() && !!item.fields.number.trim() && !!item.fields.set.trim() && !!item.fields.rarity.trim() && !!item.fields.holo_type && !!item.fields.price.trim() && Number.isFinite(p) && p>=.01 && p<=100000; }
 function missingDetails(item:Item){const fields=item.fields;const missing=['name','number','set','rarity','holo_type'].filter(key=>!fields[key as 'name'|'number'|'set'|'rarity'|'holo_type']?.trim()).map(key=>key==='holo_type'?'finish':key);if(!isCardEdition(fields.edition))missing.push('edition');if(fields.grading?(!completeGrading(fields.grading)||!fields.grading.confirmed):!isCardCondition(fields.condition))missing.push(fields.grading?'confirmed slab label':'condition');const price=Number(fields.price);if(!fields.price||!Number.isFinite(price)||price<.01||price>100000)missing.push('valid price (£0.01–£100,000)');return missing.join(', ');}
-function mergeMetadata(fields: Fields, metadata: Metadata): Fields { return metadata.matched ? {...fields,edition:metadata.edition === undefined ? fields.edition : metadata.edition || '',name:metadata.name || fields.name,set:metadata.set || '',rarity:metadata.rarity || '',holo_type:metadata.holo_type || fields.holo_type,price:metadata.pricing?.gbp || ''} : fields; }
+function mergeMetadata(fields: Fields, metadata: Metadata): Fields { return metadata.matched ? {...fields,edition:metadata.edition === undefined ? fields.edition : metadata.edition || '',name:metadata.name || fields.name,set:metadata.set || '',rarity:metadata.rarity || '',holo_type:metadata.holo_type || fields.holo_type,price:metadata.pricing?.gbp || fields.price} : fields; }
 
 export default function BatchScanner() {
  const [items,setItems]=useState<Item[]>([]);
@@ -143,11 +145,12 @@ export default function BatchScanner() {
     {item.metadata?.notice&&<p className={styles.note}>{item.metadata.notice}</p>}
     {item.metadata?.candidates?.map(c=><button type="button" className={styles.secondary} key={c.id} onClick={()=>void lookup(item.id,c.id)}>{c.set} · {c.name} #{c.number}</button>)}
     <ScanReview notes={item.notes||null} illustrator={item.metadata?.illustrator}/>
-    <GradingFields card={{name:item.fields.name,number:item.fields.number,set:item.fields.set}} value={item.fields.grading} onChange={grading=>{const old=item.fields.grading;const changed=grading?.company!==old?.company||grading?.grade!==old?.grade||grading?.cert_number!==old?.cert_number||!!grading!==!!old;update(item.id,{fields:{...item.fields,grading,...(changed?{price:''}:{})},reviewed:false,...(changed?{metadata:undefined}:{} )});}}/>
+    <GradingFields card={{name:item.fields.name,number:item.fields.number,set:item.fields.set}} value={item.fields.grading} onChange={grading=>{const old=item.fields.grading;const changed=grading?.company!==old?.company||grading?.grade!==old?.grade||!!grading!==!!old;update(item.id,{fields:{...item.fields,grading,...(changed?{price:''}:{})},reviewed:false,...(changed?{metadata:undefined}:{} )});}}/>
     {(['name','number','set','rarity'] as const).map(key=><label key={key}>{({name:'Card name',number:'Card number',set:'Set',rarity:'Rarity'})[key]}<input maxLength={key==='name'?200:key==='number'?40:key==='set'?160:100} value={item.fields[key]} onChange={e=>edit(item.id,key,e.target.value)}/></label>)}
     <div className={styles.fields}><label>Language<select value={item.fields.language} onChange={e=>edit(item.id,'language',e.target.value)}>{['English','Japanese','Korean'].map(l=><option key={l}>{l}</option>)}</select></label><label>Finish<select value={item.fields.holo_type} onChange={e=>edit(item.id,'holo_type',e.target.value)}><option value="">Confirm finish</option>{[...new Set([item.fields.holo_type,'Normal','Reverse Holo','Holo Rare','Double Rare','Ultra Rare','Full Art','Alt Art','Illustration Rare','Special Illustration Rare','Hyper Rare','Shiny Rare','Shiny Ultra Rare','Radiant Rare','Pokeball Holo','Master Ball Holo','Cosmos Holo','Promo'])].filter(Boolean).map(v=><option key={v}>{v}</option>)}</select></label></div>
     <label>Price (£)<input type="number" min="0.01" max="100000" step="0.01" inputMode="decimal" value={item.fields.price} onChange={e=>edit(item.id,'price',e.target.value)}/></label>
     {item.metadata?.pricing&&<p className={styles.note}>Suggested £{item.metadata.pricing.gbp} · {item.metadata.pricing.source} · {item.metadata.pricing.updated.slice(0,10)}. {item.fields.grading?'Check this exact graded match.':'Adjust for condition.'}{item.metadata.pricing.url&&<> <a href={item.metadata.pricing.url} target="_blank" rel="noopener noreferrer">View price source ↗</a></>}</p>}
+    <PriceComparisons items={item.metadata?.comparisons} onUse={price=>edit(item.id,'price',price)}/>
     <div className={styles.toolbar}><button type="button" className={styles.secondary} onClick={()=>void lookup(item.id)}>Refresh set & price</button><button type="button" className={styles.secondary} onClick={()=>void runQueue([item.id])}>Rescan photo</button></div>
     <label>Edition<select value={item.fields.edition} onChange={e=>edit(item.id,'edition',e.target.value)}><option value="">Check edition</option>{CARD_EDITIONS.map(v=><option key={v}>{v}</option>)}</select></label>
     <DuplicateCheck name={item.fields.name} number={item.fields.number} set={item.fields.set} language={item.fields.language}/>
