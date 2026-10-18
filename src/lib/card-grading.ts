@@ -1,4 +1,4 @@
-export const GRADERS = ['PSA', 'BGS', 'CGC', 'SGC', 'ACE', 'TAG', 'Other'] as const;
+export const GRADERS = ['PSA', 'BGS', 'CGC', 'SGC', 'ACE', 'TAG', 'GetGraded', 'Other'] as const;
 export type Grading = { company: string; grade: string; cert_number: string; confirmed: boolean };
 export const emptyGrading = (): Grading => ({ company: '', grade: '', cert_number: '', confirmed: false });
 export function readGrading(input: unknown): Grading | null {

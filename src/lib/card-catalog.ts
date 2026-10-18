@@ -16,8 +16,10 @@ function matchesName(name: string, scan: ScanIdentity) {
 }
 export function matchesCard(card: CatalogCard, scan: ScanIdentity) {
   const name = scan.language === 'English' ? scan.name : scan.original_name;
+  // E-reader holos have a separate H1–H32 sequence, not the main set total.
+  const holoSubset = /^ecard[123]-H(?:[1-9]|[12]\d|3[0-2])$/.test(card.id) && /^(?:H)?32$/i.test(scan.total || '') && /^H/i.test(scan.number);
   return !!name && matchesName(card.name, scan) && normaliseNumber(card.localId) === normaliseNumber(scan.number)
-    && (!scan.total || Number(scan.total) === card.set.cardCount.official);
+    && (!scan.total || holoSubset || Number(scan.total) === card.set.cardCount.official);
 }
 export function resolveFinish(card: CatalogCard, detected?: string | null) {
   const variants = card.variants;

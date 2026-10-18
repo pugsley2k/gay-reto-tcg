@@ -11,6 +11,7 @@ Return ONLY a raw JSON object with no markdown, no code blocks, no explanation. 
 {"name":null,"original_name":null,"card_number":null,"card_total":null,"language":null,"finish":null,"edition":null,"grading":null}
 
 Rules:
+- Preserve letter prefixes in printed collector numbers, e.g. H26/H32 means card_number:"H26", card_total:"H32". Handwritten prices or stock numbers on the slab (such as 69) are not the printed grade, card number or certificate. GetGraded is a grading company; preserve its name.
 - If in a professional grading slab, read the LABEL and return "grading":{"company":"PSA or BGS or CGC or SGC or ACE or TAG or actual company","grade":"full printed grade including qualifiers such as Pristine or Black Label, NOT subgrades","cert_number":"exact printed certification number as a STRING including leading zeros"}. For a slab with unreadable fields return empty strings for those fields; do not return null for grading. For an ungraded card grading:null. Never infer a professional grade from condition. Read identity and edition from both label and card, abstaining on conflict. Never invent a certificate or claim it is verified.
 - "name": ALWAYS the English Pokémon/card name, even if the card is in another language. Translate from Japanese or Korean if needed. Examples: ピカチュウ→Pikachu, 리자몽→Charizard, リザードンex→Charizard ex, 뮤츠→Mewtwo
 - "original_name": the name exactly as printed on the card (may be Japanese kanji/katakana or Korean hangul). If English, same as "name".

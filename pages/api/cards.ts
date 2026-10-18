@@ -5,6 +5,8 @@ import { validateListing } from '../../src/lib/card-listing';
 import { validClientId, sameListing } from '../../src/lib/listing-retry';
 import { isCardEdition } from '../../src/lib/card-edition';
 import { isCardCondition } from '../../src/lib/card-condition';
+import {verifyCertificate} from '../../src/lib/cert-verification';
+export const config = {maxDuration:30};
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   res.setHeader('Cache-Control', 'no-store');
@@ -54,6 +56,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let listing;
     try { listing = validateListing(req.body); }
     catch (error) { return res.status(400).json({ message: error instanceof Error ? error.message : 'Invalid card details.' }); }
+    if(listing.grading&&listing.available){const check=await verifyCertificate(listing.grading,{name:listing.name!,number:listing.number||'',set:listing.set||''});if(check.status==='mismatch')return res.status(400).json({message:check.message});}
     const clientId = req.body.client_id;
     if (clientId !== undefined && !validClientId(clientId)) return res.status(400).json({ message: 'Invalid listing reference.' });
     const { data, error } = await supabase.from('Card').insert(clientId ? { ...listing, id: clientId } : listing).select('id').single();
