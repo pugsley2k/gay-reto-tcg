@@ -21,6 +21,14 @@ export default function WebAgentPanel({ summary, metadata, busy, restore }: { su
     </div>
     <p className={styles.muted}>{summary?.pages !== undefined ? `Coverage: ${summary.pages} pages (${summary.products} of ${summary.totalProducts} products) and ${summary.resources} resources. ` : ''}{summary?.coverage || 'The daily check uses the existing schedule. Public page checks make no paid API calls.'}</p>
     <p className={styles.muted}>Automatic: checks, draft preparation and sitemap updates. Your approval: search text and canonical tags. Code, design, redirects, dependencies, purchases and paid services require a separately reviewed change.</p>
+    <div className={styles.policy}>
+      <strong>Google Search performance</strong>
+      <p>Use Search Console to see Google impressions, clicks, search terms and indexed pages. Reports open in Google with your signed-in account; these figures are not imported into Seller Studio. New data can take a few days to appear.</p>
+      <div className={styles.controls}>
+        <a href="https://search.google.com/search-console/performance/search-analytics?resource_id=https%3A%2F%2Fwww.gayretrotcg.com%2F" target="_blank" rel="noopener noreferrer">View search performance ↗</a>
+        <a href="https://search.google.com/search-console/index?resource_id=https%3A%2F%2Fwww.gayretrotcg.com%2F" target="_blank" rel="noopener noreferrer">View Google indexing ↗</a>
+      </div>
+    </div>
     {approved.length > 0 && <details className={styles.approved}><summary>Published SEO metadata · {approved.length}</summary>{approved.map(doc => <div key={doc.path}><strong>{doc.path} · {doc.title}</strong><p>{doc.description}</p>{confirmPath === doc.path ? <div><p>Restore this page’s original title and description and remove its approved canonical tag?</p><div className={styles.controls}><button type="button" disabled={busy} onClick={async () => { await restore(doc); setConfirmPath(''); }}>Confirm restore</button><button type="button" disabled={busy} onClick={() => setConfirmPath('')}>Cancel</button></div></div> : <button type="button" disabled={busy} onClick={() => setConfirmPath(doc.path)}>Restore original metadata…</button>}</div>)}</details>}
   </section>;
 }

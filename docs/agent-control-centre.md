@@ -38,6 +38,8 @@ Autonomous code changes, generated video and paid campaigns remain later phases.
 
 ## SEO and website maintenance release
 
+Google Search Console uses the URL-prefix property `https://www.gayretrotcg.com/` in the shop owner's Google account. The root layout publishes Google's public ownership verification meta tag; keep it in place after verification. Submit `https://www.gayretrotcg.com/sitemap.xml` in Search Console. Seller Studio links to the property's performance and indexing reports; it does not import metrics or claim a live OAuth connection. No analytics script, paid API or additional subscription is required. Google reports can take a few days to populate and are separate from the technical agent checks.
+
 The control centre now runs four rule-based agents: inventory, checkout, SEO and website maintenance. They use the existing daily cron (`0 9 * * *`, UTC), database and hosting. No paid model API, advertising, new subscription or extra scheduler is used. Existing infrastructure quotas still apply. Pause stops all routine agent checks; payment protection and order-email retry continue.
 
 SEO checks five core pages and up to three real product pages, rotating the product sample daily. It reads server HTML for titles, descriptions, canonical URLs, noindex, H1 headings and product JSON-LD. It prepares exact title/description/canonical proposals for the five core pages. Approval also updates their social preview text. It does not promise rankings, collect search analytics or invent product claims.

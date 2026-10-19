@@ -8,6 +8,7 @@ import FloatingMew from '@/components/FloatingMew';
 
 export const metadata = {
   metadataBase: new URL('https://www.gayretrotcg.com'),
+  verification: { google: '_LSjahRbfGEgp1GOSbVyilm6OItej6IhRDqwFMXRUp4' },
   title: "GAY RETRO TCG",
   description: "Browse Pokémon singles in English, Japanese and Korean at Gay Retro TCG.",
   manifest: '/site.webmanifest',
