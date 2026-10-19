@@ -356,7 +356,11 @@ export default function AdminUploadForm() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault(); setMsg("");
-    if(importSource && (!importReviewed || !condition || !holoType?.trim() || !language || !price.trim())) {setMsg('Review the imported card and choose its language, condition, finish and selling price.');return;}
+    if(importSource) {
+      const missing = [[!language,'language','manual-language'],[!holoType?.trim(),'finish (for example, Normal, Holo or Reverse Holo)','manual-finish'],[!condition,'card condition','manual-condition'],[!price.trim(),'selling price','manual-price'],[!importReviewed,'the review confirmation','import-review']] as const;
+      const errors=missing.filter(([invalid])=>invalid);
+      if(errors.length){setMsg(`Error: Complete ${errors.map(([,label])=>label).join(', ')} before adding this card.`);document.getElementById(errors[0][2])?.focus();return;}
+    }
     if (!name || !cardNumber || (!files && !selectedImages.length)) { setMsg("Name, number & image required."); return; }
     const p = Number(price); if (isNaN(p) || p < 0) { setMsg("Price must be a non-negative number."); return; }
 
@@ -697,7 +701,7 @@ export default function AdminUploadForm() {
         <form onSubmit={handleSubmit} className={legacy.style45} onChange={e=>{if((e.target as HTMLInputElement).id!=='import-review')setImportReviewed(false);}}>
           <h2 className={legacy.style46}>{wizardActive ? 'Card details' : 'Manual listing'}</h2>
 
-          {msg && <div style={msg.startsWith('Error') || msg.startsWith('✗') ? s.flashErr : s.flash}>{msg}</div>}
+          {msg && <div role={msg.startsWith('Error')||msg.startsWith('✗')?'alert':'status'} style={msg.startsWith('Error') || msg.startsWith('✗') ? s.flashErr : s.flash}>{msg}</div>}
 
           <fieldset disabled={importing||uploading} style={{border:'1px solid #ffffff36',padding:16,marginBottom:24,borderRadius:4}}>
             <legend>Import from PriceCharting link</legend>
@@ -780,25 +784,27 @@ export default function AdminUploadForm() {
           <div className={legacy.style78}>
             <div className={legacy.style79}>
               <label htmlFor="manual-language" className={legacy.style80}>Language</label>
-              <select id="manual-language" className={legacy.style81} value={language} onChange={e => setLanguage(e.target.value)}>
+              <select id="manual-language" className={legacy.style81} value={language} onChange={e => setLanguage(e.target.value)} required={!!importSource} aria-describedby={importSource&&!language?'language-help':undefined}>
                 <option value="">Choose language</option>
                 <option>English</option><option>Japanese</option><option>Korean</option>
                 <option>Chinese</option><option>French</option><option>German</option><option>Spanish</option>
               </select>
+              {importSource&&!language&&<p id="language-help">Required: choose the language printed on your card.</p>}
             </div>
             <div className={legacy.style82}>
               <label htmlFor="manual-finish" className={legacy.style83}>Finish</label>
-              <input id="manual-finish" className={legacy.style84} value={holoType ?? ''} onChange={e => setHoloType(e.target.value)} />
+              <input id="manual-finish" className={legacy.style84} value={holoType ?? ''} onChange={e => setHoloType(e.target.value)} required={!!importSource} placeholder="e.g. Normal, Holo, Reverse Holo" aria-describedby={importSource?'finish-help':undefined} />
+              {importSource&&<p id="finish-help">Required: enter the finish of your card. PriceCharting artwork does not confirm this for you.</p>}
             </div>
           </div>
 
           <hr className={legacy.style85} />
           <label htmlFor="manual-condition">Card condition</label>
-          <select id="manual-condition" value={condition} onChange={e=>setCondition(e.target.value)} style={{display:'block',width:'100%',marginBottom:20}}>
+          <select id="manual-condition" value={condition} onChange={e=>setCondition(e.target.value)} required={!!importSource} style={{display:'block',width:'100%',marginBottom:20}}>
             <option value="">Choose condition</option>
             {CARD_CONDITIONS.map(item=><option key={item.value}>{item.value}</option>)}
           </select>
-          {importSource&&<label style={{display:'flex',gap:10,alignItems:'flex-start',marginBottom:24}}><input id="import-review" type="checkbox" checked={importReviewed} onChange={e=>setImportReviewed(e.target.checked)} />I checked the card artwork, name, set, number, language, finish, condition and my selling price against the card I own. This creates a live listing.</label>}
+          {importSource&&<><p>Choose language, finish and condition above, then confirm below. Editing a field clears this confirmation so you can review the final details.</p><label style={{display:'flex',gap:10,alignItems:'flex-start',marginBottom:24}}><input id="import-review" type="checkbox" required checked={importReviewed} onChange={e=>setImportReviewed(e.target.checked)} />I checked the card artwork, name, set, number, language, finish, condition and my selling price against the card I own. This creates a live listing.</label></>}
 
           {/* Manual search (collapsed when not needed) */}
           {!wizardActive && (
@@ -835,7 +841,7 @@ export default function AdminUploadForm() {
             {files && files.length > 0 && <p className={legacy.style101}>✔ {files[0].name}</p>}
           </div>
 
-          <button className={legacy.style102} type="submit" disabled={uploading||importing||(!!importSource&&!importReviewed)}>
+          <button className={legacy.style102} type="submit" disabled={uploading||importing}>
             {uploading ? 'Uploading…' : wizardActive && wizardIndex < scanQueue.length - 1 ? `Add card & next → (${wizardIndex + 1}/${scanQueue.length})` : 'Add card'}
           </button>
         </form>
