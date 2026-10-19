@@ -3,6 +3,8 @@
 import studio from './SellerStudio.module.css';
 import legacy from './AdminUploadForm.module.css';
 import CollectionInsights from './CollectionInsights';
+import { isCardArtwork } from '@/lib/card-artwork';
+import { CARD_CONDITIONS } from '@/lib/card-condition';
 
 import { useState, useEffect, FormEvent, useRef } from "react";
 import AdminManageCards from "./AdminManageCards";
@@ -59,6 +61,29 @@ export default function AdminUploadForm() {
   const [selectedImages, setSel]  = useState<SelectedImageDetail[]>([]);
   const [holoType, setHoloType]   = useState<string | null>(null);
   const [language, setLanguage]   = useState<string>("English");
+  const [condition, setCondition] = useState('');
+  const [importUrl, setImportUrl] = useState('');
+  const [importSource, setImportSource] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importReviewed, setImportReviewed] = useState(false);
+  const [listingId, setListingId] = useState('');
+  const [importPriceNote, setImportPriceNote] = useState('');
+
+  async function importLink() {
+    setImporting(true); setMsg('');
+    try {
+      const response = await fetch('/api/admin/import-card', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:importUrl})});
+      const card = await response.json();
+      if(!response.ok)throw new Error(card.error || 'Could not import this card.');
+      setName(card.name); setNumber(card.number); setSetCode(card.set); setRarity(''); setPrice(card.price===null?'':String(card.price)); setImportPriceNote(card.price_note); setLanguage(''); setCondition(''); setHoloType(null);
+      setFiles(null); setSel([{url:card.image_url,file:null,source:'api',apiCardName:card.name}]);
+      setImportSource(card.source_url); setImportReviewed(false); setListingId(crypto.randomUUID());
+      setWizardActive(false); setResults([]); setTerm('');
+      const input=document.getElementById('file-input') as HTMLInputElement|null; if(input)input.value='';
+      setMsg('Card and catalogue image imported. Review the PriceCharting price, choose language, condition and finish, then check the artwork before adding it.');
+    } catch(error) {setMsg(`Error: ${error instanceof Error?error.message:'Could not import this card.'}`);}
+    finally {setImporting(false);}
+  }
 
   /* scan queue + wizard */
   interface ScanQueueItem {
@@ -331,26 +356,28 @@ export default function AdminUploadForm() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault(); setMsg("");
+    if(importSource && (!importReviewed || !condition || !holoType?.trim() || !language || !price.trim())) {setMsg('Review the imported card and choose its language, condition, finish and selling price.');return;}
     if (!name || !cardNumber || (!files && !selectedImages.length)) { setMsg("Name, number & image required."); return; }
     const p = Number(price); if (isNaN(p) || p < 0) { setMsg("Price must be a non-negative number."); return; }
 
     setUploading(true);
     try {
-      const imageToUpload = selectedImages.length > 0 ? selectedImages[0].file : (files ? files[0] : null);
-      if (!imageToUpload) throw new Error("No image file available to upload.");
+      const imageToUpload = selectedImages[0]?.file || files?.[0] || null;
+      let url = selectedImages[0]?.url; let public_id: string|null = null; let frontPhoto: string|null=null;
+      if(imageToUpload) {
+        const fd = new FormData(); fd.append('file',imageToUpload);
+        const u=await fetch('/api/upload',{method:'POST',body:fd});
+        const uploaded=await handleApiResponse(u); if(importSource){frontPhoto=uploaded.url;}else{url=uploaded.url;}public_id=uploaded.public_id;
+      } else if(!isCardArtwork(url)) throw new Error('Choose catalogue artwork or upload a listing image.');
 
-      const fd = new FormData();
-      fd.append("file", imageToUpload);
-      const u = await fetch("/api/upload", { method: "POST", body: fd });
-      const { url, public_id } = await handleApiResponse(u);
-
-      const body = { name, number: cardNumber, price: p, set: setCode, rarity, image_url: url, scan_url: public_id, available: true, language, holo_type: holoType };
+      const body = { name, number: cardNumber, price: p, set: setCode, rarity, image_url: url, front_image_url:frontPhoto, scan_url: public_id, available: true, language, holo_type: holoType, condition:condition||null, ...(listingId?{client_id:listingId}:{}) };
       const res = await fetch("/api/cards", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       await handleApiResponse(res);
 
       // Reset form fields
       setName(""); setNumber(""); setSetCode(""); setRarity(""); setPrice("");
       setFiles(null); setSel([]); setTerm(""); setResults([]); setHoloType(null); setLanguage("English");
+      setImportSource(''); setImportUrl(''); setImportReviewed(false); setCondition(''); setListingId('');
       const fi = document.getElementById("file-input") as HTMLInputElement | null;
       if (fi) fi.value = "";
 
@@ -667,10 +694,20 @@ export default function AdminUploadForm() {
         )}
 
         {/* ── MAIN FORM ───────────────────────────────────── */}
-        <form onSubmit={handleSubmit} className={legacy.style45}>
+        <form onSubmit={handleSubmit} className={legacy.style45} onChange={e=>{if((e.target as HTMLInputElement).id!=='import-review')setImportReviewed(false);}}>
           <h2 className={legacy.style46}>{wizardActive ? 'Card details' : 'Manual listing'}</h2>
 
           {msg && <div style={msg.startsWith('Error') || msg.startsWith('✗') ? s.flashErr : s.flash}>{msg}</div>}
+
+          <fieldset disabled={importing||uploading} style={{border:'1px solid #ffffff36',padding:16,marginBottom:24,borderRadius:4}}>
+            <legend>Import from PriceCharting link</legend>
+            <p>No photo? Import the card details, catalogue artwork and PriceCharting’s ungraded guide price in GBP. Review or edit everything before listing.</p>
+            <label htmlFor="import-card-url">PriceCharting item URL</label>
+            <input id="import-card-url" type="url" value={importUrl} onChange={e=>setImportUrl(e.target.value)} placeholder="https://www.pricecharting.com/game/pokemon-pitch-black/slowbro-90" style={{width:'100%',margin:'8px 0'}} />
+            <button type="button" className={studio.primary} onClick={importLink} disabled={!importUrl.trim()}>{importing?'Importing…':'Import card details'}</button>
+            {importSource&&<p>Imported from <a href={importSource} target="_blank" rel="noopener noreferrer">PriceCharting ↗</a>. Catalogue artwork is for reference; no actual-card photos have been added.</p>}
+            {importSource&&<p>{importPriceNote}</p>}
+          </fieldset>
 
           {/* Scan input — only show when not in wizard mode */}
           {!wizardActive && (
@@ -744,6 +781,7 @@ export default function AdminUploadForm() {
             <div className={legacy.style79}>
               <label htmlFor="manual-language" className={legacy.style80}>Language</label>
               <select id="manual-language" className={legacy.style81} value={language} onChange={e => setLanguage(e.target.value)}>
+                <option value="">Choose language</option>
                 <option>English</option><option>Japanese</option><option>Korean</option>
                 <option>Chinese</option><option>French</option><option>German</option><option>Spanish</option>
               </select>
@@ -755,6 +793,12 @@ export default function AdminUploadForm() {
           </div>
 
           <hr className={legacy.style85} />
+          <label htmlFor="manual-condition">Card condition</label>
+          <select id="manual-condition" value={condition} onChange={e=>setCondition(e.target.value)} style={{display:'block',width:'100%',marginBottom:20}}>
+            <option value="">Choose condition</option>
+            {CARD_CONDITIONS.map(item=><option key={item.value}>{item.value}</option>)}
+          </select>
+          {importSource&&<label style={{display:'flex',gap:10,alignItems:'flex-start',marginBottom:24}}><input id="import-review" type="checkbox" checked={importReviewed} onChange={e=>setImportReviewed(e.target.checked)} />I checked the card artwork, name, set, number, language, finish, condition and my selling price against the card I own. This creates a live listing.</label>}
 
           {/* Manual search (collapsed when not needed) */}
           {!wizardActive && (
@@ -791,7 +835,7 @@ export default function AdminUploadForm() {
             {files && files.length > 0 && <p className={legacy.style101}>✔ {files[0].name}</p>}
           </div>
 
-          <button className={legacy.style102} type="submit" disabled={uploading}>
+          <button className={legacy.style102} type="submit" disabled={uploading||importing||(!!importSource&&!importReviewed)}>
             {uploading ? 'Uploading…' : wizardActive && wizardIndex < scanQueue.length - 1 ? `Add card & next → (${wizardIndex + 1}/${scanQueue.length})` : 'Add card'}
           </button>
         </form>

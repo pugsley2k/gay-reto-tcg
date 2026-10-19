@@ -9,7 +9,7 @@ async function bytes(url,limit){const r=await fetch(url,{redirect:'error',signal
 function jobFolder(id){if(!uuid(id))throw Error('Invalid job identifier.');const folder=path.resolve(jobsDir,id);if(path.dirname(folder)!==jobsDir)throw Error('Unsafe job path.');fs.mkdirSync(folder,{recursive:true});return folder;}
 async function render(cfg,job){
  const {build}=require('esbuild');const {chromium}=require('playwright');
- if(!/^https:\/\/(assets\.tcgdex\.net\/(en|ja|ko)\/[A-Za-z0-9/_-]+\/(high|low)\.webp|images\.pokemontcg\.io\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\.png)$/.test(job.artwork))throw Error('The listing needs matching catalogue artwork. Uploaded photos are not used.');
+ if(!/^https:\/\/(assets\.tcgdex\.net\/(en|ja|ko)\/[A-Za-z0-9/_-]+\/(high|low)\.webp|images\.pokemontcg\.io\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\.png|storage\.googleapis\.com\/images\.pricecharting\.com\/[A-Za-z0-9_-]+\/(240|1600)\.jpg)$/.test(job.artwork))throw Error('The listing needs matching catalogue artwork. Uploaded photos are not used.');
  const folder=jobFolder(job.id),raw=path.join(folder,'raw.mp4'),output=path.join(folder,'promo.mp4');
  const art=await bytes(job.artwork,12_000_000);if(!['image/png','image/webp','image/jpeg'].includes(art.type))throw Error('Invalid catalogue image type.');
  const bundle=await build({entryPoints:[path.join(__dirname,'promo-render-entry.ts')],bundle:true,write:false,format:'iife',platform:'browser'});
