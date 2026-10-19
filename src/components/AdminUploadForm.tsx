@@ -68,6 +68,7 @@ export default function AdminUploadForm() {
   const [importReviewed, setImportReviewed] = useState(false);
   const [listingId, setListingId] = useState('');
   const [importPriceNote, setImportPriceNote] = useState('');
+  const [importDetailsNote,setImportDetailsNote]=useState('');
 
   async function importLink() {
     setImporting(true); setMsg('');
@@ -75,12 +76,12 @@ export default function AdminUploadForm() {
       const response = await fetch('/api/admin/import-card', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:importUrl})});
       const card = await response.json();
       if(!response.ok)throw new Error(card.error || 'Could not import this card.');
-      setName(card.name); setNumber(card.number); setSetCode(card.set); setRarity(''); setPrice(card.price===null?'':String(card.price)); setImportPriceNote(card.price_note); setLanguage(''); setCondition(''); setHoloType(null);
+      setName(card.name); setNumber(card.number); setSetCode(card.set); setRarity(''); setPrice(card.price===null?'':String(card.price)); setImportPriceNote(card.price_note); setImportDetailsNote(card.details_note); setLanguage(card.language||''); setCondition(''); setHoloType(card.holo_type||null);
       setFiles(null); setSel([{url:card.image_url,file:null,source:'api',apiCardName:card.name}]);
       setImportSource(card.source_url); setImportReviewed(false); setListingId(crypto.randomUUID());
       setWizardActive(false); setResults([]); setTerm('');
       const input=document.getElementById('file-input') as HTMLInputElement|null; if(input)input.value='';
-      setMsg('Card and catalogue image imported. Review the PriceCharting price, choose language, condition and finish, then check the artwork before adding it.');
+      setMsg(card.language&&card.holo_type?'Card details, image and price imported. Choose the condition, check the details and approve to add it.':'Card imported. Choose the condition and any missing details, then check and approve to add it.');
     } catch(error) {setMsg(`Error: ${error instanceof Error?error.message:'Could not import this card.'}`);}
     finally {setImporting(false);}
   }
@@ -711,6 +712,7 @@ export default function AdminUploadForm() {
             <button type="button" className={studio.primary} onClick={importLink} disabled={!importUrl.trim()}>{importing?'Importing…':'Import card details'}</button>
             {importSource&&<p>Imported from <a href={importSource} target="_blank" rel="noopener noreferrer">PriceCharting ↗</a>. Catalogue artwork is for reference; no actual-card photos have been added.</p>}
             {importSource&&<p>{importPriceNote}</p>}
+            {importSource&&<p>{importDetailsNote}</p>}
           </fieldset>
 
           {/* Scan input — only show when not in wizard mode */}
@@ -794,7 +796,7 @@ export default function AdminUploadForm() {
             <div className={legacy.style82}>
               <label htmlFor="manual-finish" className={legacy.style83}>Finish</label>
               <input id="manual-finish" className={legacy.style84} value={holoType ?? ''} onChange={e => setHoloType(e.target.value)} required={!!importSource} placeholder="e.g. Normal, Holo, Reverse Holo" aria-describedby={importSource?'finish-help':undefined} />
-              {importSource&&<p id="finish-help">Required: enter the finish of your card. PriceCharting artwork does not confirm this for you.</p>}
+              {importSource&&<p id="finish-help">{holoType?'Suggested from PriceCharting. Check this matches your card.':'Required: enter the finish of your card; PriceCharting did not clearly identify it.'}</p>}
             </div>
           </div>
 
@@ -804,7 +806,7 @@ export default function AdminUploadForm() {
             <option value="">Choose condition</option>
             {CARD_CONDITIONS.map(item=><option key={item.value}>{item.value}</option>)}
           </select>
-          {importSource&&<><p>Choose language, finish and condition above, then confirm below. Editing a field clears this confirmation so you can review the final details.</p><label style={{display:'flex',gap:10,alignItems:'flex-start',marginBottom:24}}><input id="import-review" type="checkbox" required checked={importReviewed} onChange={e=>setImportReviewed(e.target.checked)} />I checked the card artwork, name, set, number, language, finish, condition and my selling price against the card I own. This creates a live listing.</label></>}
+          {importSource&&<><p>Check the language and finish above, choose the condition, then confirm below. Editing a field clears this confirmation so you can review the final details.</p><label style={{display:'flex',gap:10,alignItems:'flex-start',marginBottom:24}}><input id="import-review" type="checkbox" required checked={importReviewed} onChange={e=>setImportReviewed(e.target.checked)} />I checked the card artwork, name, set, number, language, finish, condition and my selling price against the card I own. This creates a live listing.</label></>}
 
           {/* Manual search (collapsed when not needed) */}
           {!wizardActive && (

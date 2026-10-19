@@ -1,10 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {priceChartingItemUrl,parsePriceChartingItem,importPriceChartingItem} from './pricecharting-import';
+import {priceChartingItemUrl,parsePriceChartingItem,importPriceChartingItem,priceChartingSuggestions} from './pricecharting-import';
 import {isCardArtwork} from './card-artwork';
 const url='https://www.pricecharting.com/game/pokemon-pitch-black/slowbro-90';
 const art='https://storage.googleapis.com/images.pricecharting.com/p44jy5h4fiqq7rwo/240.jpg';
 const html=`<h1 id="product_name">Slowbro #90 <a href="/console/pokemon-pitch-black">Pokemon Pitch Black<img src="logo.png"></a></h1><div id="product_details"><div class="cover"><img itemprop="image" src="${art}"></div></div><div id="large-image">${art.replace('240','1600')}</div><td id="used_price"><span class="price js-price">$8.25</span><span>$999.99</span></td><script>VGPC.forex_rates = {"GBP":0.750282};</script><a id="dropdown_selected_currency">USD</a>`;
+test('language and finish suggestions use product identity or agreeing matching descriptions, never site language menus',()=>{
+ const sales=(titles:string[])=>titles.map(t=>`<a class="js-ebay-completed-sale">${t}</a>`).join('');
+ const matches=Array.from({length:3},(_,i)=>`Slowbro 090/084 Pitch Black English Illustration Rare ${i}`);
+ let result=priceChartingSuggestions(sales(matches),'Slowbro','90','Pitch Black','Slowbro #90 Pokemon Pitch Black');
+ assert.equal(result.language,'English');assert.equal(result.holo_type,'Illustration Rare');
+ result=priceChartingSuggestions(sales([...matches,...matches.map(t=>t.replace('Illustration Rare','Reverse Holo').replace('English','Japanese'))]),'Slowbro','90','Pitch Black','Slowbro #90');
+ assert.equal(result.language,null);assert.equal(result.holo_type,null);
+ result=priceChartingSuggestions(sales(matches.map(t=>t.replace('Pitch Black','Base Set')))+'<a>English</a>','Slowbro','90','Pitch Black','Slowbro #90');
+ assert.equal(result.language,null);assert.equal(result.holo_type,null);
+ result=priceChartingSuggestions(sales([matches[0],matches[0],matches[0]]),'Slowbro','90','Pitch Black','Slowbro #90');
+ assert.equal(result.language,null);assert.equal(result.holo_type,null);
+ result=priceChartingSuggestions('','Slowbro','90','Japanese Pitch Black','Slowbro [Reverse Holo] #90 Pokemon Japanese Pitch Black');
+ assert.equal(result.language,'Japanese');assert.equal(result.holo_type,'Reverse Holo');
+});
 test('imports product identity, main catalogue image and ungraded GBP price, never sale photos or graded prices',()=>{
  const card=parsePriceChartingItem(html,url);assert.equal(card.name,'Slowbro');assert.equal(card.number,'90');assert.equal(card.set,'Pitch Black');assert.equal(card.price,619);assert.equal(card.image_url,art.replace('240','1600'));assert.match(card.price_note,/ungraded/);assert.equal(isCardArtwork(card.image_url),true);
 });

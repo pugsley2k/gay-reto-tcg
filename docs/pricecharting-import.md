@@ -1,5 +1,7 @@
 # PriceCharting link import
 
+Language and finish are prefilled as editable suggestions when stated in the product heading or supported by matching completed-sale descriptions (same name, number and set). Language needs three distinct descriptions agreeing; finish needs three supporting descriptions and at least 85% agreement among named variants, allowing generic Holo descriptions alongside a specific holographic rarity. UI labels these as suggestions for owner confirmation. Page navigation language, unrelated sales and repeated copies of one description do not qualify. Ambiguous or unsupported fields remain blank; condition always requires the owner. No image recognition or paid service is used for these suggestions.
+
 Seller Studio → Manual listing → Import from PriceCharting link. Paste an HTTPS Pokémon item URL and choose Import card details. It fills the name, card number, set, main catalogue artwork and ungraded guide price in whole GBP pence. It does not create stock until the owner reviews the fields, selects language, condition and finish, checks the confirmation and chooses Add card. No photo is required. Imported artwork stays separate from an optional front photograph.
 
 Only the item's own cover image in the specific `images.pricecharting.com` Google Storage bucket is accepted. Marketplace seller photos and unrelated URLs are excluded. Shop artwork and both promo renderers accept that exact image path format. The PC worker must restart after an update to load its new artwork allowlist.
