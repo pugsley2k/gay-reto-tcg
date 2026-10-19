@@ -14,7 +14,7 @@ export const metadata = {
   manifest: '/site.webmanifest',
   appleWebApp: { capable: true, title: 'Gay Retro' },
   icons: {
-    icon: "/favicon.png",
+    icon: [{ url: "/favicon.png", type: "image/png", sizes: "96x96" }],
     apple: "/apple-touch-icon.png",
   },
   openGraph: {
