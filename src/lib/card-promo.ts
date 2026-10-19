@@ -1,8 +1,9 @@
 import {isCardArtwork} from './card-artwork';
+import {slabPresentation,type SlabDetails} from './slab-presentation';
 export type PromoCard = {
   id:string; name:string; price:number; available:boolean; sold_at:string|null;
   image_url:string|null; front_image_url:string|null; back_image_url:string|null; set:string|null; number:string|null;
-  condition:string|null; grading?:{company?:string;grade?:string;confirmed?:boolean}|null;
+  condition:string|null; grading?:SlabDetails|null;
 };
 export type PromoStyle = 'gold'|'ember'|'tidal'|'neon';
 export const PROMO_SECONDS = 8;
@@ -17,7 +18,7 @@ export function makeCardPromo(card:PromoCard,revision:number) {
   const price=`£${(card.price/100).toFixed(2)}`;
   const facts=[card.set,card.number?`#${card.number}`:null,card.grading?.confirmed?[card.grading.company,card.grading.grade].filter(Boolean).join(' '):card.condition].filter(Boolean).join(' · ');
   const url=`https://www.gayretrotcg.com/cards/${encodeURIComponent(card.id)}`;
-  return {cardId:card.id,revision,name:card.name,price,facts,url,style:promoStyle(card.name),seconds:PROMO_SECONDS,
+  return {cardId:card.id,revision,name:card.name,price,facts,url,style:promoStyle(card.name),seconds:PROMO_SECONDS,slab:slabPresentation(card.grading),
     artwork:`/api/admin/card-promos/image?cardId=${encodeURIComponent(card.id)}&revision=${revision}`,
     caption:`Now available: ${card.name}${facts?` · ${facts}`:''}\n${price} + delivery. One physical card.\nCheck current price and availability: ${url}\n#PokemonTCG #PokemonCards #CardCollector #GayRetroTCG`};
 }

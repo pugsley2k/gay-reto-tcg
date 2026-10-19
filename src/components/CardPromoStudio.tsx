@@ -1,4 +1,5 @@
 'use client';
+import brandAssets from '@/lib/brand-assets.json';
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {PROMO_SECONDS,type CardPromo,type PromoStyle} from '@/lib/card-promo';
 import {drawCardPromo,loadPromoImage,promoRecordingType,recordCardPromo,PROMO_WIDTH,PROMO_HEIGHT} from '@/lib/card-promo-renderer';
@@ -15,7 +16,7 @@ export default function CardPromoStudio(){
   useEffect(()=>{if(promo&&ready&&canvas.current&&assets.current)drawCardPromo(canvas.current,promo,assets.current.art,assets.current.logo,2.8,style);},[promo,style,ready]);
   async function open(draft:Draft){
     cancelAnimationFrame(frame.current);setPlaying(false);setReady(false);setPromo(null);setDownload('');setBusy(draft.card_id);setError('');setMessage('');const version=++loadVersion.current;
-    try{const data:CardPromo=await responseJson(await fetch(`/api/admin/card-promos?cardId=${encodeURIComponent(draft.card_id)}&revision=${draft.revision}`,{cache:'no-store'}));const [art,logo]=await Promise.all([loadPromoImage(data.artwork),loadPromoImage('/gay-retro-flat.webp')]);if(version!==loadVersion.current)return;assets.current={art,logo};setStyle(data.style);setPromo(data);setReady(true);}
+    try{const data:CardPromo=await responseJson(await fetch(`/api/admin/card-promos?cardId=${encodeURIComponent(draft.card_id)}&revision=${draft.revision}`,{cache:'no-store'}));const [art,logo]=await Promise.all([loadPromoImage(data.artwork),loadPromoImage(brandAssets.logo)]);if(version!==loadVersion.current)return;assets.current={art,logo};setStyle(data.style);setPromo(data);setReady(true);}
     catch(error){if(version===loadVersion.current)setError(error instanceof Error?error.message:'Could not prepare preview.');}finally{if(version===loadVersion.current)setBusy('');}
   }
   function preview(){if(!promo||!canvas.current||!assets.current)return;cancelAnimationFrame(frame.current);setPlaying(true);const start=performance.now();const tick=(now:number)=>{if(!canvas.current||!assets.current)return;const seconds=(now-start)/1000;drawCardPromo(canvas.current,promo,assets.current.art,assets.current.logo,seconds,style);if(seconds<PROMO_SECONDS)frame.current=requestAnimationFrame(tick);else setPlaying(false);};frame.current=requestAnimationFrame(tick);}

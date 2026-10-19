@@ -1,5 +1,7 @@
 # Automatic slab header colours
 
+All graders share `slabPresentation`: confirmed company and grade, validated saved palette, and a neutral fallback if colour evidence is absent. The reviewed legacy Tentacruel palette remains a fallback for that existing certificate. Shop artwork and newly rendered promotional videos use the same presentation. Existing MP4s are immutable and must be rendered again to receive template changes; no existing upload approval or uncertain TikTok attempt is automatically retried. Website and promo logo paths share `brand-assets.json`. Rendering remains deterministic and free; no generative-image API is called.
+
 Phone scanner and batch scanner pass their original front File into the grading review. Once a card is marked professionally graded, the browser decodes a small 160-pixel-wide raster and samples the centre of the upper 6–40% of the photo. Dominant colour bins and a neutral-colour preference select a suggested label background and lower band. Text switches to black or white for contrast. This is a heuristic colour sampler, not label recognition or an authentication check.
 
 The owner sees a swatch before final confirmation, with a vertical sample-position slider and two colour pickers to correct background, glare or framing mistakes. No external image API or model is called by colour detection. Existing scanner recognition/pricing behaviour is unchanged. This colour feature adds no paid service.

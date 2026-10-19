@@ -15,7 +15,7 @@ async function render(cfg,job){
  const bundle=await build({entryPoints:[path.join(__dirname,'promo-render-entry.ts')],bundle:true,write:false,format:'iife',platform:'browser'});
  const browser=await chromium.launch({channel:'msedge',headless:true});
  try{const page=await browser.newPage({viewport:{width:1080,height:1920}});await page.route('**/*',r=>r.abort());await page.setContent('<html><body style="margin:0"><canvas width="1080" height="1920"></canvas></body></html>');await page.addScriptTag({content:bundle.outputFiles[0].text});
-  const data=await page.evaluate(input=>window.renderPromo(input),{promo:job.promo,artwork:`data:${art.type};base64,${art.buffer.toString('base64')}`,logo:'data:image/webp;base64,'+fs.readFileSync(path.join(root,'public','gay-retro-flat.webp')).toString('base64')});fs.writeFileSync(raw,Buffer.from(data));
+  const data=await page.evaluate(input=>window.renderPromo(input),{promo:job.promo,artwork:`data:${art.type};base64,${art.buffer.toString('base64')}`,logo:'data:image/webp;base64,'+fs.readFileSync(path.join(root,'public',require('../src/lib/brand-assets.json').logo.replace(/^\//,''))).toString('base64')});fs.writeFileSync(raw,Buffer.from(data));
  }finally{await browser.close();}
  execFileSync('ffmpeg',['-y','-i',raw,'-an','-c:v','libx264','-preset','fast','-crf','27','-maxrate','2200k','-bufsize','4400k','-pix_fmt','yuv420p','-r','30','-movflags','+faststart',output],{windowsHide:true,stdio:'ignore',timeout:90000});
  const probe=JSON.parse(execFileSync('ffprobe',['-v','error','-show_entries','stream=codec_name,width,height','-show_entries','format=duration','-of','json',output],{encoding:'utf8',windowsHide:true,timeout:15000}));const stream=probe.streams?.[0];

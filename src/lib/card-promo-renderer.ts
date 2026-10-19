@@ -24,7 +24,17 @@ export function drawCardPromo(canvas:HTMLCanvasElement,promo:CardPromo,artwork:H
   const entry=out((t-.32)/.9);const turn=Math.sin(Math.min(t,6)/6*Math.PI)*.035;
   ctx.save();ctx.globalAlpha=entry;ctx.translate(510,907+160*(1-entry));ctx.rotate(-.13*(1-entry)+turn);ctx.scale(.8+.2*entry,.8+.2*entry);
   ctx.shadowColor='#000000aa';ctx.shadowBlur=55;ctx.shadowOffsetY=30;ctx.fillStyle='#0a0d10';ctx.beginPath();ctx.roundRect(-295,-407,590,814,28);ctx.fill();ctx.shadowColor='transparent';
-  contained(ctx,artwork,-286,-398,572,796);
+  if(promo.slab){
+    const {header,company,grade}=promo.slab;
+    ctx.fillStyle='#373c42';ctx.beginPath();ctx.roundRect(-295,-407,590,814,28);ctx.fill();
+    const label=ctx.createLinearGradient(0,-385,0,-265);label.addColorStop(0,header.background);label.addColorStop(.65,header.background);label.addColorStop(1,header.accent);
+    ctx.fillStyle=label;ctx.fillRect(-270,-385,540,120);
+    text(ctx,'GRADED CARD',-250,-351,210,16,header.text,600);
+    text(ctx,company,-250,-298,270,34,header.text,800);
+    text(ctx,grade,40,-313,205,34,header.text,800);
+    contained(ctx,artwork,-270,-245,540,595);
+    text(ctx,'Illustrative holder · view actual photos online',-255,382,510,17,'#eeeeee',500);
+  }else contained(ctx,artwork,-286,-398,572,796);
   // Light travels around the artwork; it never replaces or alters its printing.
   ctx.strokeStyle=accent+'88';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(-298,-410,596,820,29);ctx.stroke();ctx.restore();
   const offer=out((t-1.12)/.45);ctx.save();ctx.globalAlpha=offer;ctx.translate(0,35*(1-offer));
