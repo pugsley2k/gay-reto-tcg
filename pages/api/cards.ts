@@ -7,6 +7,8 @@ import { isCardEdition } from '../../src/lib/card-edition';
 import { isCardCondition } from '../../src/lib/card-condition';
 import {verifyCertificate} from '../../src/lib/cert-verification';
 import { checkoutOrigin } from '../../src/lib/checkout-session';
+import {isCardArtwork} from '../../src/lib/card-artwork';
+import {enrichCard,normaliseName} from '../../src/lib/card-catalog';
 export const config = {maxDuration:30};
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -76,6 +78,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let listing;
     try { listing = validateListing(req.body); }
     catch (error) { return res.status(400).json({ message: error instanceof Error ? error.message : 'Invalid card details.' }); }
+    if(listing.grading && listing.available && !isCardArtwork(listing.image_url)) {
+      try {
+        const [number,total]=String(listing.number||'').split('/');
+        const match=await enrichCard({name:listing.name!,number,total,language:listing.language,finish:listing.holo_type,edition:listing.edition},undefined,{artworkOnly:true});
+        if(!match.matched||!('image_url' in match)||!isCardArtwork(match.image_url)||!('set' in match)||!listing.set||normaliseName(match.set||'')!==normaliseName(listing.set))throw Error();
+        listing={...listing,image_url:match.image_url};
+      }catch {return res.status(400).json({message:'No matching catalogue artwork was found for this slab. Choose the matching catalogue card before publishing; your photo and details are still here.'});}
+    }
     if(listing.grading&&listing.available){const check=await verifyCertificate(listing.grading,{name:listing.name!,number:listing.number||'',set:listing.set||''});if(check.status==='mismatch')return res.status(400).json({message:check.message});}
     const clientId = req.body.client_id;
     if (clientId !== undefined && !validClientId(clientId)) return res.status(400).json({ message: 'Invalid listing reference.' });

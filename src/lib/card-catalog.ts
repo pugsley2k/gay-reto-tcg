@@ -71,25 +71,21 @@ export function catalogImageUrl(card: CatalogCard, language: string) {
 }
 async function availableImage(card: CatalogCard, language: string) {
   const url = catalogImageUrl(card, language);
-  if (!url) {
-    // Some e-reader holos have metadata but no TCGdex artwork. Require a
-    // second catalogue's exact identity and set before using its returned URL.
-    if(language!=='English'||card.variants?.firstEdition||!card.set.id)return null;
-    try{
-      const response=await fetch(`https://api.pokemontcg.io/v2/cards/${encodeURIComponent(card.id)}`,{next:{revalidate:86400},signal:AbortSignal.timeout(6000)});
-      if(!response.ok)return null;
-      const other=(await response.json()).data;
-      if(other?.id!==card.id||normaliseName(other.name||'')!==normaliseName(card.name)||normaliseNumber(other.number||'')!==normaliseNumber(card.localId)||other.set?.id!==card.set.id||normaliseName(other.set?.name||'')!==normaliseName(card.set.name)||!isCardArtwork(other.images?.large))return null;
-      const image=await fetch(other.images.large,{method:'HEAD',redirect:'error',next:{revalidate:86400},signal:AbortSignal.timeout(3000)});
-      return image.ok&&image.headers.get('content-type')?.startsWith('image/')?other.images.large:null;
-    }catch{return null;}
-  }
+  if(url)try {
+    const response=await fetch(url,{method:'HEAD',redirect:'error',next:{revalidate:3600},signal:AbortSignal.timeout(3000)});
+    if(response.ok&&response.headers.get('content-type')?.startsWith('image/'))return url;
+  }catch{/* Try the independently identity-checked catalogue below. */}
+  if(language!=='English'||card.variants?.firstEdition||!card.set.id)return null;
   try {
-    const response = await fetch(url, { method: 'HEAD', redirect: 'error', next: { revalidate: 3600 }, signal: AbortSignal.timeout(3000) });
-    return response.ok && response.headers.get('content-type')?.startsWith('image/') ? url : null;
-  } catch { return null; }
+    const response=await fetch(`https://api.pokemontcg.io/v2/cards/${encodeURIComponent(card.id)}`,{next:{revalidate:86400},signal:AbortSignal.timeout(6000)});
+    if(!response.ok)return null;
+    const other=(await response.json()).data;
+    if(other?.id!==card.id||normaliseName(other.name||'')!==normaliseName(card.name)||normaliseNumber(other.number||'')!==normaliseNumber(card.localId)||other.set?.id!==card.set.id||normaliseName(other.set?.name||'')!==normaliseName(card.set.name)||!isCardArtwork(other.images?.large))return null;
+    const image=await fetch(other.images.large,{method:'HEAD',redirect:'error',next:{revalidate:86400},signal:AbortSignal.timeout(3000)});
+    return image.ok&&image.headers.get('content-type')?.startsWith('image/')?other.images.large:null;
+  }catch{return null;}
 }
-export async function enrichCard(scan: ScanIdentity, selectedId?: string) {
+export async function enrichCard(scan: ScanIdentity, selectedId?: string, options?:{artworkOnly?:boolean}) {
   const lang = languages[scan.language];
   if (!lang || !scan.number || !scan.name) return { matched: false, notice: 'Check the card name and number to look up its set.' };
   let candidates: CatalogCard[];
@@ -113,6 +109,7 @@ export async function enrichCard(scan: ScanIdentity, selectedId?: string) {
   const result = { matched: true, image_url: card.variants?.firstEdition || scan.edition === '1st Edition' ? null : await availableImage(card, scan.language), edition: resolveCatalogEdition(card,scan), name: scan.language === 'English' ? card.name : scan.name, catalog_id: card.id, illustrator:card.illustrator||null, set: card.set.name, rarity, holo_type: holo, pricing: null as null | { gbp: string; source: string; updated: string; original: number; currency: string; rate: number; rate_date: string }, notice: finish ? 'Catalogue match found. Check the artwork and condition before publishing.' : 'Set and rarity found. Confirm the finish before requesting a price.' };
   if (card.variants?.firstEdition || scan.edition === '1st Edition') result.notice += result.edition === '1st Edition' || result.edition === 'Unlimited' ? ` Edition: ${result.edition}. Your photo will be used to show the actual printing.` : ' Choose 1st Edition or Unlimited before requesting a price.';
   if (card.id === 'base1-4' && result.edition === 'Unlimited') result.notice += ' Unlimited pricing refers to the standard shadowed printing, not Shadowless or 1999–2000 variants.';
+  if(options?.artworkOnly)return result;
   const grading = readGrading(scan.grading);
   if (grading) {
     const graded = await gradedPrice({name:result.name,number:card.localId,set:result.set,language:scan.language,edition:result.edition||'',finish:result.holo_type||''},grading);
