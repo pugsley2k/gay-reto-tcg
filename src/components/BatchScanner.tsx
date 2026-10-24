@@ -20,9 +20,9 @@ import GradingFields from './GradingFields';
 import {completeGrading,type Grading} from '@/lib/card-grading';
 
 type Fields = { grading:Grading|null; name: string; number: string; set: string; rarity: string; language: string; holo_type: string; price: string; condition: string; edition: string };
-type Metadata = { comparisons?:PriceComparison[]; illustrator?:string|null; edition?: string | null; image_url?: string | null; name?: string; matched?: boolean; set?: string; rarity?: string; holo_type?: string; notice?: string; candidates?: {id:string;name:string;set:string;number:string}[]; pricing?: {gbp:string;source:string;updated:string;url?:string} };
+type Metadata = { art_verified?:boolean; number?:string; comparisons?:PriceComparison[]; illustrator?:string|null; edition?: string | null; image_url?: string | null; name?: string; matched?: boolean; set?: string; rarity?: string; holo_type?: string; notice?: string; candidates?: {id:string;name:string;set:string;number:string}[]; pricing?: {gbp:string;source:string;updated:string;url?:string} };
 type Item = { actualPhoto?:boolean; groupPosition?:string; notes?:ScanNotes|null; fingerprint?:string; back?:File|null; backUpload?:{url:string;public_id:string}; id: string; file: File; preview: string; status: 'queued'|'scanning'|'review'|'error'|'publishing'|'published'; fields: Fields; included: boolean; reviewed: boolean; savedAsDraft?: boolean; usePhoto?: boolean; error: string; original: string; total: string; metadata?: Metadata; uploaded?: {url:string;public_id:string} };
-const empty: Fields = {grading:null,name:'',number:'',set:'',rarity:'',language:'English',holo_type:'',price:'',condition:'',edition:''};
+const empty: Fields = {grading:null,name:'',number:'',set:'',rarity:'',language:'English',holo_type:'',price:'',condition:'Near Mint',edition:''};
 async function responseData(response: Response) {
  const data = await response.json().catch(()=>({}));
  if (!response.ok) throw new Error(data.error || data.message || 'Request failed. Try again.');
@@ -42,7 +42,7 @@ export default function BatchScanner() {
  const [addingPhotos,setAddingPhotos]=useState(false);
  const [publishing,setPublishing]=useState(false);
  const [notice,setNotice]=useState('');
- const [queueFilter,setQueueFilter]=useState('all');
+ const [queueFilter,setQueueFilter]=useState('included');
  const [lookupId,setLookupId]=useState('');
  const [conditionBusy,setConditionBusy]=useState(false);
  const locked=useRef(false);
@@ -74,9 +74,16 @@ export default function BatchScanner() {
  }
  async function resolveGroup(id:string){
   const item=current.current.find(i=>i.id===id);if(!item)return;
-  if(!item.fields.name||!item.fields.number||!item.fields.language){update(id,{status:'review',error:'Some printed details were unreadable. Check the reference photo and enter them before catalogue lookup.'});return;}
+  if(!item.fields.name||!item.fields.language||item.fields.grading){update(id,{status:'review',included:false,reviewed:false,error:item.fields.grading?'Skipped: graded cards need an individual slab photo.':'Skipped: card identity or language is uncertain.'});return;}
   update(id,{status:'scanning'});
-  try{const metadata=await responseData(await fetch('/api/card-details',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:item.fields.name,original_name:item.original,number:item.fields.number.split('/')[0],total:item.total,language:item.fields.language,finish:item.fields.holo_type,edition:item.fields.edition})}));update(id,{metadata,fields:mergeMetadata(item.fields,metadata),status:'review',usePhoto:false});}catch{update(id,{status:'review',error:'Catalogue lookup failed. Confirm details and use Refresh set & price to retry.'});}
+  try{
+   const body=new FormData();body.append('image',item.file);body.append('position',item.groupPosition||'');body.append('identity',JSON.stringify({name:item.fields.name,original_name:item.original,number:item.fields.number.split('/')[0],total:item.total,language:item.fields.language,finish:item.fields.holo_type,edition:item.fields.edition}));
+   const metadata:Metadata=await responseData(await fetch('/api/match-card-art',{method:'POST',body}));
+   const fields={...mergeMetadata(item.fields,metadata),...(metadata.matched&&metadata.number?{number:metadata.number}:{}),condition:'Near Mint'};
+   const next={...item,metadata,fields,status:'review' as const,usePhoto:false};
+   const ready=metadata.matched===true&&metadata.art_verified===true&&valid(next);
+   update(id,{...next,included:ready,reviewed:ready,error:ready?'':`Skipped: ${metadata.art_verified?missingDetails(next):metadata.notice||'Artwork or printing is uncertain.'}`});
+  }catch{update(id,{status:'review',included:false,reviewed:false,error:'Skipped: artwork matching could not complete. Retry this card if needed.'});}
  }
  function addGroup(file:File,cards:GroupCardIdentity[]){
   if(locked.current||cards.length+current.current.length>20)return;
@@ -155,22 +162,22 @@ export default function BatchScanner() {
  function clear() {if(busy)return;urls.current.forEach(url=>URL.revokeObjectURL(url));urls.current.clear();mutate(()=>[]);setNotice('');}
  return <main className={styles.page}>
   <header className={styles.header}><Link href="/admin">← Seller studio</Link><span>GAY RETRO / BATCH SCANNER</span></header>
-  <p className={styles.eyebrow}>Scan, review and publish</p><h1>Scan multiple cards.<br /><em>Review before publishing.</em></h1>
-  <p className={styles.intro}>Add up to 20 cards using individual photos or a group photo. Group photos identify cards directly; review each catalogue match, condition and price before publishing.</p>
-  <p className={styles.note}>Keep this page open until you finish. This queue stays in this tab and is lost if you reload or close it. Photos go to OpenAI for recognition; group photos are recognition references only. Ungraded cards under £20 can use confirmed catalogue artwork without an actual-card photo. Individual photos are required for higher-priced and graded cards.</p>
+  <p className={styles.eyebrow}>Scan and publish</p><h1>Scan multiple cards.<br /><em>Publish clear matches.</em></h1>
+  <p className={styles.intro}>Add up to 20 cards using individual photos or a group photo. Group photos identify cards by artwork and readable details. Clear, complete matches are ready to publish together; uncertain cards are automatically skipped.</p>
+  <p className={styles.note}>Keep this page open until you finish. This queue stays in this tab and is lost if you reload or close it. Photos go to OpenAI for recognition; group photos are recognition references only. Ungraded cards under £20 can use confirmed catalogue artwork without an actual-card photo. Individual photos are required for higher-priced and graded cards. Ungraded scans default to Near Mint as your seller setting, not an AI condition assessment.</p>
   <ScannerDefaults/>
   <input ref={photos} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden onChange={e=>{addFiles(Array.from(e.target.files||[]));e.target.value='';}} />
   <div className={styles.toolbar}><button disabled={busy||items.length>=20} onClick={()=>photos.current?.click()}>{items.length?'Add more photos':'Choose card photos'}</button><button type="button" className={styles.secondary} disabled={busy} aria-expanded={groupOpen} aria-controls="group-photo-scanner" onClick={()=>setGroupOpen(value=>!value)}>{groupOpen?'Hide group photo tool':'Cards in one photo'}</button>{items.length>0&&<button className={styles.secondary} disabled={busy} onClick={clear}>Clear batch</button>}</div>
   <div id="group-photo-scanner" hidden={!groupOpen}><GroupIdentityScanner disabled={scanning||publishing||!!lookupId||conditionBusy||addingPhotos} remaining={20-items.length} onCards={addGroup} onBusy={setGroupBusy}/></div>
   {notice&&<p role="status" className={styles.notice}>{notice}</p>}
-  {items.length>0&&<div className={styles.progress} role="status">{scanning?`${items.filter(i=>!['queued','scanning'].includes(i.status)).length} of ${items.length} scanned — two cards at a time`: `${items.filter(i=>i.reviewed&&i.status!=='published').length} reviewed · ${items.filter(i=>i.status==='published'&&!i.savedAsDraft).length} published · ${items.filter(i=>i.savedAsDraft).length} drafts · ${pending.filter(i=>!i.included).length} excluded`}</div>}
-  {items.length>0&&<label>Show cards<select value={queueFilter} onChange={event=>setQueueFilter(event.target.value)}><option value="all">All cards</option><option value="review">Needs review</option><option value="ready">Reviewed</option><option value="error">Errors</option></select></label>}
-  <div className={styles.queue}>{items.filter(item=>queueFilter==='all'||(queueFilter==='ready'?item.reviewed:queueFilter==='error'?!!item.error:!item.reviewed&&item.status!=='published')).map((item,index)=><article key={item.id} className={styles.item}>
-   <div className={styles.itemTop}>{item.preview?<img src={item.actualPhoto===false&&item.metadata?.matched&&item.metadata.image_url?item.metadata.image_url:item.preview} alt={item.actualPhoto===false?`Catalogue artwork or recognition reference ${index+1}`:`Card photo ${index+1}`} />:<span className={styles.placeholder}>{index+1}</span>}<div><span className={styles.eyebrow}>CARD {index+1} / {item.status==='published'?(item.savedAsDraft?'DRAFT SAVED':'PUBLISHED'):item.status==='scanning'?'SCANNING':item.status==='queued'?'QUEUED':item.reviewed?'REVIEWED':'NEEDS REVIEW'}</span><h2>{item.fields.name||item.groupPosition||item.file.name}</h2><p>{item.fields.set||'Set not confirmed'}{item.fields.price?` · £${Number(item.fields.price).toFixed(2)}`:''}</p></div></div>
+  {items.length>0&&<div className={styles.progress} role="status">{scanning?`${items.filter(i=>!['queued','scanning'].includes(i.status)).length} of ${items.length} scanned — two cards at a time`: `${items.filter(i=>i.reviewed&&i.status!=='published').length} ready · ${items.filter(i=>i.status==='published'&&!i.savedAsDraft).length} published · ${items.filter(i=>i.savedAsDraft).length} drafts · ${pending.filter(i=>!i.included).length} skipped`}</div>}
+  {items.length>0&&<label>Show cards<select value={queueFilter} onChange={event=>setQueueFilter(event.target.value)}><option value="included">Ready / in progress</option><option value="skipped">Skipped cards</option><option value="all">All cards</option><option value="review">Needs review</option><option value="ready">Ready</option><option value="error">Errors</option></select></label>}
+  <div className={styles.queue}>{items.filter(item=>queueFilter==='all'||(queueFilter==='included'?item.included:queueFilter==='skipped'?!item.included:queueFilter==='ready'?item.reviewed:queueFilter==='error'?!!item.error:!item.reviewed&&item.status!=='published')).map((item,index)=><article key={item.id} className={styles.item}>
+   <div className={styles.itemTop}>{item.preview?<img src={item.actualPhoto===false&&item.metadata?.matched&&item.metadata.image_url?item.metadata.image_url:item.preview} alt={item.actualPhoto===false?`Catalogue artwork or recognition reference ${index+1}`:`Card photo ${index+1}`} />:<span className={styles.placeholder}>{index+1}</span>}<div><span className={styles.eyebrow}>CARD {index+1} / {item.status==='published'?(item.savedAsDraft?'DRAFT SAVED':'PUBLISHED'):item.status==='scanning'?'SCANNING':item.status==='queued'?'QUEUED':!item.included?'SKIPPED':item.reviewed?'READY':'NEEDS REVIEW'}</span><h2>{item.fields.name||item.groupPosition||item.file.name}</h2><p>{item.fields.set||'Set not confirmed'}{item.fields.price?` · £${Number(item.fields.price).toFixed(2)}`:''}{!item.fields.grading&&item.fields.condition?` · ${item.fields.condition}`:''}</p></div></div>
    {item.actualPhoto===false&&<p className={styles.note}>{item.groupPosition||'Group photo'} · Recognition reference only; not a listing photo.</p>}
    {item.error&&<p className={styles.error} role="alert">{item.error}</p>}
    {!['queued','scanning','published','publishing'].includes(item.status)&&<><label className={styles.check}><input type="checkbox" checked={item.included} disabled={busy} onChange={e=>update(item.id,{included:e.target.checked})}/>Include in this batch</label>
-   <details><summary>Review card {index+1}{item.reviewed?' — checked':''}</summary><div className={styles.editor}><fieldset disabled={busy}><legend className={styles.srOnly}>Details for card {index+1}</legend>
+   <details><summary>Edit card {index+1}{item.reviewed?' — ready':''}</summary><div className={styles.editor}><fieldset disabled={busy}><legend className={styles.srOnly}>Details for card {index+1}</legend>
     <label>{item.actualPhoto===false?'Add individual card photo':'Replace individual card photo'}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>{void attachPhoto(item.id,e.target.files?.[0]);e.target.value='';}}/></label>
     {item.actualPhoto===false&&<div><p className={styles.note}>Group photo reference - {item.groupPosition||'check the correct card'}. Not published.</p><img src={item.preview} alt="Group photo used for identification only" style={{maxWidth:'100%',maxHeight:400,objectFit:'contain'}}/></div>}
     {item.actualPhoto===false&&<p className={styles.note}>{photoIssue(item)||'Catalogue artwork only: this group photo will not be uploaded or published.'}</p>}
@@ -189,11 +196,11 @@ export default function BatchScanner() {
     <DuplicateCheck name={item.fields.name} number={item.fields.number} set={item.fields.set} language={item.fields.language}/>
     {!item.fields.grading&&item.actualPhoto!==false&&<ConditionSuggestion onBackPhoto={back=>update(item.id,{back,backUpload:undefined,reviewed:false})} key={item.preview} front={item.file} disabled={busy} onBusy={setConditionBusy} onInvalidate={()=>edit(item.id,'condition','')} onConfirm={value=>edit(item.id,'condition',value)}/>}
     {!item.fields.grading&&<CardCondition value={item.fields.condition} onChange={value=>edit(item.id,'condition',value)} disabled={busy}/>}
-    <label className={styles.check}><input type="checkbox" checked={item.reviewed} disabled={!valid(item)} onChange={e=>update(item.id,{reviewed:e.target.checked,status:'review'})}/>I’ve checked the catalogue artwork, card, finish, condition and price</label>
+    <label className={styles.check}><input type="checkbox" checked={item.reviewed} disabled={!valid(item)} onChange={e=>update(item.id,{reviewed:e.target.checked,status:'review'})}/>Approved for publishing</label>
     {!valid(item)&&<p className={styles.note}>Still needed: {missingDetails(item)}.</p>}
    </fieldset></div></details></>}
    {item.status==='publishing'&&<p role="status">Saving this card…</p>}
   </article>)}</div>
-  {items.length>0&&<section className={styles.publish}><h2>Review first. Publish together.</h2><p>{included.length} included cards. Every included card must be checked. Exclude anything you want to leave out.</p><button disabled={busy||!ready} onClick={()=>void publish()}>{publishing?'Saving reviewed cards…':`Publish ${included.length} reviewed card${included.length===1?'':'s'}`}</button><button className={styles.secondary} disabled={busy||!ready} onClick={()=>void publish(false)}>Save reviewed as drafts</button><Link href="/shop">View the shop ↗</Link></section>}
+  {items.length>0&&<section className={styles.publish}><h2>Publish clear matches together.</h2><p>{included.length} included cards. {pending.filter(i=>!i.included).length} skipped. Artwork-matched cards with complete details are approved automatically. Near Mint is the default; change any card that has wear before publishing.</p><button disabled={busy||!ready} onClick={()=>void publish()}>{publishing?'Saving reviewed cards…':`Publish ${included.length} ready card${included.length===1?'':'s'}`}</button><button className={styles.secondary} disabled={busy||!ready} onClick={()=>void publish(false)}>Save ready as drafts</button><Link href="/shop">View the shop ↗</Link></section>}
  </main>;
 }

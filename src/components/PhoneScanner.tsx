@@ -21,7 +21,7 @@ import { completeGrading, type Grading } from '@/lib/card-grading';
 
 type Details = { name: string; number: string; set: string; rarity: string; language: string; holo_type: string; price: string; condition: string; edition: string };
 type Enrichment = { comparisons?:PriceComparison[]; illustrator?:string|null; edition?: string | null; image_url?: string | null; name?: string; matched?: boolean; catalog_id?: string; set?: string; rarity?: string; holo_type?: string | null; notice?: string; candidates?: { id: string; name: string; set: string; number: string; rarity?: string }[]; pricing?: { gbp: string; source: string; updated: string; original: number; currency: string; rate_date: string; url?: string } | null };
-const blank: Details = { name: '', number: '', set: '', rarity: '', language: 'English', holo_type: '', price: '', condition: '', edition: '' };
+const blank: Details = { name: '', number: '', set: '', rarity: '', language: 'English', holo_type: '', price: '', condition: 'Near Mint', edition: '' };
 async function readResponse(response: Response) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || data.message || 'The request failed. Please try again.');
