@@ -1,6 +1,8 @@
 import { isCardEdition } from './card-edition';
 import { isCardCondition } from './card-condition';
 import { readGrading, completeGrading } from './card-grading';
+import {isCardArtwork} from './card-artwork';
+import {listingPhotoIssue} from './listing-photo-policy';
 export function validateListing(input: unknown) {
   if (!input || typeof input !== 'object') throw new Error('Invalid card details.');
   const value = input as Record<string, unknown>;
@@ -31,6 +33,7 @@ export function validateListing(input: unknown) {
     return value;
   }
   if (grading && !photo('front_image_url')) throw new Error('Add a front photograph of the actual slab.');
+  if(value.available){const issue=listingPhotoIssue(value.price as number,!!grading,!!photo('front_image_url'),isCardArtwork(image));if(issue)throw new Error(issue);}
   return { grading, edition: edition || null, condition: grading ? null : condition || null, name, image_url: image, price: value.price as number, available: value.available,
     front_image_url: photo('front_image_url'), back_image_url: photo('back_image_url'),
     number: text('number', 40), set: text('set', 160), rarity: text('rarity', 100),
