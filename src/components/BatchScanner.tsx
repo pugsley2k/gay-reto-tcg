@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { prepareCardPhoto } from '@/lib/card-photo';
+import GroupPhotoScanner from './GroupPhotoScanner';
 import CardCondition from './CardCondition';
 import DuplicateCheck from './DuplicateCheck';
 import ScannerDefaults,{readScannerPreset} from './ScannerDefaults';
@@ -33,6 +34,9 @@ export default function BatchScanner() {
  const [items,setItems]=useState<Item[]>([]);
  const current=useRef<Item[]>([]);
  const [scanning,setScanning]=useState(false);
+ const [groupOpen,setGroupOpen]=useState(false);
+ const [groupBusy,setGroupBusy]=useState(false);
+ const [addingPhotos,setAddingPhotos]=useState(false);
  const [publishing,setPublishing]=useState(false);
  const [notice,setNotice]=useState('');
  const [queueFilter,setQueueFilter]=useState('all');
@@ -71,17 +75,22 @@ export default function BatchScanner() {
   async function worker(){while(index<ids.length){const id=ids[index++];await scanOne(id);}}
   try{await Promise.all([worker(),worker()]);}finally{locked.current=false;setScanning(false);}
  }
- async function addFiles(files:File[]) {
-  if(locked.current||lookupId)return;
-  if(current.current.length+files.length>20){setNotice('Use up to 20 photos per batch. Finish this batch before adding more.');return;}
-  if(files.reduce((n,f)=>n+f.size,0)>100*1024*1024){setNotice('Choose a smaller group: selected photos must total less than 100 MB.');return;}
-  const known=new Set(current.current.map(item=>item.fingerprint));const unique:{file:File;fingerprint:string}[]=[];
-  for(const file of files){const fingerprint=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await file.arrayBuffer()))).map(value=>value.toString(16).padStart(2,'0')).join('');if(!known.has(fingerprint)){known.add(fingerprint);unique.push({file,fingerprint});}}
-  const added=unique.map(({file,fingerprint})=>({id:crypto.randomUUID(),fingerprint,file,preview:'',status:'queued' as const,fields:{...empty},included:true,reviewed:false,error:'',original:'',total:''}));
-  if(!added.length){setNotice('These exact photos are already in this batch.');return;}
-
-  mutate(prev=>[...prev,...added]);void runQueue(added.map(i=>i.id));
+ async function addFiles(files:File[],fingerprints?:string[]):Promise<boolean> {
+  if(locked.current||lookupId||conditionBusy)return false;
+  locked.current=true;setAddingPhotos(true);let queued=false;
+  try{
+   if(!files.length)return false;
+   if(current.current.length+files.length>20){setNotice('Use up to 20 cards per batch. Finish this batch before adding more.');return false;}
+   if(files.reduce((n,f)=>n+f.size,0)>100*1024*1024){setNotice('Choose a smaller group: selected photos must total less than 100 MB.');return false;}
+   const known=new Set(current.current.map(item=>item.fingerprint));const unique:{file:File;fingerprint:string}[]=[];
+   for(const [index,file] of files.entries()){const fingerprint=fingerprints?.[index]||Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await file.arrayBuffer()))).map(value=>value.toString(16).padStart(2,'0')).join('');if(!known.has(fingerprint)){known.add(fingerprint);unique.push({file,fingerprint});}}
+   const added=unique.map(({file,fingerprint})=>({id:crypto.randomUUID(),fingerprint,file,preview:'',status:'queued' as const,fields:{...empty},included:true,reviewed:false,error:'',original:'',total:''}));
+   if(!added.length){setNotice('These exact photos or group crops are already in this batch.');return false;}
+   mutate(prev=>[...prev,...added]);locked.current=false;queued=true;void runQueue(added.map(i=>i.id));return true;
+  }catch{setNotice('Could not prepare these photos. Your existing batch is unchanged.');return false;}
+  finally{if(!queued)locked.current=false;setAddingPhotos(false);}
  }
+
  function edit(id:string,key:Exclude<keyof Fields,'grading'>,value:string) {
   const item=current.current.find(i=>i.id===id);if(!item)return;
   const identity=['name','number','language'].includes(key);
@@ -102,9 +111,9 @@ export default function BatchScanner() {
  const pending=items.filter(i=>i.status!=='published');
  const included=pending.filter(i=>i.included);
  const ready=included.length>0&&included.every(i=>i.reviewed&&valid(i)&&!['queued','scanning'].includes(i.status));
- const busy=scanning||publishing||!!lookupId||conditionBusy;
+ const busy=scanning||publishing||!!lookupId||conditionBusy||groupBusy||addingPhotos;
  async function publish(available=true) {
-  if(locked.current||lookupId||conditionBusy||!ready)return;
+  if(locked.current||lookupId||conditionBusy||groupBusy||addingPhotos||!ready)return;
   const selected=current.current.filter(i=>i.included&&i.status!=='published');
   if(!selected.every(i=>i.reviewed&&valid(i)))return;
   locked.current=true;setPublishing(true);setNotice('');
@@ -128,11 +137,12 @@ export default function BatchScanner() {
  return <main className={styles.page}>
   <header className={styles.header}><Link href="/admin">← Seller studio</Link><span>GAY RETRO / BATCH SCANNER</span></header>
   <p className={styles.eyebrow}>Scan, review and publish</p><h1>Scan multiple cards.<br /><em>Review before publishing.</em></h1>
-  <p className={styles.intro}>Choose up to 20 photos, one card in each. We’ll scan the details, sets, rarities and prices. Review every included card before publishing.</p>
+  <p className={styles.intro}>Add up to 20 cards using individual photos or a group photo. Check group crops first, then review each card’s details, condition and price before publishing.</p>
   <p className={styles.note}>Keep this page open until you finish. This queue stays in this tab and is lost if you reload or close it. Photos go to OpenAI for recognition; your front and any back photos are published with the listing when you save. Matched catalogue artwork is used for listings, with your photo as the fallback.</p>
   <ScannerDefaults/>
   <input ref={photos} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden onChange={e=>{addFiles(Array.from(e.target.files||[]));e.target.value='';}} />
-  <div className={styles.toolbar}><button disabled={busy||items.length>=20} onClick={()=>photos.current?.click()}>{items.length?'Add more photos':'Choose card photos'}</button>{items.length>0&&<button className={styles.secondary} disabled={busy} onClick={clear}>Clear batch</button>}</div>
+  <div className={styles.toolbar}><button disabled={busy||items.length>=20} onClick={()=>photos.current?.click()}>{items.length?'Add more photos':'Choose card photos'}</button><button type="button" className={styles.secondary} disabled={busy} aria-expanded={groupOpen} aria-controls="group-photo-scanner" onClick={()=>setGroupOpen(value=>!value)}>{groupOpen?'Hide group photo tool':'Cards in one photo'}</button>{items.length>0&&<button className={styles.secondary} disabled={busy} onClick={clear}>Clear batch</button>}</div>
+  <div id="group-photo-scanner" hidden={!groupOpen}><GroupPhotoScanner disabled={scanning||publishing||!!lookupId||conditionBusy||addingPhotos} remaining={20-items.length} onFiles={addFiles} onBusy={setGroupBusy}/></div>
   {notice&&<p role="status" className={styles.notice}>{notice}</p>}
   {items.length>0&&<div className={styles.progress} role="status">{scanning?`${items.filter(i=>!['queued','scanning'].includes(i.status)).length} of ${items.length} scanned — two cards at a time`: `${items.filter(i=>i.reviewed&&i.status!=='published').length} reviewed · ${items.filter(i=>i.status==='published'&&!i.savedAsDraft).length} published · ${items.filter(i=>i.savedAsDraft).length} drafts · ${pending.filter(i=>!i.included).length} excluded`}</div>}
   {items.length>0&&<label>Show cards<select value={queueFilter} onChange={event=>setQueueFilter(event.target.value)}><option value="all">All cards</option><option value="review">Needs review</option><option value="ready">Reviewed</option><option value="error">Errors</option></select></label>}
