@@ -12,6 +12,11 @@ test('invalid model coordinates never reach canvas cropping',()=>{
  assert.throws(()=>parseGroupDetection({cards:'not an array'}));
  assert.throws(()=>cropPixelBox({...a,x:1000},3000,2000));
 });
+test('usable perspective corners survive parsing; crossed corners fall back to rectangle',()=>{
+ const corners=[{x:20,y:80},{x:270,y:90},{x:260,y:780},{x:25,y:770}];
+ assert.deepEqual(parseGroupDetection({cards:[{box:a,corners}]}).cards[0].corners,corners);
+ assert.equal(parseGroupDetection({cards:[{box:a,corners:[corners[0],corners[2],corners[1],corners[3]]}]}).cards[0].corners,undefined);
+});
 test('normalised bounds map to original image pixels and keep the last image edge',()=>{
  assert.deepEqual(cropPixelBox({x:0,y:0,width:500,height:1000},3001,2001),{x:0,y:0,width:1501,height:2001});
  assert.deepEqual(cropPixelBox({x:500,y:0,width:500,height:1000},3001,2001),{x:1500,y:0,width:1501,height:2001});
