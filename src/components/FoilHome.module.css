@@ -1,0 +1,113 @@
+/* Home page: a shop first. One real card in foil opens it; the cards for sale follow straight after. */
+.main{--ground:#191b20;--ink:#f0eee7;--mute:#b3b4a9;--accent:var(--brand-accent,#FAEAC4);--hair:rgba(250,234,196,.16);--display:'Barlow Condensed','Arial Narrow',Impact,sans-serif;--body:'Manrope','Helvetica Neue',Arial,sans-serif;--nav:62px;--gutter:5vw;position:relative;isolation:isolate;color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.7;letter-spacing:0;overflow:clip}
+.main *{box-sizing:border-box}
+.main a{color:inherit}
+.stage{position:fixed;inset:0;z-index:0;background:#191b20;pointer-events:none}
+.stage canvas{display:block;width:100%;height:100%;opacity:0;transition:opacity 900ms ease}
+.main[data-foil-state=live] .stage canvas{opacity:1}
+.section,.shop{position:relative;z-index:1}
+
+.eyebrow{margin:0;font:700 12px/1.5 var(--body);letter-spacing:.06em;color:var(--mute)}
+.eyebrow span{color:var(--accent);margin:0 .5em}
+.main h1,.main h2,.main h3{margin:0;font-family:var(--display);font-weight:800;text-wrap:balance}
+.main h1{font-size:clamp(64px,7.4vw,142px);line-height:.84;letter-spacing:-.022em;margin:20px 0 24px}
+.main h1 span{display:block}
+.main h2{font-size:clamp(46px,4.6vw,84px);line-height:.9;letter-spacing:-.018em;margin:12px 0 0}
+.main h2 span{color:var(--accent)}
+/* a narrow band of foil light that crosses the headline as the card turns */
+.sheen,.sheen span{background-repeat:repeat-x;background-size:320% 100%;background-position:var(--sheen,40%) 0;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;padding-bottom:.14em;margin-bottom:-.14em}
+.sheen{background-image:linear-gradient(102deg,var(--ink) 0 44%,#ffd3ec 46.5%,#c8f1ff 49%,#fff2bf 51.5%,var(--ink) 54% 100%)}
+.sheen span{background-image:linear-gradient(102deg,var(--accent) 0 44%,#ff9fd2 46.5%,#9be6ff 49%,#fffbe6 51.5%,var(--accent) 54% 100%)}
+.lede{margin:0;max-width:36ch;font-size:17px;line-height:1.6;color:#d9d0e0}
+.note{margin:0;max-width:44ch;font-size:14px;color:var(--mute)}
+.textLink{display:inline-flex;align-items:center;gap:14px;min-height:44px;padding:0;border:0;border-bottom:1px solid var(--hair);background:none;color:var(--ink);font:700 13px/1 var(--body);text-decoration:none;cursor:pointer;transition:color 160ms,border-color 160ms}
+.textLink span{font-size:18px;color:var(--accent)}
+.textLink:disabled{opacity:.5;cursor:default}
+
+/* hero */
+.hero{min-height:calc(100svh - var(--nav));display:flex;align-items:center;max-width:1480px;margin:0 auto;padding:4svh var(--gutter) 6svh}
+.heroCopy{width:min(52vw,900px)}
+.search{margin-top:28px;max-width:560px}
+.search label{display:block;margin-bottom:8px;font:700 12px/1.4 var(--body);color:var(--mute)}
+.search div{display:flex;gap:8px}
+.search input{flex:1;min-width:0;min-height:54px;padding:0 18px;border:1px solid rgba(250,234,196,.32);border-radius:3px;background:rgba(25,27,32,.72);color:var(--ink);font:500 16px/1 var(--body);-webkit-appearance:none;appearance:none}
+.search input::placeholder{color:#8b7f96}
+.search input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.search button,.add{min-height:54px;padding:0 22px;border:0;border-radius:3px;background:var(--accent);color:var(--brand-on-accent,#191b20);font:800 13px/1 var(--body);cursor:pointer;white-space:nowrap;transition:transform 180ms cubic-bezier(.23,1,.32,1),background 180ms}
+.search button span{margin-left:14px;font-size:18px}
+.search button:active,.add:active{transform:scale(.97)}
+.actions{display:flex;gap:30px;flex-wrap:wrap;margin:18px 0 0}
+
+/* the shop */
+.shop{background:none}
+/* live: the canvas draws the card inside its tile, so the flat image steps aside */
+.main[data-foil-state=live] .art[data-foil-slot]{background:transparent}
+.main[data-foil-state=live] .art[data-foil-slot]>*{opacity:0}
+.band{max-width:1480px;margin:0 auto;padding:9svh var(--gutter) 3svh}
+.bandHead{display:grid;grid-template-columns:1fr 1fr auto;align-items:end;gap:30px;margin-bottom:34px}
+.bandHead .note{padding-bottom:6px}
+.grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:36px 22px}
+.listing{display:flex;flex-direction:column;min-width:0}
+.art{display:grid;place-items:center;aspect-ratio:4/5;padding:9% 16%;border:1px solid rgba(250,234,196,.1);border-radius:4px;background:rgba(39,42,48,.72);transition:border-color 200ms,background 200ms}
+.art img{display:block;width:100%;height:auto;max-height:100%;object-fit:contain;border-radius:4.5%;transition:transform 260ms cubic-bezier(.23,1,.32,1)}
+.set{margin:14px 0 4px;font-size:12px;line-height:1.5;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.listing h3{font:700 24px/1.08 var(--display);letter-spacing:.002em}
+.listing h3 a{text-decoration:none}
+.detail{margin:6px 0 0;font-size:12px;line-height:1.5;color:#cfc5d8}
+.buy{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:auto;padding-top:14px}
+.buy strong{font:700 17px/1 var(--body);color:var(--accent);font-variant-numeric:tabular-nums}
+.add{min-height:44px;padding:0 16px;font-size:12px}
+.add:disabled{background:transparent;color:var(--mute);border:1px solid var(--hair);cursor:default}
+.empty{padding:34px 0;border-block:1px solid var(--hair)}
+.empty p{margin:10px 0 14px;color:var(--mute);max-width:44ch}
+
+.info{min-height:190svh;padding-bottom:10svh}
+.infoCopy{position:sticky;top:var(--nav);width:min(46vw,640px);padding-top:6svh}
+.infoCopy .terms{margin:26px 0 20px}
+.terms{margin:0;border-top:1px solid var(--hair)}
+.terms div{display:grid;grid-template-columns:150px 1fr;gap:18px;padding:13px 0;border-bottom:1px solid var(--hair)}
+.terms dt{font:700 20px/1.2 var(--display);letter-spacing:.005em}
+.terms dd{margin:0;font-size:14px;line-height:1.6;color:#cfc5d8;font-variant-numeric:tabular-nums}
+.links{display:flex;gap:30px;flex-wrap:wrap;margin:24px 0 0}
+
+.gift{max-width:1480px;margin:0 auto;padding:6svh var(--gutter) 0}
+.giftLine{display:flex;flex-wrap:wrap;align-items:center;gap:8px 26px;margin:0;padding:18px 0;border-block:1px solid var(--hair);font-size:15px}
+.giftLine strong{font:800 22px/1 var(--display);letter-spacing:.04em;color:var(--accent);margin-right:6px}
+.footer{max-width:1480px;margin:0 auto;padding:7svh var(--gutter) 26px;display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap;font-size:12px;color:var(--mute)}
+.footer p{margin:0}
+.footer nav{display:flex;flex-wrap:wrap;gap:6px 26px}
+.footer a{display:inline-flex;align-items:center;min-height:44px;color:var(--ink);text-decoration:none}
+
+@media(hover:hover) and (pointer:fine){
+  .search button:hover,.add:hover:not(:disabled){background:var(--brand-accent-hover,#ead6a8);transform:translateY(-2px)}
+  .textLink:hover:not(:disabled),.footer a:hover,.listing h3 a:hover{color:var(--accent);border-color:var(--accent)}
+  .art:hover{border-color:rgba(250,234,196,.32);background:rgba(44,32,54,.8)}
+  .art:hover img{transform:translateY(-6px) rotate(-1.5deg)}
+}
+@media(max-width:1100px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.bandHead{grid-template-columns:1fr auto}.bandHead .note{display:none}}
+/* phones: the card keeps the top of the first screen, the copy and search sit under it */
+@media(max-width:760px){
+  .hero{align-items:flex-end;padding-top:50svh}
+  .main{--gutter:20px;--nav:60px;font-size:14px}
+  .main h1{font-size:13.6vw;margin:12px 0 14px}
+  .main h2{font-size:12.4vw}
+  .lede{font-size:15px}
+  .hero{padding-bottom:3svh}
+  .heroCopy{width:100%}
+  .search{margin-top:18px}
+  .search input,.search button{min-height:50px}
+  .search button{padding:0 16px}
+  .actions{margin-top:10px;gap:22px}
+  .band{padding-top:7svh}
+  .bandHead{margin-bottom:22px;gap:14px}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 12px}
+  .art{padding:8% 12%}
+  .listing h3{font-size:21px}
+  .buy{flex-direction:column;align-items:stretch;gap:10px}
+  .info{min-height:0;padding-top:54svh;padding-bottom:16svh}
+  .infoCopy{position:static;width:auto;padding-top:0}
+  .terms div{grid-template-columns:104px 1fr;gap:12px}
+  .terms dt{font-size:18px}
+  .footer{flex-direction:column-reverse;align-items:flex-start;gap:6px}
+}
+@media(prefers-reduced-motion:reduce){.stage canvas,.art img,.add,.search button{transition:none}}

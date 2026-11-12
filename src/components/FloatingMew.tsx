@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useCart } from './CartProvider';
 import styles from './FloatingMew.module.css';
 import { MEW_CODE } from '@/lib/promo';
 
 export default function FloatingMew() {
+  const pathname = usePathname();
   const root = useRef<HTMLDivElement>(null);
   const bubble = useRef<HTMLButtonElement>(null);
   const { setPromoCode, isReady } = useCart();
@@ -49,6 +51,8 @@ export default function FloatingMew() {
     return () => { observer.disconnect(); motion.removeEventListener('change', updateMotion); document.removeEventListener('visibilitychange', updateVisibility); };
   }, []);
   const running = !paused && !focused && !reduced && visible && !hidden;
+  // The home page has its own stage and its own MEW5 line.
+  if (pathname === '/') return null;
   return <><div ref={root} className={styles.background} data-running={running}>
     <div className={styles.horizontal}><div className={styles.vertical}>
       <button ref={bubble} type="button" disabled={!isReady} className={styles.mewButton} aria-label="Apply MEW5 for 5% off cards in your cart" onClick={applyGift} onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)}>
