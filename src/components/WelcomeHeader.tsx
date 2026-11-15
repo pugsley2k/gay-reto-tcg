@@ -5,7 +5,10 @@ import styles from './WelcomeHeader.module.css';
 export default function WelcomeHeader() {
   return <section className={styles.welcome} aria-labelledby="welcome-heading">
     <div className={styles.copy}>
-      <img className={styles.logo} src="/gay-retro-flat.webp" alt="Gay Retro TCG" width="960" height="324" />
+      <picture>
+        <source media="(prefers-reduced-motion: reduce)" srcSet="/gay-retro-3d-still.webp" />
+        <img className={styles.logo} src="/gay-retro-3d.webp" alt="Gay Retro TCG" width="600" height="214" />
+      </picture>
       <p className={styles.eyebrow}>Welcome to Gay Retro TCG</p>
       <h1 id="welcome-heading">Find your next <span>Pokémon card.</span></h1>
       <p className={styles.description}>Pokémon singles in English, Japanese and Korean.</p>
