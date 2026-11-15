@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import SiteFooter from '@/components/SiteFooter';
 import Link from 'next/link';
-import { shippingOptions, CONTACT_EMAIL, type ShippingMethod } from '@/lib/shipping';
+import { shippingOptions, freePostageGap, FREE_POSTAGE_PENCE, CONTACT_EMAIL, type ShippingMethod } from '@/lib/shipping';
 import { useState, useRef, useEffect } from "react";
 import styles from "../styles/CartPage.module.css";
 import { promoDiscount, MEW_CODE } from '@/lib/promo';
@@ -46,6 +46,7 @@ function CartContents() {
   const options = shippingOptions(totalPrice, cart.length);
   const shipping = options.find(option => option.id === shippingMethod) || options[0];
   const discount = promoDiscount(totalPrice,promoCode).amount;
+  const postageGap = freePostageGap(totalPrice);
   function applyCode() {
     try { const result=promoDiscount(totalPrice,codeInput); setPromoCode(result.code || '');setPromoError(''); }
     catch(error){setPromoError(error instanceof Error?error.message:'Check your gift code.');}
@@ -187,18 +188,23 @@ function CartContents() {
           <p className={styles.summaryLabel}>Subtotal:</p>
           <p className={styles.summaryValue}>£{(totalPrice / 100).toFixed(2)}</p>
         </div>
+        {postageGap !== null && <div className={styles.postageMeter} role="status">
+          <p>{postageGap > 0 ? <>Add <strong>£{(postageGap / 100).toFixed(2)}</strong> more in cards for <strong>free Tracked 48 postage</strong>.</> : <><strong>Free Tracked 48 postage unlocked.</strong> Add as many cards as you like.</>}</p>
+          <div className={styles.postageTrack} aria-hidden="true"><span style={{ width: `${Math.min(100, Math.round(totalPrice / FREE_POSTAGE_PENCE * 100))}%` }} /></div>
+          {postageGap > 0 && <Link href="/shop">Keep browsing ↗</Link>}
+        </div>}
         <fieldset className={styles.deliveryOptions}>
           <legend>UK delivery</legend>
           {options.map(option => <label key={option.id} className={styles.deliveryOption}>
             <input type="radio" name="shipping" value={option.id} checked={shipping?.id === option.id} onChange={() => setShippingMethod(option.id)} />
             <span><strong>{option.label}</strong><small>{option.deliveryAim}</small></span>
-            <b>£{(option.price / 100).toFixed(2)}</b>
+            <b>{option.price ? `£${(option.price / 100).toFixed(2)}` : 'Free'}</b>
           </label>)}
           {totalPrice > 7500 && shipping && <p>Special Delivery is required for orders over £75.</p>}
           {!shipping && <p>Please <a href={`mailto:${CONTACT_EMAIL}`}>email us</a> to arrange delivery for this order.</p>}
         </fieldset>
         <p className={styles.deliveryNote}>Dispatched within 3–5 working days. Postage and packing are included in the delivery charge. Choose a UK address in PayPal.</p>
-        <div className={styles.summaryRow}><p>Delivery:</p><p>{shipping ? `£${(shipping.price / 100).toFixed(2)}` : 'Contact us'}</p></div>
+        <div className={styles.summaryRow}><p>Delivery:</p><p>{shipping ? (shipping.price ? `£${(shipping.price / 100).toFixed(2)}` : 'Free') : 'Contact us'}</p></div>
         {promoCode && <div className={styles.summaryRow}><p>MEW5 saving (5%):</p><p>−£{(discount/100).toFixed(2)}</p></div>}
         <div className={`${styles.summaryRow} ${styles.summaryTotalRow}`}>
           <p className={styles.summaryTotalLabel}>Total:</p>

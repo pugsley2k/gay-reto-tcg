@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { shippingOptions, requireShipping, isUKShippingOrder } from './shipping';
+import { shippingOptions, requireShipping, isUKShippingOrder, freePostageGap, FREE_POSTAGE_PENCE } from './shipping';
 test('tracked services cannot under-cover a higher-value order', () => {
   assert.equal(shippingOptions(7500, 1).length, 3);
   assert.deepEqual(shippingOptions(7501, 1).map(x => x.id), ['special-delivery']);
@@ -20,4 +20,16 @@ test('missing, overseas and multiple shipping addresses cannot be captured', () 
   for (const country_code of ['US', 'JE', 'IM', undefined]) assert.equal(isUKShippingOrder({ purchase_units: [{ shipping: { address: { country_code } } }] }), false);
   assert.equal(isUKShippingOrder({}), false);
   assert.equal(isUKShippingOrder({ purchase_units: [{ shipping: { address: { country_code: 'GB' } } }, {}] }), false);
+});
+test('Tracked 48 is free from the free-postage threshold and other services keep their price', () => {
+  assert.equal(FREE_POSTAGE_PENCE, 3000);
+  assert.equal(requireShipping(2999, 3, 'tracked-48').price, 450);
+  assert.equal(requireShipping(3000, 3, 'tracked-48').price, 0);
+  assert.equal(requireShipping(7500, 3, 'tracked-48').price, 0);
+  assert.equal(requireShipping(3000, 3, 'tracked-24').price, 575);
+  assert.ok(requireShipping(7501, 3, 'special-delivery').price > 0);
+  assert.equal(freePostageGap(0), 3000);
+  assert.equal(freePostageGap(2550), 450);
+  assert.equal(freePostageGap(3000), 0);
+  assert.equal(freePostageGap(7501), null);
 });

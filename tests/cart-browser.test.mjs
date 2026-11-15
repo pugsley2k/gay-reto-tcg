@@ -44,7 +44,7 @@ async function shopper(t,{saved=[one],promo='MEW5',blocked=false,stock,delayScri
 
 test('public page text and navigation render with JavaScript disabled',async t=>{
   const {page}=await shopper(t,{javaScriptEnabled:false});
-  for(const [path,heading] of [['/','Find your next Pokémon card.'],['/shop','Browse cards'],['/delivery','UK delivery'],['/returns','Returns'],['/contact','Contact']]) {
+  for(const [path,heading] of [['/','Pokémon singles, served with pride.'],['/shop','The card shop'],['/delivery','UK delivery'],['/returns','Returns'],['/contact','Contact']]) {
     const response=await page.goto(base+path);assert.equal(response.status(),200);
     assert.equal(await page.getByRole('heading',{level:1,name:heading,exact:true}).count(),1,path);
     assert.ok(await page.getByRole('link',{name:'GAY RETRO TCG Home',exact:true}).isVisible());

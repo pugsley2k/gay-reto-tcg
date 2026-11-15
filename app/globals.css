@@ -3,7 +3,7 @@
    Theme: Retro Arcade Pride
    ============================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Manrope:wght@400;500;600;700;800&family=Press+Start+2P&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Manrope:wght@400;500;600;700;800&family=Lobster&family=Press+Start+2P&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 
 :root {
   --bg-base:       #06060f;
@@ -308,3 +308,19 @@ body{background-color:#191b20!important}
 :root{--brand-accent:#FAEAC4;--brand-accent-hover:#ead6a8;--brand-accent-light:#FAEAC4;--brand-on-accent:#191b20;--brand-accent-ink:#675331}:focus-visible{outline-color:var(--brand-accent-light)}::-webkit-scrollbar-thumb:hover{background:var(--brand-accent)}
 /* Independent ambient layer: page content sits above Mew, not around it. */
 body{isolation:isolate}.site-content{position:relative;z-index:1}.site-content>main{background-color:transparent!important}
+
+/* ── Gay Retro brand kit: the logo's diner-sign palette, shared across pages ── */
+:root{--grt-green:#0f3a24;--grt-green-deep:#0a2a19;--grt-cream:#faeac4;--grt-gold:#e4b74a;--grt-red:#8f1d10;--grt-ink:#191b20}
+.grt-script{font-family:'Lobster','Brush Script MT',cursive;font-weight:400;letter-spacing:0;color:var(--grt-cream);-webkit-text-stroke:.14em var(--grt-green);paint-order:stroke fill;text-shadow:0 .06em 0 #0006}
+.grt-script.on-cream{color:var(--grt-green);-webkit-text-stroke:0;text-shadow:none}
+.grt-tag{display:inline-flex;align-items:center;justify-content:center;background:var(--grt-red);color:var(--grt-cream);border:2px solid var(--grt-gold);border-radius:999px;padding:1px 12px 2px;font:800 19px/1.25 'Barlow Condensed',Impact,sans-serif;letter-spacing:.03em;font-variant-numeric:tabular-nums;box-shadow:0 0 0 2px var(--grt-green-deep);white-space:nowrap}
+.grt-tag.small{font-size:15px;padding:0 9px 1px;border-width:1.5px}
+.grt-wings{display:inline-flex;align-items:center;gap:12px;font:800 11px/1.6 'Manrope',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--grt-gold);margin:0}
+.grt-wings::before,.grt-wings::after{content:'';width:34px;height:11px;flex:none;background:repeating-linear-gradient(180deg,currentColor 0 2px,transparent 2px 4.5px)}
+.grt-wings::before{clip-path:polygon(0 38%,100% 0,100% 100%,0 62%)}.grt-wings::after{clip-path:polygon(0 0,100% 38%,100% 62%,0 100%)}
+.grt-wings.on-cream{color:var(--grt-red)}
+.grt-tilt{position:relative;display:block;border-radius:4.5%;overflow:hidden;transform:perspective(700px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform 260ms cubic-bezier(.23,1,.32,1);will-change:transform}
+.grt-tilt[data-active='true']{transition:transform 70ms linear}
+.grt-foil{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity 220ms;mix-blend-mode:color-dodge;border-radius:inherit;background:radial-gradient(circle at var(--mx,50%) var(--my,50%),#ffffff66 0%,transparent 42%),linear-gradient(115deg,transparent 22%,#ff7ab84d 36%,#ffe27a4d 46%,#7affd64d 56%,#7aa8ff4d 66%,transparent 80%);background-size:100% 100%,220% 220%;background-position:0 0,var(--mx,50%) var(--my,50%)}
+.grt-tilt[data-active='true'] .grt-foil{opacity:.8}
+@media(prefers-reduced-motion:reduce){.grt-tilt{transform:none!important;transition:none}.grt-foil{transition:none}}

@@ -25,7 +25,7 @@ export default function ProductDetail({card}:{card:ProductCard}) {
       {!card.front_image_url&&<p className={styles.note}>Actual-card photos are not available for this listing. <Link href="/contact">Ask us for photos</Link> before buying if you need a closer look.</p>}
       <button className={styles.buy} disabled={!isReady||!card.available||card.id===EXAMPLE_CARD_ID||inCart} onClick={()=>{addToCart({id:card.id,name:card.name,price:card.price,imageUrl:listingArtwork(card),condition:card.condition,edition:card.edition});setAdded(true);}}>{card.id===EXAMPLE_CARD_ID?'Example — not for sale':!card.available?'Sold':!isReady?'Loading cart…':inCart?'In your cart':'Add to cart'}</button>
       {added&&<p role="status">Added to your cart. <Link href="/cart">View cart →</Link></p>}
-      <p className={styles.note}>UK delivery from £4.50. Dispatch within 3–5 working days. The cart selects the delivery options for your order value.</p><nav aria-label="Purchase information"><Link href="/delivery">Delivery</Link><Link href="/returns">Returns</Link><button onClick={share}>{shared?'Link copied':'Copy card link'}</button></nav>
+      <p className={styles.note}>UK delivery £4.50 per order, however many cards — free when your cards total £30 or more. Dispatch within 3–5 working days. The cart selects the delivery options for your order value.</p><nav aria-label="Purchase information"><Link href="/delivery">Delivery</Link><Link href="/returns">Returns</Link><button onClick={share}>{shared?'Link copied':'Copy card link'}</button></nav>
     </section>
   </div>;
 }
