@@ -1,4 +1,6 @@
 export const CONTACT_EMAIL = 'gayretrotcg@gmail.com';
+/** Card subtotal (before gift codes) at which Royal Mail Tracked 48 becomes free. */
+export const FREE_POSTAGE_PENCE = 3000;
 export type ShippingMethod = 'tracked-48' | 'tracked-24' | 'special-delivery';
 export type ShippingQuote = { id: ShippingMethod; label: string; price: number; compensation: number; deliveryAim: string };
 export function shippingOptions(subtotal: number, cardCount: number): ShippingQuote[] {
@@ -13,7 +15,7 @@ export function shippingOptions(subtotal: number, cardCount: number): ShippingQu
   const special: ShippingQuote = { id: 'special-delivery', label: 'Royal Mail Special Delivery', price: specialPrices[band], compensation: cover, deliveryAim: 'Usually next working day after posting; postcode exceptions apply' };
   if (subtotal > 7500) return [special];
   return [
-    { id: 'tracked-48', label: 'Royal Mail Tracked 48', price: 450, compensation: 7500, deliveryAim: 'Usually 2–3 working days after dispatch' },
+    { id: 'tracked-48', label: 'Royal Mail Tracked 48', price: subtotal >= FREE_POSTAGE_PENCE ? 0 : 450, compensation: 7500, deliveryAim: 'Usually 2–3 working days after dispatch' },
     { id: 'tracked-24', label: 'Royal Mail Tracked 24', price: 575, compensation: 7500, deliveryAim: 'Next working day aim after dispatch' },
     special,
   ];
@@ -25,4 +27,9 @@ export function requireShipping(subtotal: number, cardCount: number, method: unk
 }
 export function isUKShippingOrder(order: { purchase_units?: { shipping?: { address?: { country_code?: string } } }[] }) {
   return order.purchase_units?.length === 1 && order.purchase_units[0].shipping?.address?.country_code === 'GB';
+}
+/** Pence still needed for free Tracked 48, or 0 once unlocked. Null when the order is too large for Tracked 48. */
+export function freePostageGap(subtotal: number) {
+  if (!Number.isSafeInteger(subtotal) || subtotal < 0 || subtotal > 7500) return null;
+  return Math.max(0, FREE_POSTAGE_PENCE - subtotal);
 }

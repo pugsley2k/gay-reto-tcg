@@ -7,3 +7,5 @@
 @media(max-width:640px){.copy h1{font-size:46px}.logo{width:215px}.eyebrow{font-size:10px}.description{font-size:13px}.welcome{padding-bottom:8px}}
 @media(prefers-reduced-motion:reduce){.browse{transition:none}.browse:hover{transform:none}}
 .welcome{position:relative;isolation:isolate;padding-bottom:52px}.copy,.deck{position:relative;z-index:1;pointer-events:none}.copy>*,.deck>*{pointer-events:auto}
+
+.copy h1 :global(.grt-script){font-size:.86em;line-height:1.15;padding:.08em 0 .12em;color:var(--grt-cream)}.eyebrow:global(.grt-wings){display:flex;justify-content:flex-start}.eyebrow:global(.grt-wings)::before{display:none}.description{max-width:380px}
