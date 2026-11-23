@@ -135,7 +135,7 @@ export default function PhoneScanner() {
     <ScannerDefaults/>
     <input ref={camera} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className={styles.hidden} onChange={e => { void scan(e.target.files?.[0]); e.target.value = ''; }} />
     <input ref={gallery} type="file" accept="image/jpeg,image/png,image/webp" className={styles.hidden} onChange={e => { void scan(e.target.files?.[0]); e.target.value = ''; }} />
-    {stage === 'saved' ? <section className={styles.success} aria-live="polite"><span>✓</span><h2>{published ? 'Your card is in the shop.' : 'Draft saved.'}</h2><p>{details.name} · £{Number(details.price).toFixed(2)}</p><button onClick={reset}>Scan another card ↗</button><Link href={published ? '/shop' : '/admin'}>{published ? 'View the shop' : 'Manage your cards'}</Link></section> : <div className={styles.workspace}>
+    {stage === 'saved' ? <section className={styles.success} aria-live="polite"><span>✓</span><h2>{published ? 'Your card is in the shop.' : 'Draft saved.'}</h2><p>{details.name} · £{Number(details.price).toFixed(2)}</p><button onClick={reset}>Scan another card ↗</button><Link href={published ? '/#shop' : '/admin'}>{published ? 'View the shop' : 'Manage your cards'}</Link></section> : <div className={styles.workspace}>
       <section className={styles.capture}>
         {preview ? <img src={preview} alt="Your card photograph for review" /> : <div className={styles.frame}><span aria-hidden="true">＋</span><p>One card. All four corners.<br />Good light, no glare.</p></div>}
         <button type="button" disabled={busy} onClick={() => camera.current?.click()}>{stage === 'scanning' ? 'Reading your card…' : file ? 'Retake photo' : 'Take a photo ↗'}</button>

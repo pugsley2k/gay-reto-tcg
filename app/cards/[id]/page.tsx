@@ -20,5 +20,5 @@ export async function generateMetadata({params}:{params:Promise<{id:string}>}) {
 }
 export default async function CardPage({params}:{params:Promise<{id:string}>}) {
   const card=await getCard((await params).id);
-  return <main id="main-content" className={styles.page}><Link href="/shop" style={{color:'#faeac4'}}>← Browse cards</Link><ProductDetail card={card}/><SiteFooter/></main>;
+  return <main id="main-content" className={styles.page}><Link href="/#shop" style={{color:'#faeac4'}}>← Browse cards</Link><ProductDetail card={card}/><SiteFooter/></main>;
 }

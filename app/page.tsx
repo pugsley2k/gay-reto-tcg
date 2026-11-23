@@ -7,6 +7,7 @@ import SiteFooter from '@/components/SiteFooter';
 import styles from './styles/HomePage.module.css';
 import { pageMetadata } from '@/lib/page-metadata';
 import {listingArtwork} from '@/lib/card-artwork';
+import ShopCatalogue from '@/components/ShopCatalogue';
 export const generateMetadata = () => pageMetadata('/');
 export const dynamic = 'force-dynamic';
 async function getArrivals() {
@@ -14,7 +15,7 @@ async function getArrivals() {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return { cards: [], failed: true };
   try {
-    const { data, error } = await createClient(url, key).from('Card').select('id,name,image_url,price,set,language').eq('available', true).not('image_url', 'is', null).order('createdAt', { ascending: false }).limit(12);
+    const { data, error } = await createClient(url, key).from('Card').select('id,name,image_url,front_image_url,price,set,language').eq('available', true).or('image_url.not.is.null,front_image_url.not.is.null').order('createdAt', { ascending: false }).limit(12);
     return { cards: (data ?? []).map(card=>({...card,image_url:listingArtwork(card)})), failed: !!error };
   } catch { return { cards: [], failed: true }; }
 }
@@ -24,13 +25,14 @@ export default async function HomePage() {
     <div className={styles.hero}><WelcomeHeader /></div>
     <ListingBanner cards={cards} failed={failed} />
     <section id="latest-cards" className={styles.arrivals}>
-      <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>THE COLLECTION</p><h2>Latest <span>cards</span></h2></div><p>Recently added to the shop.</p><Link href="/shop" className={styles.textLink}>All cards <span aria-hidden="true">↗</span></Link></div>
+      <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>THE COLLECTION</p><h2>Latest <span>cards</span></h2></div><p>Recently added to the shop.</p><a href="#shop" className={styles.textLink}>All cards <span aria-hidden="true">↓</span></a></div>
       {cards.length ? <div className={styles.grid}>{cards.slice(0, 4).map((card,index) => <Link key={card.id} href={`/cards/${encodeURIComponent(card.id)}`} className={styles.product}>
         <div className={styles.cardImage}><span className={styles.cardIndex}>GR / 00{index+1}</span><span className={styles.cardArtwork}><Image src={card.image_url} alt={card.name} fill sizes="(max-width: 640px) 45vw, 260px" /></span></div>
         <p className={styles.cardSet}>{card.set || 'Pokémon TCG'} / {card.language || 'English'}</p>
         <div className={styles.cardTitle}><h3>{card.name}</h3><span>£{(card.price / 100).toFixed(2)}</span></div>
-      </Link>)}</div> : <div className={styles.empty}><div className={styles.emptyCard} aria-hidden="true"><span>GR</span><small>POKÉMON TCG</small></div><div><p className={styles.eyebrow}>THE COLLECTION</p><h3>{failed ? 'Unable to load cards' : 'No cards listed yet'}</h3><p>{failed ? 'We couldn’t load the collection. Try the shop again in a moment.' : 'No cards are listed right now. Check back for the next arrivals.'}</p><Link href="/shop" className={styles.textLink}>Browse the shop ↗</Link></div></div>}
+      </Link>)}</div> : <div className={styles.empty}><div className={styles.emptyCard} aria-hidden="true"><span>GR</span><small>POKÉMON TCG</small></div><div><p className={styles.eyebrow}>THE COLLECTION</p><h3>{failed ? 'Unable to load cards' : 'No cards listed yet'}</h3><p>{failed ? 'We couldn’t load the collection. Try the shop again in a moment.' : 'No cards are listed right now. Check back for the next arrivals.'}</p><a href="#shop" className={styles.textLink}>Browse the shop ↓</a></div></div>}
     </section>
+    <ShopCatalogue />
     <div className={styles.footer}><SiteFooter /></div>
   </main>;
 }
