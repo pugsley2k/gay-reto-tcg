@@ -17,7 +17,7 @@ export default function CartPage() {
     <h1 className={styles.pageTitle}>Your cart</h1>
     <p role="status">Loading your saved cart…</p>
     <noscript>Enable JavaScript to use the cart and checkout.</noscript>
-    <p><Link href="/shop">Browse cards</Link></p>
+    <p><Link href="/#shop">Browse cards</Link></p>
     <SiteFooter />
   </main>;
   return <CartContents />;
@@ -119,7 +119,7 @@ function CartContents() {
           <p className={styles.emptyCartText}>Browse the shop to add cards to your cart.</p>
           {promoCode && <p className={styles.emptyCartText} role="status">MEW5 applied — 5% off cards when you add them. Delivery excluded. <button type="button" onClick={()=>setPromoCode('')}>Remove code</button></p>}
           <button
-            onClick={() => router.push("/shop")}
+            onClick={() => router.push("/#shop")}
             className={styles.goToShopButton}
           >
             Browse cards

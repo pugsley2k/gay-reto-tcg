@@ -201,6 +201,6 @@ export default function BatchScanner() {
    </fieldset></div></details></>}
    {item.status==='publishing'&&<p role="status">Saving this card…</p>}
   </article>)}</div>
-  {items.length>0&&<section className={styles.publish}><h2>Publish clear matches together.</h2><p>{included.length} included cards. {pending.filter(i=>!i.included).length} skipped. Artwork-matched cards with complete details are approved automatically. Near Mint is the default; change any card that has wear before publishing.</p><button disabled={busy||!ready} onClick={()=>void publish()}>{publishing?'Saving reviewed cards…':`Publish ${included.length} ready card${included.length===1?'':'s'}`}</button><button className={styles.secondary} disabled={busy||!ready} onClick={()=>void publish(false)}>Save ready as drafts</button><Link href="/shop">View the shop ↗</Link></section>}
+  {items.length>0&&<section className={styles.publish}><h2>Publish clear matches together.</h2><p>{included.length} included cards. {pending.filter(i=>!i.included).length} skipped. Artwork-matched cards with complete details are approved automatically. Near Mint is the default; change any card that has wear before publishing.</p><button disabled={busy||!ready} onClick={()=>void publish()}>{publishing?'Saving reviewed cards…':`Publish ${included.length} ready card${included.length===1?'':'s'}`}</button><button className={styles.secondary} disabled={busy||!ready} onClick={()=>void publish(false)}>Save ready as drafts</button><Link href="/#shop">View the shop ↗</Link></section>}
  </main>;
 }

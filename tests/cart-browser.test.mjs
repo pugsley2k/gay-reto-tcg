@@ -44,10 +44,11 @@ async function shopper(t,{saved=[one],promo='MEW5',blocked=false,stock,delayScri
 
 test('public page text and navigation render with JavaScript disabled',async t=>{
   const {page}=await shopper(t,{javaScriptEnabled:false});
-  for(const [path,heading] of [['/','Find your next Pokémon card.'],['/shop','Browse cards'],['/delivery','UK delivery'],['/returns','Returns'],['/contact','Contact']]) {
+  for(const [path,heading] of [['/','Find your next Pokémon card.'],['/delivery','UK delivery'],['/returns','Returns'],['/contact','Contact']]) {
     const response=await page.goto(base+path);assert.equal(response.status(),200);
     assert.equal(await page.getByRole('heading',{level:1,name:heading,exact:true}).count(),1,path);
     assert.ok(await page.getByRole('link',{name:'GAY RETRO TCG Home',exact:true}).isVisible());
+    if(path==='/')assert.equal(await page.getByRole('heading',{level:2,name:'Browse cards',exact:true}).count(),1,'shop section on home');
     if(path==='/'&&process.env.CART_TEST_SCREENSHOT)await page.screenshot({path:process.env.CART_TEST_SCREENSHOT,fullPage:false});
   }
   await page.goto(base+'/cart');assert.ok(await page.locator('noscript').isVisible());
@@ -90,7 +91,7 @@ test('remove and checkout retry preserve the selected items, promotion and reque
 test('a delayed stock response removes sold saved cards but keeps newly added cards',async t=>{
   let release;const ready=new Promise(resolve=>{release=resolve;});
   const {page}=await shopper(t,{stock:async route=>{await ready;await route.fulfill({json:[{id:one.id,available:false}]});}});
-  await page.goto(base+'/shop');await page.locator('article').filter({hasText:two.name}).getByRole('button',{name:'Add to cart',exact:true}).click();
+  await page.goto(base+'/#shop');await page.locator('article').filter({hasText:two.name}).getByRole('button',{name:'Add to cart',exact:true}).click();
   release();await page.waitForFunction(()=>JSON.parse(localStorage.getItem('cart')).length===1&&JSON.parse(localStorage.getItem('cart'))[0].id.endsWith('0002'));
   await page.getByRole('link',{name:'View cart →',exact:true}).click();await page.waitForURL(base+'/cart');await page.getByRole('link',{name:two.name,exact:true}).waitFor();
   assert.equal(await page.getByRole('link',{name:one.name,exact:true}).count(),0);
@@ -103,7 +104,7 @@ test('stock lookup failure keeps a restored cart available for server validation
 });
 
 test('blocked browser storage still allows adding a card and submitting checkout in memory',async t=>{
-  const {page,checkout}=await shopper(t,{blocked:true});await page.goto(base+'/shop');
+  const {page,checkout}=await shopper(t,{blocked:true});await page.goto(base+'/#shop');
   await page.locator('article').filter({hasText:two.name}).getByRole('button',{name:'Add to cart',exact:true}).click();
   await page.getByRole('link',{name:'View cart →',exact:true}).click();await page.getByRole('link',{name:two.name,exact:true}).waitFor();
   await page.getByRole('button',{name:'Checkout with PayPal'}).click();await page.getByRole('alert').filter({hasText:'Test checkout retry'}).waitFor();

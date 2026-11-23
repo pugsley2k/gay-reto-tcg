@@ -75,7 +75,7 @@ function SuccessContent() {
           <p className={styles.errorIcon}>✕</p>
           <h1 className={styles.errorTitle}>ORDER ERROR</h1>
           <p className={styles.bodyText}>{error}</p>
-          <Link href="/shop" className={styles.ctaBtn}>Return to Shop</Link>
+          <Link href="/#shop" className={styles.ctaBtn}>Return to Shop</Link>
         </div>
       </div>
     );
@@ -92,7 +92,7 @@ function SuccessContent() {
         {payerId && (
           <p className={styles.metaText}>Payer ID: <code className={styles.code}>{payerId}</code></p>
         )}
-        <Link href="/shop" className={styles.ctaBtn}>Continue Shopping</Link>
+        <Link href="/#shop" className={styles.ctaBtn}>Continue Shopping</Link>
         <p className={styles.bodyText}>Questions? <a href="mailto:gayretrotcg@gmail.com">gayretrotcg@gmail.com</a></p>
       </div>
       <div className={styles.rainbowBar} aria-hidden="true" />

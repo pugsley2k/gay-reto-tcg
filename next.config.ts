@@ -4,6 +4,8 @@ const nextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'assets.tcgdex.net', port: '', pathname: '/**' },
+      // photos of the actual cards, used when a listing has no catalogue artwork
+      { protocol: 'https', hostname: 'htgchoxjicmmyyeeedag.supabase.co', port: '', pathname: '/storage/v1/object/public/card-photos/**' },
       {
         protocol: 'https',
         hostname: 'storage.googleapis.com',
